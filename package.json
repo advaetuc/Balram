@@ -9,6 +9,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@turf/area": "^7.4.0",
+    "@turf/center-of-mass": "^7.4.0",
+    "@turf/helpers": "^7.4.0",
     "idb": "^8.0.3",
     "next": "^15.5.0",
     "react": "^19.0.0",

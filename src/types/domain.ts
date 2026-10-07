@@ -96,7 +96,10 @@ export const CropAllocationSchema = z.object({
 export interface CropAllocation extends z.infer<typeof CropAllocationSchema> {}
 
 export const CropAllocationsSchema = z.array(CropAllocationSchema).max(50).superRefine((items, ctx) => {
-  if (items.length && Math.abs(items.reduce((sum, item) => sum + item.percentage, 0) - 100) > 1e-6) {
+  if (items.some((item) => Math.abs(item.percentage * 100 - Math.round(item.percentage * 100)) > 1e-8)) {
+    ctx.addIssue({ code: "custom", message: "Crop percentages support at most two decimal places." });
+  }
+  if (items.length && items.reduce((sum, item) => sum + Math.round(item.percentage * 100), 0) !== 10_000) {
     ctx.addIssue({ code: "custom", message: "Crop allocations must total 100%." });
   }
   if (new Set(items.map((item) => item.cropId)).size !== items.length) {
