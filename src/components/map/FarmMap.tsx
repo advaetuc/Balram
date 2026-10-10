@@ -59,13 +59,21 @@ export default function FarmMap() {
   const state = useBalramStore((value) => value);
   const [error, setError] = useState<string | null>(null);
   const [tileError, setTileError] = useState(false);
+  const [tilesEnabled, setTilesEnabled] = useState(false);
   const renderer = useMemo(() => L.canvas(), []);
   const tileEvents = useMemo(() => ({ tileerror: () => setTileError(true), load: () => undefined }), []);
   return <div>
+    <div className="mb-3">
+      <button className="button-secondary" disabled={state.connection !== "online" && !tilesEnabled}
+        onClick={() => { setTilesEnabled((enabled) => !enabled); setTileError(false); }}>
+        {tilesEnabled ? "Hide online map" : "Load online map"}
+      </button>
+      <p className="mt-2 text-xs leading-6">Loading the map shares visible tile locations with OpenStreetMap. Drawing works without tiles.</p>
+    </div>
     <div className="relative isolate overflow-hidden rounded-xl border border-forest/20">
       <MapContainer center={[18.5204, 73.8567]} zoom={11} renderer={renderer} preferCanvas
         scrollWheelZoom={false} className="h-[420px] w-full bg-stone-100" aria-label="Field boundary map">
-        {state.connection === "online" && <TileLayer url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+        {tilesEnabled && state.connection === "online" && <TileLayer url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>'
           keepBuffer={0} updateWhenIdle updateWhenZooming={false} maxZoom={19} eventHandlers={tileEvents} />}
         <EditableBoundary onError={setError} />

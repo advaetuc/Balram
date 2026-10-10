@@ -1,4 +1,7 @@
 export const ENABLE_MARKET = false;
+export const SOILGRIDS_EXPERIMENTAL = true;
+// Enable only after live validation and a policy-compliant shared request authority.
+export const ENABLE_SOILGRIDS = false;
 export const INDIA_TIMEZONE = "Asia/Kolkata";
 export const PROVIDERS = {
   weather: {
@@ -12,6 +15,7 @@ export const PROVIDERS = {
     attribution: "© OpenStreetMap contributors (ODbL)", ttlMs: 24 * 60 * 60_000,
   },
   soil: {
+    experimental: SOILGRIDS_EXPERIMENTAL, enabled: ENABLE_SOILGRIDS,
     id: "soilgrids", name: "ISRIC SoilGrids", url: "https://soilgrids.org/",
     endpoint: "https://rest.isric.org/soilgrids/v2.0/properties/query", provenance: "modelled",
     attribution: "ISRIC SoilGrids (CC BY 4.0)", ttlMs: 30 * 24 * 60 * 60_000,
@@ -32,7 +36,7 @@ export const PROVIDER_LIMITS = { nominatim: 1_100, soilgrids: 12_100 } as const;
 
 /** Public-service rate limits require one authoritative process, not per-instance counters. */
 export function hasSingleProviderAuthority(): boolean {
-  if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.K_SERVICE) return false;
+  if (process.env.NEXT_RUNTIME === "edge" || process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.K_SERVICE) return false;
   return process.env.NODE_ENV !== "production" || process.env.BALRAM_SINGLE_PROCESS === "true";
 }
 

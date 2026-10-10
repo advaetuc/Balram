@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { z } from "zod";
 import { COORDINATE_DECIMALS, hasSingleProviderAuthority, PROVIDER_LIMITS, type ProviderName } from "@/config/providers";
 import { CoordinateSchema, type Coordinate } from "@/types/domain";
@@ -43,7 +42,9 @@ export async function acquireProviderSlot(provider: keyof typeof PROVIDER_LIMITS
 export async function cachedRequest<T>(provider: ProviderName, parameters: unknown, signal: AbortSignal | undefined,
   load: (signal: AbortSignal) => Promise<ApiSuccess<T>>): Promise<ApiSuccess<T>> {
   throwIfAborted(signal);
-  const key = createHash("sha256").update(JSON.stringify([provider, parameters])).digest("hex");
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(JSON.stringify([provider, parameters])));
+  const key = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+  throwIfAborted(signal);
   const hit = authority.cache.get(key);
   if (hit && Date.parse(hit.expiresAt) > Date.now()) return structuredClone({ ...hit, cached: true }) as ApiSuccess<T>;
   authority.cache.delete(key);
@@ -70,7 +71,11 @@ export async function cachedRequest<T>(provider: ProviderName, parameters: unkno
   }
 }
 
-const privateHeaders = { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" };
+// Responses may contain field IDs/centers. Never use public SWR or CDN storage here.
+const privateHeaders = {
+  "Cache-Control": "private, no-store, max-age=0", "CDN-Cache-Control": "no-store",
+  "Vercel-CDN-Cache-Control": "no-store", "X-Content-Type-Options": "nosniff",
+};
 
 export function errorResponse(provider: ProviderName, error: unknown): Response {
   const failure = error instanceof ApiError ? error : error instanceof z.ZodError

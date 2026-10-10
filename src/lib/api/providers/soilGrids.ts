@@ -1,8 +1,8 @@
 import { z } from "zod";
-import { PROVIDERS, SOIL_DEPTH, SOIL_PROPERTIES } from "@/config/providers";
+import { ENABLE_SOILGRIDS, PROVIDERS, SOIL_DEPTH, SOIL_PROPERTIES } from "@/config/providers";
 import { CoordinateSchema } from "@/types/domain";
 import { success } from "@/types/api";
-import { fetchJson } from "../http";
+import { ApiError, fetchJson } from "../http";
 import { acquireProviderSlot, cachedRequest, LocationInputSchema, queryCoordinate } from "../server";
 
 export const SoilGridsResponseSchema = z.object({
@@ -24,6 +24,7 @@ export const SoilInputSchema = LocationInputSchema.extend({ intent: z.literal("s
 
 /** Optional contextual mineral fractions only; never used as irrigation/moisture measurements. */
 export async function getSoilProperties(input: z.infer<typeof SoilInputSchema>, signal?: AbortSignal) {
+  if (!ENABLE_SOILGRIDS) throw new ApiError("DISABLED", "Experimental SoilGrids lookups are disabled pending live contract validation.", 503);
   const params = SoilInputSchema.parse(input);
   const coordinate = queryCoordinate(params);
   return cachedRequest("soil", coordinate, signal, async (sharedSignal) => {

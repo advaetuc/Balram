@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { Header } from "@/components/app-shell/Header";
+import { PrivacyNotice } from "@/components/app-shell/PrivacyNotice";
+import { OfflineSupport } from "@/components/app-shell/OfflineSupport";
 import "./globals.css";
 import "leaflet/dist/leaflet.css";
 import "leaflet-draw/dist/leaflet.draw.css";
@@ -9,6 +11,8 @@ export const metadata: Metadata = {
   title: { default: "Balram | Farm planning", template: "%s | Balram" },
   description: "Local-first farm planning for Maharashtra. Keep field, crop and irrigation inputs in your browser.",
   icons: { icon: "/icon.svg" },
+  manifest: "/manifest.json",
+  appleWebApp: { capable: true, title: "Balram", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {
@@ -28,6 +32,8 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
         </main>
         <footer className="border-t border-forest/15 px-4 py-6 text-sm sm:px-6">
           <p className="mx-auto max-w-7xl">Balram · Maharashtra farm planning. Saved data retains its original dates and sources.</p>
+          <OfflineSupport />
+          <PrivacyNotice />
         </footer>
       </body>
     </html>
