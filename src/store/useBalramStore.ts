@@ -7,12 +7,12 @@ import { createIndexedDBStorage, type StorageStatus } from "@/lib/storage/db";
 import { createEmptyFixture, createSampleFixture } from "@/mocks/fixtures";
 import {
   CropAllocationsSchema, FarmProfileSchema, FieldGeometrySchema,
-  IrrigationSetupSchema, PersistedFarmSchema, WeatherSnapshotSchema,
+  IrrigationSetupSchema, PersistedFarmSchema, WeatherSnapshotSchema, SoilSnapshotSchema, type SoilSnapshot,
   type CropAllocation, type DataSourceStatus, type FarmProfile,
   type FieldGeometry, type IrrigationSetup, type PersistedFarm, type WeatherSnapshot,
 } from "@/types/domain";
 
-export const PERSISTENCE_VERSION = 1;
+export const PERSISTENCE_VERSION = 2;
 export const STORAGE_KEY = "balram:farm";
 
 export interface WeatherRequest {
@@ -30,6 +30,8 @@ export interface BalramState extends PersistedFarm {
   weatherStatus: DataSourceStatus;
   weatherCached: boolean;
   weatherStale: boolean;
+  soilStatus: DataSourceStatus;
+  now: number | null;
   setFarmProfile(profile: FarmProfile): void;
   setFieldGeometry(geometry: FieldGeometry | null): void;
   setCropAllocations(allocations: CropAllocation[]): void;
@@ -37,14 +39,18 @@ export interface BalramState extends PersistedFarm {
   resetDerivedForFieldChange(): void;
   setSampleData(active: boolean): void;
   beginWeatherRequest(): WeatherRequest;
-  commitWeatherRequest(request: WeatherRequest, snapshot: WeatherSnapshot): boolean;
-  failWeatherRequest(request: WeatherRequest): boolean;
+  commitWeatherRequest(request: WeatherRequest, snapshot: WeatherSnapshot, cached?: boolean): boolean;
+  failWeatherRequest(request: WeatherRequest, message?: string): boolean;
+  beginSoilRequest(): WeatherRequest;
+  commitSoilRequest(request: WeatherRequest, snapshot: SoilSnapshot): boolean;
+  failSoilRequest(request: WeatherRequest, message: string): boolean;
 }
 
 const idleWeather = (): DataSourceStatus => ({
   provider: "weather", state: "idle", provenance: "unavailable",
   requestId: null, updatedAt: null, error: null,
 });
+const idleSoil = (): DataSourceStatus => ({ ...idleWeather(), provider: "soil" });
 
 export function isWeatherStale(snapshot: WeatherSnapshot, now: number): boolean {
   return now >= Date.parse(snapshot.expiresAt) || now >= Date.parse(snapshot.validTo) ||
@@ -64,6 +70,7 @@ function persistedSlice(state: BalramState): PersistedFarm {
     farmProfile: state.farmProfile, fieldGeometry: state.fieldGeometry,
     cropAllocations: state.cropAllocations, irrigationSetup: state.irrigationSetup,
     weatherSnapshot: state.weatherSnapshot, sampleDataActive: state.sampleDataActive,
+    soilSnapshot: state.soilSnapshot, planningUpdatedAt: state.planningUpdatedAt,
   };
 }
 
@@ -76,6 +83,7 @@ export function createBalramStore() {
   let generation = 0;
   let sequence = 0;
   let active: { request: WeatherRequest; controller: AbortController } | null = null;
+  let activeSoil: { request: WeatherRequest; controller: AbortController } | null = null;
 
   const storage = createJSONStorage<PersistedFarm>(() => ({
     getItem: async (name) => {
@@ -105,28 +113,35 @@ export function createBalramStore() {
     const invalidate = (patch: Partial<PersistedFarm> = {}) => {
       requireReady();
       const previous = active;
+      const previousSoil = activeSoil;
       active = null;
+      activeSoil = null;
       generation++;
-      set({ ...patch, weatherSnapshot: null, weatherStatus: idleWeather(), weatherCached: false, weatherStale: false });
+      set({ ...patch, weatherSnapshot: null, weatherStatus: idleWeather(), weatherCached: false, weatherStale: false,
+        soilSnapshot: null, soilStatus: idleSoil(), planningUpdatedAt: new Date().toISOString() });
       previous?.controller.abort();
+      previousSoil?.controller.abort();
     };
     const isCurrent = (request: WeatherRequest) => active?.request === request &&
       !request.signal.aborted && request.generation === generation &&
       request.fieldKey === JSON.stringify(get().fieldGeometry);
+    const isCurrentSoil = (request: WeatherRequest) => activeSoil?.request === request &&
+      !request.signal.aborted && request.generation === generation && request.fieldKey === JSON.stringify(get().fieldGeometry);
 
     return {
       ...createEmptyFixture(), hydrated: false, hydrationError: null,
       storageStatus: disk.getStatus(), connection: "unknown", weatherStatus: idleWeather(), weatherCached: false, weatherStale: false,
-      setFarmProfile: (profile) => { requireReady(); set({ farmProfile: FarmProfileSchema.parse(profile) }); },
+      soilStatus: idleSoil(), now: null,
+      setFarmProfile: (profile) => { requireReady(); set({ farmProfile: FarmProfileSchema.parse(profile), planningUpdatedAt: new Date().toISOString() }); },
       setFieldGeometry: (geometry) => {
         requireReady();
         const next = geometry === null ? null : FieldGeometrySchema.parse(geometry);
         if (JSON.stringify(next) !== JSON.stringify(get().fieldGeometry)) invalidate({ fieldGeometry: next });
       },
-      setCropAllocations: (allocations) => { requireReady(); set({ cropAllocations: CropAllocationsSchema.parse(allocations) }); },
+      setCropAllocations: (allocations) => { requireReady(); set({ cropAllocations: CropAllocationsSchema.parse(allocations), planningUpdatedAt: new Date().toISOString() }); },
       setIrrigationSetup: (setup) => {
         requireReady();
-        set({ irrigationSetup: setup === null ? null : IrrigationSetupSchema.parse(setup) });
+        set({ irrigationSetup: setup === null ? null : IrrigationSetupSchema.parse(setup), planningUpdatedAt: new Date().toISOString() });
       },
       resetDerivedForFieldChange: () => invalidate(),
       setSampleData: (enabled) => {
@@ -138,11 +153,14 @@ export function createBalramStore() {
         }
         const next = enabled ? createSampleFixture() : createEmptyFixture();
         const previous = active;
+        const previousSoil = activeSoil;
         active = null;
+        activeSoil = null;
         generation++;
-        set({ ...next, weatherStatus: statusFor(next.weatherSnapshot), weatherCached: false,
+        set({ ...next, soilStatus: idleSoil(), weatherStatus: statusFor(next.weatherSnapshot), weatherCached: false,
           weatherStale: !!next.weatherSnapshot && isWeatherStale(next.weatherSnapshot, Date.now()) });
         previous?.controller.abort();
+        previousSoil?.controller.abort();
       },
       beginWeatherRequest: () => {
         requireReady();
@@ -160,24 +178,53 @@ export function createBalramStore() {
         previous?.controller.abort();
         return request;
       },
-      commitWeatherRequest: (request, input) => {
+      commitWeatherRequest: (request, input, cached = false) => {
         requireReady();
         if (!isCurrent(request)) return false;
         const snapshot = WeatherSnapshotSchema.parse(input);
         const validated = PersistedFarmSchema.parse({ ...persistedSlice(get()), weatherSnapshot: snapshot });
         active = null;
-        set({ weatherSnapshot: validated.weatherSnapshot, weatherStatus: statusFor(snapshot), weatherCached: false,
+        set({ weatherSnapshot: validated.weatherSnapshot, weatherStatus: statusFor(snapshot), weatherCached: cached,
           weatherStale: isWeatherStale(snapshot, Date.now()) });
         return true;
       },
-      failWeatherRequest: (request) => {
+      failWeatherRequest: (request, message) => {
         requireReady();
         if (!isCurrent(request)) return false;
         active = null;
         set({ weatherStatus: {
           ...get().weatherStatus, state: "error", requestId: null,
-          error: "Weather is unavailable. Any saved values retain their original dates.",
+          error: message?.slice(0, 300) || "Weather is unavailable. Any saved values retain their original dates.",
         } });
+        return true;
+      },
+      beginSoilRequest: () => {
+        requireReady();
+        if (!get().fieldGeometry || get().sampleDataActive) throw new Error("Select a real field before requesting soil data.");
+        const previous = activeSoil;
+        const controller = new AbortController();
+        const request: WeatherRequest = { id: `soil-${generation}-${++sequence}`, generation,
+          fieldKey: JSON.stringify(get().fieldGeometry), signal: controller.signal };
+        activeSoil = { request, controller };
+        set({ soilStatus: { ...get().soilStatus, state: "loading", requestId: request.id, error: null } });
+        previous?.controller.abort();
+        return request;
+      },
+      commitSoilRequest: (request, input) => {
+        requireReady();
+        if (!isCurrentSoil(request)) return false;
+        const snapshot = SoilSnapshotSchema.parse(input);
+        PersistedFarmSchema.parse({ ...persistedSlice(get()), soilSnapshot: snapshot });
+        activeSoil = null;
+        set({ soilSnapshot: snapshot, soilStatus: { provider: "soil", state: "success", provenance: "modelled",
+          requestId: null, updatedAt: snapshot.fetchedAt, error: null } });
+        return true;
+      },
+      failSoilRequest: (request, message) => {
+        requireReady();
+        if (!isCurrentSoil(request)) return false;
+        activeSoil = null;
+        set({ soilStatus: { ...get().soilStatus, state: "error", requestId: null, error: message.slice(0, 300) } });
         return true;
       },
     };
@@ -189,13 +236,14 @@ export function createBalramStore() {
     partialize: persistedSlice,
     // Accept unversioned inputs only when they validate against the current contract.
     migrate: (saved, version) => {
-      if (version !== 0 || !saved || typeof saved !== "object") throw new Error("Unsupported saved data version.");
+      if (![0, 1].includes(version) || !saved || typeof saved !== "object") throw new Error("Unsupported saved data version.");
       return PersistedFarmSchema.parse({ sampleDataActive: false, ...saved });
     },
     merge: (saved, current) => {
       if (saved === undefined) return current;
       const data = PersistedFarmSchema.parse(saved);
       return { ...current, ...data, weatherStatus: statusFor(data.weatherSnapshot), weatherCached: !!data.weatherSnapshot,
+        soilStatus: data.soilSnapshot ? { ...idleSoil(), state: "success", provenance: "modelled", updatedAt: data.soilSnapshot.fetchedAt } : idleSoil(),
         weatherStale: !!data.weatherSnapshot && isWeatherStale(data.weatherSnapshot, Date.now()) };
     },
     onRehydrateStorage: () => (_state, error) => { hydrationFailure = error; },
@@ -235,8 +283,9 @@ export function createBalramStore() {
         const state = store.getState();
         const connection = navigator.onLine ? "online" : "offline";
         const stale = !!state.weatherSnapshot && isWeatherStale(state.weatherSnapshot, Date.now());
-        if (connection !== state.connection || stale !== state.weatherStale || (stale && state.weatherStatus.state === "success")) {
-          store.setState({ connection, weatherStale: stale, ...(stale && state.weatherStatus.state === "success"
+        const now = Date.now();
+        if (connection !== state.connection || now !== state.now || stale !== state.weatherStale || (stale && state.weatherStatus.state === "success")) {
+          store.setState({ connection, now, weatherStale: stale, ...(stale && state.weatherStatus.state === "success"
             ? { weatherStatus: { ...state.weatherStatus, state: "stale" as const } } : {}) });
         }
       };

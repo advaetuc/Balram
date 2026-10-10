@@ -7,6 +7,8 @@ export function createEmptyFixture(): PersistedFarm {
     cropAllocations: [],
     irrigationSetup: null,
     weatherSnapshot: null,
+    soilSnapshot: null,
+    planningUpdatedAt: null,
     sampleDataActive: false,
   };
 }

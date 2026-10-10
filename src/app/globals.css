@@ -5,10 +5,51 @@
 @layer base {
   html { color-scheme: light; }
   body { @apply m-0 bg-daylight font-sans text-ink antialiased; }
-  a, button, input, select, textarea {
+  a, button, input, select, textarea, summary {
     @apply min-h-12 min-w-12;
   }
   :focus-visible { @apply outline outline-2 outline-offset-4 outline-forest; }
   button:disabled { @apply cursor-not-allowed opacity-60; }
   ::selection { @apply bg-amber text-ink; }
+}
+
+@layer components {
+  .bento-card { @apply min-w-0 rounded-2xl border border-forest/15 bg-white p-5 shadow-sm sm:p-6; }
+  .button-primary { @apply inline-flex min-h-12 min-w-12 items-center justify-center rounded-xl bg-forest px-5 py-3 text-sm font-semibold text-white hover:bg-forest/90 disabled:cursor-not-allowed disabled:opacity-50; }
+  .button-secondary { @apply inline-flex min-h-12 min-w-12 items-center justify-center rounded-xl border border-forest/30 bg-white px-4 py-3 text-sm font-semibold text-forest hover:bg-forest/5 disabled:cursor-not-allowed disabled:opacity-50; }
+  .button-quiet { @apply inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg px-3 py-3 text-forest hover:bg-forest/5; }
+  .form-input { @apply block min-h-12 w-full min-w-0 rounded-lg border border-stone-300 bg-white px-3 py-2 text-base text-ink; }
+  .notice { @apply rounded-lg border-l-4 border-amber bg-amber/15 p-3 text-sm leading-6 text-ink; }
+  .data-badge { @apply inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold; }
+  summary { @apply flex min-h-12 cursor-pointer items-center rounded-lg py-3 text-sm font-semibold text-forest; }
+  summary::before { content: "+"; @apply mr-3 text-lg; }
+  details[open] > summary::before { content: "−"; }
+}
+
+/* Leaflet controls use their own CSS; enforce touch sizing after its styles. */
+.leaflet-container .leaflet-control-zoom a,
+.leaflet-container .leaflet-draw-toolbar a { width: 48px; height: 48px; min-width: 48px; min-height: 48px; line-height: 48px; }
+.leaflet-container .leaflet-draw-toolbar a.leaflet-draw-draw-polygon { background-position: -20px 9px; }
+.leaflet-container .leaflet-draw-toolbar a.leaflet-draw-edit-edit { background-position: -141px 9px; }
+.leaflet-container .leaflet-draw-toolbar a.leaflet-draw-edit-remove { background-position: -171px 9px; }
+.leaflet-container .leaflet-draw-toolbar a.leaflet-disabled { opacity: 0.45; }
+.leaflet-container .leaflet-draw-actions a { display: inline-flex; align-items: center; height: 48px; min-width: 48px; }
+.leaflet-container .leaflet-draw-actions { left: 50px; }
+.leaflet-container .leaflet-control-attribution a { display: inline-flex; align-items: center; min-height: 48px; min-width: 48px; }
+.leaflet-container a:focus-visible { outline: 3px solid #1E5631; outline-offset: 2px; }
+.leaflet-container .leaflet-div-icon.leaflet-editing-icon { width: 48px !important; height: 48px !important; margin-left: -24px !important; margin-top: -24px !important; border: 0; background: radial-gradient(circle, #fff 0 5px, #1E5631 6px 8px, transparent 9px); }
+.leaflet-container { font-family: inherit; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+@media print {
+  @page { size: A4; margin: 16mm; }
+  body > header, body > footer, body > a { display: none !important; }
+  body, main { display: block !important; background: white !important; padding: 0 !important; margin: 0 !important; max-width: none !important; }
+  #farm-report { border: 0; box-shadow: none; padding: 0; margin: 0; }
+  #farm-report tr, #farm-report dl { break-inside: avoid; }
+  #farm-report thead { display: table-header-group; }
+  #farm-report .overflow-x-auto { overflow: visible; }
+  * { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
 }

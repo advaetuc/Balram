@@ -155,8 +155,25 @@ export const WeatherSnapshotSchema = z.object({
 });
 export interface WeatherSnapshot extends z.infer<typeof WeatherSnapshotSchema> {}
 
+export const SoilDataSchema = z.object({
+  queryCoordinate: CoordinateSchema,
+  gridCoordinate: CoordinateSchema,
+  depthCm: z.tuple([z.literal(0), z.literal(5)]),
+  properties: z.array(z.object({
+    property: z.enum(["clay", "sand", "silt"]),
+    mean: z.number().finite().min(0).max(100).nullable().default(null),
+    unit: z.literal("%"),
+  })).max(3).refine((items) => new Set(items.map((item) => item.property)).size === items.length),
+});
+export const SoilSnapshotSchema = z.object({
+  fieldId: id, coordinate: CoordinateSchema, source: z.string().min(1).max(200),
+  fetchedAt: timestamp, validAt: timestamp.nullable(), expiresAt: timestamp,
+  data: SoilDataSchema,
+});
+export interface SoilSnapshot extends z.infer<typeof SoilSnapshotSchema> {}
+
 export const DataSourceStatusSchema = z.object({
-  provider: z.literal("weather"),
+  provider: z.enum(["weather", "soil"]),
   state: z.enum(["idle", "loading", "success", "stale", "error"]),
   provenance: z.enum(["unavailable", "modelled", "sample"]),
   requestId: id.nullable(),
@@ -171,10 +188,17 @@ export const PersistedFarmSchema = z.object({
   cropAllocations: CropAllocationsSchema,
   irrigationSetup: IrrigationSetupSchema.nullable(),
   weatherSnapshot: WeatherSnapshotSchema.nullable(),
+  soilSnapshot: SoilSnapshotSchema.nullable().default(null),
+  planningUpdatedAt: timestamp.nullable().default(null),
   sampleDataActive: z.boolean(),
 }).superRefine((value, ctx) => {
   const weather = value.weatherSnapshot;
   const field = value.fieldGeometry;
+  const soil = value.soilSnapshot;
+  if (soil && (!field || soil.fieldId !== field.fieldId || soil.coordinate[0] !== field.center[0] ||
+      soil.coordinate[1] !== field.center[1] || value.sampleDataActive)) {
+    ctx.addIssue({ code: "custom", message: "Soil data must belong to the selected real field." });
+  }
   if (weather && (!field || weather.fieldId !== field.fieldId ||
     weather.coordinate[0] !== field.center[0] || weather.coordinate[1] !== field.center[1])) {
     ctx.addIssue({ code: "custom", message: "Weather must belong to the selected field and location." });

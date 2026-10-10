@@ -49,3 +49,19 @@ export function calculateDailyDripEstimate(input: z.infer<typeof DripRuntimeSche
 export function calculateDailyDripRuntime(input: z.infer<typeof DripRuntimeSchema>): number {
   return calculateDailyDripEstimate(input).runtimeMinutes;
 }
+
+export const SystemRuntimeSchema = IrrigationDemandSchema.extend({
+  systemFlowLitresPerHour: positive,
+  applicationEfficiency: positive.max(1),
+  inputsConfirmedByFarmer: z.literal(true),
+}).strict();
+
+/** Measured total flow for the irrigated block; no emitter density is guessed. */
+export function calculateSystemRuntime(input: z.infer<typeof SystemRuntimeSchema>) {
+  const params = SystemRuntimeSchema.parse(input);
+  const demand = calculateIrrigationDemand({ et0: params.et0, cropKc: params.cropKc,
+    areaAcres: params.areaAcres, effectiveRainfallMm: params.effectiveRainfallMm });
+  const grossVolumeLitres = finiteResult(demand.netVolumeLitres / params.applicationEfficiency);
+  return { ...demand, grossVolumeLitres,
+    runtimeMinutes: finiteResult(grossVolumeLitres / params.systemFlowLitresPerHour * 60) };
+}

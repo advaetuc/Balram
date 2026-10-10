@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { Header } from "@/components/app-shell/Header";
 import "./globals.css";
+import "leaflet/dist/leaflet.css";
+import "leaflet-draw/dist/leaflet.draw.css";
 
 export const metadata: Metadata = {
   title: { default: "Balram | Farm planning", template: "%s | Balram" },
