@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { CropAllocationSchema, type CropAllocation } from "@/types/domain";
-import { acresToSquareMetres } from "./geometry";
+import { CropAllocationSchema, lifecycleToGrowthStage, type CropAllocation, type LifecycleStage } from "@/types/domain";
+import { acresToSquareMetres, squareMetresToGunthas } from "./geometry";
 
 function basisPoints(percentage: number): number {
   const value = z.number().finite().min(0).max(100).parse(percentage) * 100;
@@ -49,4 +49,22 @@ export function allocateAcreage(input: readonly CropAllocation[], totalAcres: nu
     const areaAcres = area * basisPoints(entry.percentage) / 10_000;
     return { ...entry, areaAcres, areaSquareMetres: acresToSquareMetres(areaAcres) };
   });
+}
+
+export function allocatePlotsByGunthas(plots:readonly CropAllocation[],totalAreaSquareMetres:number|null) {
+ const totalFarmGunthas=totalAreaSquareMetres===null?null:squareMetresToGunthas(z.number().finite().positive().parse(totalAreaSquareMetres));
+ const resolved=plots.map(p=>({...p,areaGunthas:p.areaGunthas??(totalFarmGunthas===null?null:totalFarmGunthas*p.percentage/100)}));
+ const allocatedGunthas=resolved.reduce((s,p)=>s+(p.areaGunthas??0),0);
+ const entries=resolved.map(p=>({...p,percentage:totalFarmGunthas?Math.round((p.areaGunthas??0)/totalFarmGunthas*10000)/100:p.percentage,
+  ...(p.lifecycleStage?{growthStage:lifecycleToGrowthStage(p.lifecycleStage)}:{})}));
+ return {plots:entries,totalFarmGunthas,allocatedGunthas,unassignedGunthas:totalFarmGunthas===null?null:Math.max(0,totalFarmGunthas-allocatedGunthas)};
+}
+export function upsertPlotAllocation(plots:readonly CropAllocation[],input:{plotId?:string;plotName:string;cropId:string;areaGunthas:number;lifecycleStage:LifecycleStage;plantingDate?:string|null},totalAreaSquareMetres:number|null):CropAllocation[] {
+ const area=z.number().finite().positive().parse(input.areaGunthas), total=totalAreaSquareMetres===null?null:squareMetresToGunthas(z.number().finite().positive().parse(totalAreaSquareMetres));
+ const id=input.plotId??`plot-${Date.now()}`, previous=plots.filter(p=>p.plotId!==id);
+ const sum=previous.reduce((s,p)=>s+(p.areaGunthas??0),0)+area;
+ if(total!==null&&sum>total+.05) throw new RangeError("Plot areas exceed the total farm area.");
+ const all=[...previous,{plotId:id,plotName:input.plotName,cropId:input.cropId,areaGunthas:area,lifecycleStage:input.lifecycleStage,percentage:1,season:"kharif" as const,growthStage:lifecycleToGrowthStage(input.lifecycleStage),plantingDate:input.plantingDate??null}];
+ const denom=total??sum;
+ return all.map(p=>({...p,percentage:Math.round((p.areaGunthas??0)/denom*10000)/100}));
 }

@@ -6,13 +6,13 @@ import { createJSONStorage, persist } from "zustand/middleware";
 import { createIndexedDBStorage, type StorageStatus } from "@/lib/storage/db";
 import { createEmptyFixture, createSampleFixture } from "@/mocks/fixtures";
 import {
-  CropAllocationsSchema, FarmProfileSchema, FieldGeometrySchema,
+  CropAllocationsSchema, FarmProfileSchema, FieldGeometrySchema, LocaleSchema, SoilKitReadingSchema, growthToLifecycleStage,
   IrrigationSetupSchema, PersistedFarmSchema, WeatherSnapshotSchema, SoilSnapshotSchema, type SoilSnapshot,
   type CropAllocation, type DataSourceStatus, type FarmProfile,
-  type FieldGeometry, type IrrigationSetup, type PersistedFarm, type WeatherSnapshot,
+  type FieldGeometry, type IrrigationSetup, type PersistedFarm, type WeatherSnapshot, type SoilKitReading, type Locale,
 } from "@/types/domain";
 
-export const PERSISTENCE_VERSION = 2;
+export const PERSISTENCE_VERSION = 3;
 export const STORAGE_KEY = "balram:farm";
 
 export interface WeatherRequest {
@@ -36,6 +36,8 @@ export interface BalramState extends PersistedFarm {
   setFieldGeometry(geometry: FieldGeometry | null): void;
   setCropAllocations(allocations: CropAllocation[]): void;
   setIrrigationSetup(setup: IrrigationSetup | null): void;
+  setSoilKitReading(reading: SoilKitReading | null): void;
+  setLocale(locale: Locale): void;
   resetDerivedForFieldChange(): void;
   setSampleData(active: boolean): void;
   beginWeatherRequest(): WeatherRequest;
@@ -71,6 +73,7 @@ function persistedSlice(state: BalramState): PersistedFarm {
     cropAllocations: state.cropAllocations, irrigationSetup: state.irrigationSetup,
     weatherSnapshot: state.weatherSnapshot, sampleDataActive: state.sampleDataActive,
     soilSnapshot: state.soilSnapshot, planningUpdatedAt: state.planningUpdatedAt,
+    soilKitReading: state.soilKitReading, locale: state.locale,
   };
 }
 
@@ -143,12 +146,14 @@ export function createBalramStore() {
         requireReady();
         set({ irrigationSetup: setup === null ? null : IrrigationSetupSchema.parse(setup), planningUpdatedAt: new Date().toISOString() });
       },
+      setSoilKitReading: (reading) => { requireReady(); set({ soilKitReading: reading === null ? null : SoilKitReadingSchema.parse(reading), planningUpdatedAt: new Date().toISOString() }); },
+      setLocale: (locale) => { requireReady(); set({ locale: LocaleSchema.parse(locale) }); },
       resetDerivedForFieldChange: () => invalidate(),
       setSampleData: (enabled) => {
         requireReady();
         const current = get();
         if (current.sampleDataActive === enabled) return;
-        if (enabled && (current.farmProfile || current.fieldGeometry || current.cropAllocations.length || current.irrigationSetup)) {
+        if (enabled && (current.farmProfile || current.fieldGeometry || current.cropAllocations.length || current.irrigationSetup || current.soilKitReading)) {
           throw new Error("Sample mode is available only for an empty workspace.");
         }
         const next = enabled ? createSampleFixture() : createEmptyFixture();
@@ -236,8 +241,16 @@ export function createBalramStore() {
     partialize: persistedSlice,
     // Accept unversioned inputs only when they validate against the current contract.
     migrate: (saved, version) => {
-      if (![0, 1].includes(version) || !saved || typeof saved !== "object") throw new Error("Unsupported saved data version.");
-      return PersistedFarmSchema.parse({ sampleDataActive: false, ...saved });
+      if (![0, 1, 2].includes(version) || !saved || typeof saved !== "object") throw new Error("Unsupported saved data version.");
+      const legacy = saved as Partial<PersistedFarm>;
+      const cropAllocations = Array.isArray(legacy.cropAllocations) ? legacy.cropAllocations.map((item, index) => {
+        if (!item || typeof item !== "object") return item;
+        const crop = item as Record<string, unknown>;
+        const growth = typeof crop.growthStage === "string" ? crop.growthStage : "unknown";
+        return { ...crop, plotId: crop.plotId ?? `plot-${index + 1}`, plotName: crop.plotName ?? `Plot ${index + 1}`,
+          lifecycleStage: crop.lifecycleStage ?? growthToLifecycleStage(growth as import("@/types/domain").GrowthStage) };
+      }) : legacy.cropAllocations;
+      return PersistedFarmSchema.parse({ sampleDataActive: false, soilKitReading: null, locale: "en", ...legacy, cropAllocations });
     },
     merge: (saved, current) => {
       if (saved === undefined) return current;

@@ -12,6 +12,32 @@ export const CoordinateSchema = z.tuple([
 ]);
 export type Coordinate = z.infer<typeof CoordinateSchema>;
 
+export const LocaleSchema = z.enum(["en", "mr"]);
+export type Locale = z.infer<typeof LocaleSchema>;
+export const LifecycleStageSchema = z.enum(["planned", "vegetative", "flowering_fruiting", "harvesting"]);
+export type LifecycleStage = z.infer<typeof LifecycleStageSchema>;
+export const GrowthStageSchema = z.enum(["initial", "development", "mid-season", "late-season", "unknown"]);
+export type GrowthStage = z.infer<typeof GrowthStageSchema>;
+export function lifecycleToGrowthStage(stage: LifecycleStage): Exclude<GrowthStage, "unknown"> {
+  return ({ planned: "initial", vegetative: "development", flowering_fruiting: "mid-season", harvesting: "late-season" } as const)[stage];
+}
+export function growthToLifecycleStage(stage: GrowthStage): LifecycleStage {
+  return ({ initial: "planned", unknown: "planned", development: "vegetative", "mid-season": "flowering_fruiting", "late-season": "harvesting" } as const)[stage];
+}
+export const NutrientLevelSchema = z.enum(["low", "medium", "high"]);
+export type NutrientLevel = z.infer<typeof NutrientLevelSchema>;
+export const OptionalNutrientLevelSchema = z.enum(["low", "medium", "high", "untested"]);
+export type OptionalNutrientLevel = z.infer<typeof OptionalNutrientLevelSchema>;
+export const SalinityLevelSchema = z.enum(["normal", "elevated", "high", "untested"]);
+export type SalinityLevel = z.infer<typeof SalinityLevelSchema>;
+export const SoilKitReadingSchema = z.object({
+  kitType: z.enum(["balram_inhouse", "commercial_rapid"]), ph: z.number().finite().min(3.5).max(10.5),
+  nitrogenLevel: NutrientLevelSchema, phosphorusLevel: NutrientLevelSchema,
+  potassiumLevel: OptionalNutrientLevelSchema, organicCarbon: OptionalNutrientLevelSchema,
+  salinity: SalinityLevelSchema, testedAt: z.string().date(),
+});
+export interface SoilKitReading extends z.infer<typeof SoilKitReadingSchema> {}
+
 function cross(a: Coordinate, b: Coordinate, c: Coordinate): number {
   return (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
 }
@@ -87,6 +113,9 @@ export const FieldGeometrySchema = z.object({
 export interface FieldGeometry extends z.infer<typeof FieldGeometrySchema> {}
 
 export const CropAllocationSchema = z.object({
+  plotId: id.optional(), plotName: z.string().trim().min(1).max(60).optional(),
+  areaGunthas: z.number().finite().positive().max(400_000).nullable().optional(),
+  lifecycleStage: LifecycleStageSchema.optional(),
   cropId: id,
   percentage: z.number().finite().positive().max(100),
   season: z.enum(["kharif", "rabi", "zaid", "perennial"]),
@@ -99,11 +128,17 @@ export const CropAllocationsSchema = z.array(CropAllocationSchema).max(50).super
   if (items.some((item) => Math.abs(item.percentage * 100 - Math.round(item.percentage * 100)) > 1e-8)) {
     ctx.addIssue({ code: "custom", message: "Crop percentages support at most two decimal places." });
   }
-  if (items.length && items.reduce((sum, item) => sum + Math.round(item.percentage * 100), 0) !== 10_000) {
-    ctx.addIssue({ code: "custom", message: "Crop allocations must total 100%." });
+  const points = items.reduce((sum, item) => sum + Math.round(item.percentage * 100), 0);
+  const plotMode = items.some((item) => item.plotId !== undefined || item.areaGunthas !== undefined);
+  if (points > 10_000 || (!plotMode && items.length > 0 && points !== 10_000)) {
+    ctx.addIssue({ code: "custom", message: plotMode ? "Plot allocations cannot exceed 100%." : "Crop allocations must total 100%." });
   }
-  if (new Set(items.map((item) => item.cropId)).size !== items.length) {
-    ctx.addIssue({ code: "custom", message: "Each crop must appear only once." });
+  if (!plotMode && new Set(items.map((item) => item.cropId)).size !== items.length) {
+    ctx.addIssue({ code: "custom", message: "Each crop must appear only once in percentage mode." });
+  }
+  const plotIds = items.flatMap((item) => item.plotId === undefined ? [] : [item.plotId]);
+  if (new Set(plotIds).size !== plotIds.length) {
+    ctx.addIssue({ code: "custom", message: "Each plot ID must be unique." });
   }
 });
 
@@ -191,6 +226,8 @@ export const PersistedFarmSchema = z.object({
   soilSnapshot: SoilSnapshotSchema.nullable().default(null),
   planningUpdatedAt: timestamp.nullable().default(null),
   sampleDataActive: z.boolean(),
+  soilKitReading: SoilKitReadingSchema.nullable().default(null),
+  locale: LocaleSchema.default("en"),
 }).superRefine((value, ctx) => {
   const weather = value.weatherSnapshot;
   const field = value.fieldGeometry;
