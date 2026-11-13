@@ -1,46 +1,23 @@
 "use client";
-
+import { useState } from "react";
 import { useBalramStore } from "@/store/useBalramStore";
-import { ENABLE_SOILGRIDS } from "@/config/providers";
-import { SoilDataSchema } from "@/types/domain";
-import { submitProvider, providerErrorMessage } from "@/lib/api/client";
-import { formatNumber } from "@/lib/ui/format";
+import { interpretSoilKitReading } from "@/lib/domain/soilKit";
+import { indiaDate } from "@/lib/ui/format";
+import type { SoilKitReading } from "@/types/domain";
 import { Card, DataCaption } from "./Card";
-
-export function SoilCard() {
-  const state = useBalramStore((value) => value);
-  const snapshot = state.soilSnapshot;
-  const loading = state.soilStatus.state === "loading";
-  const stale = !!snapshot && state.now !== null && (state.now >= Date.parse(snapshot.expiresAt) || state.now < Date.parse(snapshot.fetchedAt));
-  async function update() {
-    const field = state.fieldGeometry;
-    if (!field || !ENABLE_SOILGRIDS) return;
-    const request = state.beginSoilRequest();
-    try {
-      const result = await submitProvider("/api/soil", { intent: "soil-lookup", latitude: field.center[1], longitude: field.center[0] }, SoilDataSchema, request.signal);
-      state.commitSoilRequest(request, { fieldId: field.fieldId, coordinate: field.center, source: result.source.name,
-        fetchedAt: result.fetchedAt, validAt: result.validAt, expiresAt: result.expiresAt, data: result.data });
-    } catch (error) {
-      if (!request.signal.aborted) state.failSoilRequest(request, providerErrorMessage(error, "SoilGrids"));
-    }
-  }
-  return <Card id="soil" title="Soil context" eyebrow="Optional lookup">
-    <p className="mt-3 text-sm leading-6">Mineral fractions at 0–5 cm depth. These estimates do not control irrigation.</p>
-    {!ENABLE_SOILGRIDS && <p className="notice mt-3">Experimental provider · lookups disabled for release. Saved results remain available with their original dates.</p>}
-    <dl className="mt-5 grid grid-cols-3 gap-3" aria-busy={loading}>
-      {(["clay", "sand", "silt"] as const).map((name) => {
-        const value = snapshot?.data.properties.find((item) => item.property === name)?.mean;
-        return <div key={name}><dt className="text-sm capitalize text-stone-600">{name}</dt>
-          <dd className="mt-1 text-lg font-semibold">{formatNumber(value)}{value != null && "%"}</dd></div>;
-      })}
-    </dl>
-    {state.soilStatus.error ? <p role="alert" className="notice mt-4">{state.soilStatus.error}</p>
-      : !snapshot && <p className="mt-4 text-sm text-stone-600">No soil result saved. SoilGrids can be slow or unavailable; the rest of your plan remains usable.</p>}
-    <button className="button-secondary mt-5 w-full" disabled={!ENABLE_SOILGRIDS || !state.hydrated || !state.fieldGeometry || loading || state.sampleDataActive || state.connection === "offline"}
-      onClick={() => void update()}>{loading ? "Requesting soil data…" : state.soilStatus.error ? "Retry soil lookup" : "Look up soil properties"}</button>
-    <p className="mt-2 text-xs leading-5 text-stone-600">Sends the approximate field center to ISRIC only on request. No automatic retries from this page.</p>
-    <details className="mt-3"><summary>How to use soil context</summary><p className="text-sm leading-6">ISRIC SoilGrids is a regional model, not a soil test or moisture sensor. Missing properties display as unavailable. Use a local soil test for field-specific decisions.</p></details>
-    <DataCaption source={snapshot?.source ?? "ISRIC SoilGrids · not yet fetched"} validAt={snapshot?.validAt ?? null}
-      fetchedAt={snapshot?.fetchedAt ?? null} modeled={!!snapshot} stale={stale} offline={state.connection === "offline"} />
-  </Card>;
+const pill="min-h-12 min-w-12 rounded-lg border px-3";
+export function SoilCard(){const state=useBalramStore(s=>s),saved=state.soilKitReading;const [mode,setMode]=useState<SoilKitReading["kitType"]>(saved?.kitType??"balram_inhouse"),[ph,setPh]=useState(String(saved?.ph??7)),[n,setN]=useState<SoilKitReading["nitrogenLevel"]>(saved?.nitrogenLevel??"medium"),[p,setP]=useState<SoilKitReading["phosphorusLevel"]>(saved?.phosphorusLevel??"medium"),[k,setK]=useState<SoilKitReading["potassiumLevel"]>(saved?.potassiumLevel??"untested"),[carbon,setCarbon]=useState<SoilKitReading["organicCarbon"]>(saved?.organicCarbon??"untested"),[salinity,setSalinity]=useState<SoilKitReading["salinity"]>(saved?.salinity??"untested"),[error,setError]=useState("");
+ const choice=<T extends string,>(label:string,value:T,values:readonly T[],set:(v:T)=>void)=><fieldset className="mt-3"><legend className="text-sm font-semibold">{label}</legend><div className="flex flex-wrap gap-2">{values.map(v=><button key={v} type="button" className={`${pill} ${value===v?"border-forest bg-forest text-white":"border-forest/25"}`} aria-pressed={value===v} onClick={()=>set(v)}>{v.replaceAll("_"," ")}</button>)}</div></fieldset>;
+ function save(){try{const value:SoilKitReading={kitType:mode,ph:Number(ph),nitrogenLevel:n,phosphorusLevel:p,potassiumLevel:mode==="balram_inhouse"?"untested":k,organicCarbon:mode==="balram_inhouse"?"untested":carbon,salinity:mode==="balram_inhouse"?"untested":salinity,testedAt:indiaDate(state.now)??"2026-10-01"};state.setSoilKitReading(value);setError("")}catch{setError("Enter a pH value from 3.5 to 10.5 and review the kit readings.")}}
+ const interpretation=saved?interpretSoilKitReading(saved):null;
+ return <Card id="soil" title="On-site soil test" eyebrow="Your kit · your field"><p className="mt-2 text-sm">Enter physical kit readings. They remain in this browser and are not sent to a provider.</p>
+ <div className="mt-3 grid grid-cols-2 gap-2"><button className={`${pill} ${mode==="balram_inhouse"?"bg-forest text-white":""}`} onClick={()=>setMode("balram_inhouse")}>Balram In-House Kit (pH, N, P)</button><button className={`${pill} ${mode==="commercial_rapid"?"bg-forest text-white":""}`} onClick={()=>setMode("commercial_rapid")}>Full Rapid Kit (+K, Carbon, Salinity)</button></div>
+ <p className="mt-2 text-xs leading-5">In-house method: soil-water pH, alkaline KMnO₄ available nitrogen, and Olsen + molybdenum-blue available phosphorus.</p>
+ <label className="mt-3 block text-sm">Soil pH · {Number(ph).toFixed(1)}<input className="form-input mt-1 min-h-12" type="range" min="3.5" max="10.5" step="0.1" value={ph} onChange={e=>setPh(e.target.value)}/><span className="data-badge bg-amber/20">Acidic &lt; 6.5</span> <span className="data-badge bg-forest/10 text-forest">Neutral 6.5–7.5</span> <span className="data-badge bg-sky/10">Alkaline &gt; 7.5</span></label>
+ {choice("Available Nitrogen · alkaline KMnO₄",n,["low","medium","high"],setN)}{choice("Available Phosphorus · blue assay",p,["low","medium","high"],setP)}
+ {mode==="commercial_rapid"&&<>{choice("Potassium",k,["low","medium","high","untested"],setK)}{choice("Organic carbon",carbon,["low","medium","high","untested"],setCarbon)}{choice("Salinity",salinity,["normal","elevated","high","untested"],setSalinity)}</>}
+ <div className="mt-4 flex gap-2"><button className="button-primary min-h-12 flex-1" disabled={!state.hydrated} onClick={save}>Save soil test results</button><button className="button-secondary min-h-12" disabled={!state.hydrated||!saved} onClick={()=>state.setSoilKitReading(null)}>Clear kit reading</button></div>{error&&<p role="alert" className="notice mt-2">{error}</p>}
+ {interpretation&&<section className="mt-5 rounded-xl bg-forest/5 p-4"><h3 className="font-bold">What Your Soil Needs Before Planting</h3><p className="mt-1">{interpretation.headline.en}</p><p className="data-badge mt-2 bg-sky/10">{interpretation.overallHealth.replaceAll("_"," ")}</p><p className="mt-2 text-sm">{interpretation.assayNotes.en}</p><ul className="mt-3 space-y-3">{interpretation.steps.map(step=><li key={step.id} className="rounded-lg border border-forest/15 bg-white p-3"><b>{step.badgeLabel.en} · {step.severity.replaceAll("_"," ")}</b><p className="text-sm">{step.plainExplanation.en}</p><p className="mt-1 text-sm font-medium">{step.actionStep.en}</p></li>)}</ul></section>}
+ {state.soilSnapshot&&<details className="mt-4"><summary>Saved modeled SoilGrids context</summary><p className="text-sm">Regional model, not a physical test. Fetched {state.soilSnapshot.fetchedAt}.</p><ul>{state.soilSnapshot.data.properties.map(x=><li key={x.property}>{x.property}: {x.mean??"Unavailable"}{x.mean!==null?"%":""}</li>)}</ul></details>}
+ <DataCaption source={saved?"Farmer-entered physical soil kit":"No physical kit reading saved"} validAt={saved?.testedAt??null} sample={state.sampleDataActive}/></Card>
 }

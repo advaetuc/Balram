@@ -2,8 +2,8 @@
 
 import { useState, type FormEvent } from "react";
 import { useBalramStore } from "@/store/useBalramStore";
-import { calculateSystemRuntime } from "@/lib/domain/irrigation";
-import { SQUARE_METRES_PER_ACRE } from "@/lib/domain/geometry";
+import { calculateSystemRuntime, calculatePhaseWaterBreakdown, resolveDailyEt0, simulateDroughtReallocation, type DeliveryMethodPreset } from "@/lib/domain/irrigation";
+import { SQUARE_METRES_PER_ACRE, gunthasToAcresAndGunthas } from "@/lib/domain/geometry";
 import { MaharashtraCropMatrix, type CropId } from "@/config/cropMatrix";
 import { formatNumber, parseNumber, selectedWeatherDay } from "@/lib/ui/format";
 import { Card, DataCaption } from "@/components/dashboard/Card";
@@ -25,12 +25,21 @@ function Editor() {
   const [confirmed, setConfirmed] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deliveryMethod,setDeliveryMethod]=useState<DeliveryMethodPreset>("drip");
+  const [flowOverride,setFlowOverride]=useState("");
+  const [waterAvailability,setWaterAvailability]=useState(100);
   const crop = state.cropAllocations.find((item) => item.cropId === cropId);
   const day = selectedWeatherDay(state);
   const area = state.fieldGeometry?.areaSquareMetres;
+  const resolved=resolveDailyEt0(day,state.fieldGeometry?.center[1]??18.5204);
+  const et0=resolved?.et0MmPerDay??4.5;
+  const areaGunthas=crop?.areaGunthas??(area&&crop?area/SQUARE_METRES_PER_ACRE*40*crop.percentage/100:0);
+  const phases=crop&&areaGunthas>0?calculatePhaseWaterBreakdown({cropId:crop.cropId as CropId,areaGunthas,baseEt0MmPerDay:et0,effectiveRainfallMmPerDay:day?.precipitation??0,deliveryMethod,customSystemFlowLph:parseNumber(flowOverride)}):[];
+  const currentStage=crop?.lifecycleStage??"planned";
+  const phase=phases.find(p=>p.stage===currentStage)??phases[0];
+  const drought=area&&state.cropAllocations.length?simulateDroughtReallocation({allocations:state.cropAllocations,totalAreaSquareMetres:area,baseEt0MmPerDay:et0,waterAvailabilityPercent:waterAvailability}):null;
   const fields = { flow: parseNumber(flow), efficiency: parseNumber(efficiency), kc: parseNumber(kc), rain: parseNumber(rain) };
   const ready = confirmed && crop && crop.growthStage !== "unknown" && area != null && day?.referenceEvapotranspiration != null &&
-    (!state.weatherStale || state.sampleDataActive) && (state.connection !== "offline" || state.sampleDataActive) &&
     fields.flow !== null && fields.efficiency !== null && fields.kc !== null && fields.rain !== null;
   let estimate: ReturnType<typeof calculateSystemRuntime> | null = null;
   if (ready && submitted) {
@@ -50,7 +59,18 @@ function Editor() {
   }
   const reset = () => { setSubmitted(false); setConfirmed(false); };
   const blueprint = crop ? MaharashtraCropMatrix[crop.cropId as CropId] : null;
-  return <Card id="irrigation" title="Plan an irrigation run" eyebrow="Measured inputs first">
+  return <Card id="irrigation" title="Plan water for your plots" eyebrow="Saved forecast and simple estimates">
+    <p className="mt-2 text-sm">Planning estimates only. Check field moisture and local guidance before irrigating.</p>
+    {state.connection==="offline"&&<p className="notice mt-2">Offline · using saved forecast where available.</p>}{state.weatherStale&&<p className="notice mt-2">Stale forecast — check dates before relying on it.</p>}{resolved?.provenance==="hargreaves-fallback"&&<p className="notice mt-2">Calculated via Hargreaves temperature fallback.</p>}{!day&&<p className="notice mt-2">No forecast saved. Using a 4.5 mm/day Maharashtra baseline planning reference.</p>}
+    <section className="mt-4 rounded-xl bg-sky/10 p-4"><h3 className="font-bold">Simple plot water plan</h3>
+      <label className="mt-2 block text-sm">Plot<select className="form-input mt-1" value={cropId} onChange={e=>setCropId(e.target.value)}><option value="">Select plot</option>{state.cropAllocations.map((p,i)=><option key={p.plotId??i} value={p.cropId}>{p.plotName??"Plot"} · {MaharashtraCropMatrix[p.cropId as CropId]?.name} · {p.lifecycleStage??"planned"}</option>)}</select></label>
+      <div className="mt-3 grid gap-2 sm:grid-cols-3">{(["drip","sprinkler","canal_flood"] as const).map(m=><button type="button" key={m} aria-pressed={deliveryMethod===m} className={`min-h-12 rounded-lg border p-2 ${deliveryMethod===m?"border-forest bg-forest text-white":"border-forest/20"}`} onClick={()=>setDeliveryMethod(m)}>{m==="drip"?"Drip Line · 90%":m==="sprinkler"?"Sprinkler · 75%":"Canal / Flood · 60%"}</button>)}</div>
+      <label className="mt-2 block text-sm">Optional pump flow override (L/hour)<input className="form-input mt-1" type="number" min="0.1" step="any" value={flowOverride} onChange={e=>setFlowOverride(e.target.value)} placeholder="Use delivery preset"/></label>
+      {phase&&<div className="mt-3 rounded-xl bg-white p-3"><p className="font-bold">Current stage · {currentStage.replaceAll("_"," ")}</p><p>{formatNumber(phase.dailyGrossLitres,0)} L/day · {formatNumber(phase.dailyRuntimeMinutes/60,0)} h {formatNumber(phase.dailyRuntimeMinutes%60,0)} min/day</p><p>{formatNumber(phase.weeklyGrossLitres,0)} L/week · {formatNumber(phase.weeklyTankerCount,1)} tankers of 10,000 L</p></div>}
+      {phases.length>0&&<div className="mt-3 overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr><th>Phase</th><th>Weeks</th><th>Kc</th><th>L/week</th><th>Tankers/week</th><th>Min/day</th></tr></thead><tbody>{phases.map(p=><tr key={p.stage} className={`border-t ${p.stage===currentStage?"bg-amber/20 font-bold":""}`}><td>{p.stage.replaceAll("_"," ")}</td><td>{p.durationWeeks}</td><td>{p.stageKc}</td><td>{formatNumber(p.weeklyGrossLitres,0)}</td><td>{formatNumber(p.weeklyTankerCount,1)}</td><td>{formatNumber(p.dailyRuntimeMinutes,0)}</td></tr>)}</tbody></table></div>}
+    </section>
+    <details className="mt-4"><summary>Drought & limited dam-release simulator</summary><label className="mt-2 block text-sm">Water availability · {waterAvailability}%<input className="form-input mt-1" type="range" min="20" max="100" step="1" value={waterAvailability} onChange={e=>setWaterAvailability(Number(e.target.value))}/></label>{drought&&<div className="notice mt-2"><p>Farm demand: {formatNumber(drought.dailyDemandLitres,0)} L/day · {formatNumber(drought.dailyDemandLitres*7,0)} L/week</p><p>Available: {formatNumber(drought.availableDailyLitres,0)} L/day</p><p>{drought.recommendation}</p></div>}</details>
+    <details className="mt-4"><summary>Advanced: Measured block flow & custom Kc override</summary>
     <p className="mt-3 text-sm leading-6">Use measured total flow for the selected crop block. Enter efficiency yourself; the app never assumes emitter flow or a default system efficiency.</p>
     <form onSubmit={calculate} className="mt-5 space-y-4">
       <fieldset disabled={!state.hydrated} className="grid gap-4 sm:grid-cols-2">
@@ -89,7 +109,7 @@ function Editor() {
       <p className="mt-2 text-sm">Gross water: {formatNumber(estimate.grossVolumeLitres, 0)} L · ETc: {formatNumber(estimate.cropEtMm)} mm/day</p>
       <p className="mt-2 text-xs">For {crop?.percentage}% of the field, with the entered block flow. This is not an automatic irrigation command.</p>
     </div>}
-    <details className="mt-4"><summary>Formula & assumptions</summary>
+    </details><details className="mt-4"><summary>Formula & assumptions</summary>
       <div className="space-y-2 text-sm leading-6"><p>ETc = Kc × ET₀. Net depth = max(0, ETc − effective rainfall). One mm over one m² equals one litre. Gross volume = net volume ÷ efficiency; runtime = gross volume ÷ measured flow.</p>
         {blueprint && <p>The blueprint lists mid-season Kc = {blueprint.baseKc} for {blueprint.name}. It is a reference, not an automatic value for other growth stages.</p>}
         <p>Soil storage, leaching, runoff and water-stress corrections are excluded. Effective rainfall is not automatically copied from forecast precipitation.</p></div>

@@ -1,66 +1,35 @@
 "use client";
-
 import { useState } from "react";
 import { MaharashtraCropMatrix, type CropId } from "@/config/cropMatrix";
-import { rebalancePortfolio } from "@/lib/domain/allocation";
+import { allocatePlotsByGunthas, upsertPlotAllocation } from "@/lib/domain/allocation";
+import { gunthasToAcresAndGunthas, acresAndGunthasToGunthas, gunthasToSquareMetres } from "@/lib/domain/geometry";
+import { lifecycleToGrowthStage, type CropAllocation, type LifecycleStage } from "@/types/domain";
 import { useBalramStore } from "@/store/useBalramStore";
-import { formatNumber } from "@/lib/ui/format";
-import { SQUARE_METRES_PER_ACRE } from "@/lib/domain/geometry";
-import type { CropAllocation } from "@/types/domain";
 import { Card, DataCaption } from "./Card";
-
-export function PortfolioCard() {
-  const state = useBalramStore((value) => value);
-  const [selection, setSelection] = useState<CropId>("sugarcane");
-  const [error, setError] = useState<string | null>(null);
-  const allocations = state.cropAllocations;
-  const area = state.fieldGeometry?.areaSquareMetres;
-  const available = Object.keys(MaharashtraCropMatrix).filter((id) => !allocations.some((crop) => crop.cropId === id)) as CropId[];
-  const selected = available.includes(selection) ? selection : available[0];
-  function adjust(cropId: string, percentage: number) {
-    try { state.setCropAllocations(rebalancePortfolio(allocations, cropId, percentage)); setError(null); }
-    catch { setError("Enter a percentage from 0 to 100 with at most two decimal places. A single crop must stay at 100%."); }
-  }
-  function add() {
-    if (!selected) return;
-    const crop = MaharashtraCropMatrix[selected];
-    const next: CropAllocation[] = [...allocations, { cropId: selected, percentage: 100,
-      season: crop.season.toLowerCase() as CropAllocation["season"], growthStage: "unknown", plantingDate: null }];
-    const points = Math.floor(10_000 / next.length);
-    state.setCropAllocations(next.map((entry, i) => ({ ...entry, percentage: (points + (i < 10_000 % next.length ? 1 : 0)) / 100 })));
-    setError(null);
-  }
-  return <Card id="portfolio" title="Your crop portfolio" eyebrow="Land allocation" className="md:col-span-2">
-    <div className="mt-3 flex flex-wrap items-center justify-between gap-3"><p className="text-sm text-stone-600">Adjust one crop; the others rebalance proportionally.</p>
-      <span className="data-badge bg-forest/10 text-forest">{allocations.length ? "100% allocated" : "No crops selected"}</span></div>
-    <fieldset disabled={!state.hydrated} className="mt-4 space-y-5">
-      <legend className="sr-only">Crop allocations</legend>
-      {allocations.map((crop) => <div key={crop.cropId} className="rounded-xl border border-forest/15 p-4">
-        <div className="flex items-center justify-between gap-3"><label htmlFor={`allocation-${crop.cropId}`} className="font-semibold">
-          {MaharashtraCropMatrix[crop.cropId as CropId]?.name ?? crop.cropId}</label>
-          <button className="button-quiet text-sm" aria-label={`Remove ${MaharashtraCropMatrix[crop.cropId as CropId]?.name ?? crop.cropId}`}
-            onClick={() => allocations.length === 1 ? state.setCropAllocations([]) : adjust(crop.cropId, 0)}>Remove</button></div>
-        <div className="flex items-center gap-4"><input id={`allocation-${crop.cropId}`} type="range" min="0" max="100" step="1"
-          value={crop.percentage} disabled={allocations.length === 1} className="min-w-0 flex-1 accent-forest"
-          aria-valuetext={`${crop.percentage}%`} onChange={(event) => adjust(crop.cropId, Number(event.target.value))} />
-          <span className="w-20 text-right font-bold tabular-nums">{formatNumber(crop.percentage, 2)}%</span></div>
-        <p className="text-xs text-stone-600">{area == null ? "Area unavailable until a boundary or acreage is provided."
-          : `${formatNumber(area / SQUARE_METRES_PER_ACRE * crop.percentage / 100, 2)} acres`}</p>
-        <label className="mt-3 block text-sm">Growth stage
-          <select value={crop.growthStage} className="form-input mt-1" onChange={(event) => state.setCropAllocations(allocations.map((entry) =>
-            entry.cropId === crop.cropId ? { ...entry, growthStage: event.target.value as CropAllocation["growthStage"] } : entry))}>
-            <option value="unknown">Not confirmed</option><option value="initial">Initial</option><option value="development">Development</option>
-            <option value="mid-season">Mid-season</option><option value="late-season">Late-season</option>
-          </select>
-        </label>
-      </div>)}
-      {available.length > 0 && <div className="flex flex-wrap gap-3"><label className="min-w-0 flex-1 text-sm">Add crop
-        <select className="form-input mt-1" value={selected} onChange={(event) => setSelection(event.target.value as CropId)}>
-          {available.map((id) => <option value={id} key={id}>{MaharashtraCropMatrix[id].name}</option>)}</select></label>
-        <button className="button-secondary self-end" onClick={add}>Add crop</button></div>}
-    </fieldset>
-    {error && <p className="notice mt-3" role="alert">{error}</p>}
-    <details className="mt-3"><summary>Allocation rules</summary><p className="text-sm leading-6">Adding a crop distributes land evenly. Sliders keep the portfolio at exactly 100%; setting a crop to 0% removes it. Crop choices are your inputs, not a suitability recommendation. A single crop uses 100%.</p></details>
-    <DataCaption source="Your crop choices and area inputs" validAt={state.planningUpdatedAt ?? state.farmProfile?.updatedAt ?? null} sample={state.sampleDataActive} />
-  </Card>;
+const stages:[LifecycleStage,string,string][]=[["planned","Planned","Seed & soil prep"],["vegetative","Vegetative","Early leaf growth"],["flowering_fruiting","Flowering / Fruiting","Peak water need"],["harvesting","Harvesting","Ready for market"]];
+function areaLabel(value:number){const x=gunthasToAcresAndGunthas(value);return `${x.acres} ${x.acres===1?"Acre":"Acres"} ${x.gunthas} Gunthas`}
+export function PortfolioCard(){
+ const state=useBalramStore(s=>s),allocations=state.cropAllocations,totalArea=state.fieldGeometry?.areaSquareMetres??null;
+ const derived=allocatePlotsByGunthas(allocations,totalArea), total=derived.totalFarmGunthas;
+ const [name,setName]=useState("Well Plot"),[cropId,setCropId]=useState<CropId>("sugarcane"),[acres,setAcres]=useState("0"),[gunthas,setGunthas]=useState(total!==null?String(Math.max(0,Math.floor(derived.unassignedGunthas??0))):"20"),[stage,setStage]=useState<LifecycleStage>("planned"),[error,setError]=useState("");
+ const allocated=derived.allocatedGunthas;
+ function save(next:CropAllocation[]){try{state.setCropAllocations(next);setError("")}catch{setError("Check plot sizes and make sure their total does not exceed your farm land.")}}
+ function add(){try{const size=acresAndGunthasToGunthas(Number(acres||0),Number(gunthas||0));const next=upsertPlotAllocation(allocations,{plotName:name,cropId,areaGunthas:size,lifecycleStage:stage},totalArea);save(next);setAcres("0");setGunthas(total===null?"20":String(Math.max(0,Math.floor(total-next.reduce((s,p)=>s+(p.areaGunthas??0),0)))))}catch(e){setError(e instanceof Error?e.message:"Enter a valid plot size.")}}
+ function updatePlot(plot:CropAllocation,patch:Partial<CropAllocation>){save(allocations.map(p=>p.plotId===plot.plotId?{...p,...patch}:p))}
+ return <Card id="portfolio" title="Your farm plots" eyebrow="Land allocation" className="md:col-span-2">
+  <p className="mt-2 text-sm">Create named plots and track their crop stage. Unassigned land can remain fallow.</p>
+  {total!==null&&<div className="my-4 grid gap-3 rounded-xl bg-forest/5 p-4 sm:grid-cols-3"><div><b>Total farm land</b><p>{areaLabel(total)} ({total.toFixed(1)} gunthas)</p></div><div><b>Allocated to plots</b><p>{areaLabel(allocated)} ({allocated.toFixed(1)} gunthas)</p></div><div><b>Unassigned / fallow</b><p>{areaLabel(Math.max(0,total-allocated))} ({Math.max(0,total-allocated).toFixed(1)} gunthas)</p></div></div>}
+  {total===null&&<p className="notice my-3">Add plots by Gunthas now. Enter total field land or draw a boundary to see exact unassigned area.</p>}
+  <div className="space-y-4">{allocations.map((plot,index)=>{const crop=MaharashtraCropMatrix[plot.cropId as CropId],size=plot.areaGunthas??(total?total*plot.percentage/100:0);return <article key={plot.plotId??`${plot.cropId}-${index}`} className="rounded-xl border border-forest/20 p-4">
+   <div className="flex flex-wrap items-center justify-between gap-2"><div><h3 className="font-bold">{plot.plotName??`Plot ${index+1}`} · {crop?.name??plot.cropId} ({crop?.marathiName??""})</h3><p>{areaLabel(size)} · {plot.percentage.toFixed(2)}% of farm</p></div><button className="button-quiet min-h-12 min-w-12" disabled={!state.hydrated} onClick={()=>save(allocations.filter(p=>p.plotId!==plot.plotId))}>Remove plot</button></div>
+   <div className="mt-3 grid gap-3 sm:grid-cols-2"><label className="text-sm">Acres<input className="form-input mt-1" type="number" min="0" step="1" value={Math.floor(size/40)} onChange={e=>{const n=Number(e.target.value)*40+size%40;updatePlot(plot,{areaGunthas:n,percentage:total?Math.round(n/total*10000)/100:plot.percentage})}} /></label><label className="text-sm">Gunthas<input className="form-input mt-1" type="number" min="0" max="39" step="1" value={Math.floor(size%40)} onChange={e=>{const n=Math.floor(size/40)*40+Number(e.target.value);updatePlot(plot,{areaGunthas:n,percentage:total?Math.round(n/total*10000)/100:plot.percentage})}} /></label></div>
+   <div className="mt-2 flex flex-wrap gap-2"><button className="button-secondary min-h-12" onClick={()=>updatePlot(plot,{areaGunthas:size+5})}>+5 Gunthas</button><button className="button-secondary min-h-12" onClick={()=>updatePlot(plot,{areaGunthas:Math.max(.1,size-5)})}>−5 Gunthas</button>{total!==null&&<button className="button-secondary min-h-12" onClick={()=>updatePlot(plot,{areaGunthas:size+Math.max(0,total-allocated),percentage:total?Math.round((size+Math.max(0,total-allocated))/total*10000)/100:plot.percentage})}>Use remaining land</button>}</div>
+   <fieldset className="mt-3"><legend className="text-sm font-semibold">Lifecycle stage</legend><div className="grid grid-cols-2 gap-2 lg:grid-cols-4">{stages.map(([key,label,help])=><button key={key} type="button" aria-pressed={(plot.lifecycleStage??"planned")==key} className={`min-h-12 rounded-lg border px-3 text-sm ${(plot.lifecycleStage??"planned")==key?"border-forest bg-forest text-white":"border-forest/25"}`} onClick={()=>updatePlot(plot,{lifecycleStage:key,growthStage:lifecycleToGrowthStage(key)})}>{label}<span className="block text-xs">{help}</span></button>)}</div></fieldset>
+   <label className="mt-3 block text-sm">Planting date<input className="form-input mt-1" type="date" value={plot.plantingDate??""} onChange={e=>updatePlot(plot,{plantingDate:e.target.value||null})}/></label>
+  </article>})}</div>
+  <div className="mt-5 rounded-xl bg-stone-50 p-4"><h3 className="font-bold">Add new plot</h3><div className="my-2 flex flex-wrap gap-2">{["Well Plot","Borewell Patch","Canal Plot","Roadside Field"].map(v=><button type="button" className="button-secondary min-h-12" key={v} onClick={()=>setName(v)}>{v}</button>)}</div>
+   <div className="grid gap-3 sm:grid-cols-2"><label>Plot name<input className="form-input mt-1" value={name} maxLength={60} onChange={e=>setName(e.target.value)}/></label><label>Crop<select className="form-input mt-1" value={cropId} onChange={e=>setCropId(e.target.value as CropId)}>{Object.values(MaharashtraCropMatrix).map(c=><option key={c.id} value={c.id}>{c.name} · {c.marathiName}</option>)}</select></label><label>Acres<input className="form-input mt-1" type="number" min="0" step="1" value={acres} onChange={e=>setAcres(e.target.value)}/></label><label>Gunthas<input className="form-input mt-1" type="number" min="0" max="39" step="1" value={gunthas} onChange={e=>setGunthas(e.target.value)}/></label></div>
+   <label className="mt-3 block">Initial lifecycle stage<select className="form-input mt-1" value={stage} onChange={e=>setStage(e.target.value as LifecycleStage)}>{stages.map(([s,l])=><option key={s} value={s}>{l}</option>)}</select></label><button className="button-primary mt-3 min-h-12 w-full" disabled={!state.hydrated} onClick={add}>Add plot</button>
+  </div>{error&&<p role="alert" className="notice mt-3">{error}</p>}<DataCaption source="Farmer-entered crop and plot information" validAt={state.planningUpdatedAt} sample={state.sampleDataActive}/>
+ </Card>
 }

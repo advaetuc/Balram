@@ -5,7 +5,7 @@ import L from "leaflet";
 import { CircleMarker, FeatureGroup, MapContainer, TileLayer, useMap } from "react-leaflet";
 import { EditControl } from "react-leaflet-draw";
 import { useBalramStore } from "@/store/useBalramStore";
-import { calculateFieldGeometry } from "@/lib/domain/geometry";
+import { calculateFieldGeometry, createFieldId } from "@/lib/domain/geometry";
 
 const drawing: React.ComponentProps<typeof EditControl>["draw"] = {
   polygon: { allowIntersection: false, showArea: true, shapeOptions: { color: "#1E5631", fillOpacity: 0.2 } },
@@ -38,10 +38,14 @@ function EditableBoundary({ onError }: { onError: (message: string | null) => vo
     if (!(layer instanceof L.Polygon)) return;
     try {
       const ring = layer.getLatLngs()[0] as L.LatLng[];
-      const fieldId = latest.current.fieldGeometry?.fieldId ?? `field-${crypto.randomUUID()}`;
+      const fieldId = latest.current.fieldGeometry?.fieldId ?? createFieldId();
       latest.current.setFieldGeometry(calculateFieldGeometry(fieldId, ring.map((point) => [point.lat, point.lng])));
       onError(null);
-    } catch { onError("The boundary is invalid. Use at least three distinct vertices and avoid crossing edges."); restore(); }
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : "Check the boundary vertices and try again.";
+      onError(`The boundary could not be saved: ${detail}`);
+      restore();
+    }
   }, [onError, restore]);
   const created = useCallback((event: L.DrawEvents.Created) => save(event.layer), [save]);
   const edited = useCallback((event: L.DrawEvents.Edited) => event.layers.eachLayer(save), [save]);
