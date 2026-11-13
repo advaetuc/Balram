@@ -6,17 +6,18 @@ import { gunthasToAcresAndGunthas, acresAndGunthasToGunthas, gunthasToSquareMetr
 import { lifecycleToGrowthStage, type CropAllocation, type LifecycleStage } from "@/types/domain";
 import { useBalramStore } from "@/store/useBalramStore";
 import { Card, DataCaption } from "./Card";
+import { t } from "@/config/i18n";
 const stages:[LifecycleStage,string,string][]=[["planned","Planned","Seed & soil prep"],["vegetative","Vegetative","Early leaf growth"],["flowering_fruiting","Flowering / Fruiting","Peak water need"],["harvesting","Harvesting","Ready for market"]];
 function areaLabel(value:number){const x=gunthasToAcresAndGunthas(value);return `${x.acres} ${x.acres===1?"Acre":"Acres"} ${x.gunthas} Gunthas`}
 export function PortfolioCard(){
- const state=useBalramStore(s=>s),allocations=state.cropAllocations,totalArea=state.fieldGeometry?.areaSquareMetres??null;
+ const state=useBalramStore(s=>s),text=t(state.locale),allocations=state.cropAllocations,totalArea=state.fieldGeometry?.areaSquareMetres??null;
  const derived=allocatePlotsByGunthas(allocations,totalArea), total=derived.totalFarmGunthas;
  const [name,setName]=useState("Well Plot"),[cropId,setCropId]=useState<CropId>("sugarcane"),[acres,setAcres]=useState("0"),[gunthas,setGunthas]=useState(total!==null?String(Math.max(0,Math.floor(derived.unassignedGunthas??0))):"20"),[stage,setStage]=useState<LifecycleStage>("planned"),[error,setError]=useState("");
  const allocated=derived.allocatedGunthas;
  function save(next:CropAllocation[]){try{state.setCropAllocations(next);setError("")}catch{setError("Check plot sizes and make sure their total does not exceed your farm land.")}}
  function add(){try{const size=acresAndGunthasToGunthas(Number(acres||0),Number(gunthas||0));const next=upsertPlotAllocation(allocations,{plotName:name,cropId,areaGunthas:size,lifecycleStage:stage},totalArea);save(next);setAcres("0");setGunthas(total===null?"20":String(Math.max(0,Math.floor(total-next.reduce((s,p)=>s+(p.areaGunthas??0),0)))))}catch(e){setError(e instanceof Error?e.message:"Enter a valid plot size.")}}
  function updatePlot(plot:CropAllocation,patch:Partial<CropAllocation>){save(allocations.map(p=>p.plotId===plot.plotId?{...p,...patch}:p))}
- return <Card id="portfolio" title="Your farm plots" eyebrow="Land allocation" className="md:col-span-2">
+ return <Card id="portfolio" title={text.plots} eyebrow={text.allocated} className="md:col-span-2">
   <p className="mt-2 text-sm">Create named plots and track their crop stage. Unassigned land can remain fallow.</p>
   {total!==null&&<div className="my-4 grid gap-3 rounded-xl bg-forest/5 p-4 sm:grid-cols-3"><div><b>Total farm land</b><p>{areaLabel(total)} ({total.toFixed(1)} gunthas)</p></div><div><b>Allocated to plots</b><p>{areaLabel(allocated)} ({allocated.toFixed(1)} gunthas)</p></div><div><b>Unassigned / fallow</b><p>{areaLabel(Math.max(0,total-allocated))} ({Math.max(0,total-allocated).toFixed(1)} gunthas)</p></div></div>}
   {total===null&&<p className="notice my-3">Add plots by Gunthas now. Enter total field land or draw a boundary to see exact unassigned area.</p>}
@@ -27,7 +28,7 @@ export function PortfolioCard(){
    <fieldset className="mt-3"><legend className="text-sm font-semibold">Lifecycle stage</legend><div className="grid grid-cols-2 gap-2 lg:grid-cols-4">{stages.map(([key,label,help])=><button key={key} type="button" aria-pressed={(plot.lifecycleStage??"planned")==key} className={`min-h-12 rounded-lg border px-3 text-sm ${(plot.lifecycleStage??"planned")==key?"border-forest bg-forest text-white":"border-forest/25"}`} onClick={()=>updatePlot(plot,{lifecycleStage:key,growthStage:lifecycleToGrowthStage(key)})}>{label}<span className="block text-xs">{help}</span></button>)}</div></fieldset>
    <label className="mt-3 block text-sm">Planting date<input className="form-input mt-1" type="date" value={plot.plantingDate??""} onChange={e=>updatePlot(plot,{plantingDate:e.target.value||null})}/></label>
   </article>})}</div>
-  <div className="mt-5 rounded-xl bg-stone-50 p-4"><h3 className="font-bold">Add new plot</h3><div className="my-2 flex flex-wrap gap-2">{["Well Plot","Borewell Patch","Canal Plot","Roadside Field"].map(v=><button type="button" className="button-secondary min-h-12" key={v} onClick={()=>setName(v)}>{v}</button>)}</div>
+  <div className="mt-5 rounded-xl bg-stone-50 p-4"><h3 className="font-bold">{text.addPlot}</h3><div className="my-2 flex flex-wrap gap-2">{["Well Plot","Borewell Patch","Canal Plot","Roadside Field"].map(v=><button type="button" className="button-secondary min-h-12" key={v} onClick={()=>setName(v)}>{v}</button>)}</div>
    <div className="grid gap-3 sm:grid-cols-2"><label>Plot name<input className="form-input mt-1" value={name} maxLength={60} onChange={e=>setName(e.target.value)}/></label><label>Crop<select className="form-input mt-1" value={cropId} onChange={e=>setCropId(e.target.value as CropId)}>{Object.values(MaharashtraCropMatrix).map(c=><option key={c.id} value={c.id}>{c.name} · {c.marathiName}</option>)}</select></label><label>Acres<input className="form-input mt-1" type="number" min="0" step="1" value={acres} onChange={e=>setAcres(e.target.value)}/></label><label>Gunthas<input className="form-input mt-1" type="number" min="0" max="39" step="1" value={gunthas} onChange={e=>setGunthas(e.target.value)}/></label></div>
    <label className="mt-3 block">Initial lifecycle stage<select className="form-input mt-1" value={stage} onChange={e=>setStage(e.target.value as LifecycleStage)}>{stages.map(([s,l])=><option key={s} value={s}>{l}</option>)}</select></label><button className="button-primary mt-3 min-h-12 w-full" disabled={!state.hydrated} onClick={add}>Add plot</button>
   </div>{error&&<p role="alert" className="notice mt-3">{error}</p>}<DataCaption source="Farmer-entered crop and plot information" validAt={state.planningUpdatedAt} sample={state.sampleDataActive}/>

@@ -7,15 +7,18 @@ import { SQUARE_METRES_PER_ACRE, gunthasToAcresAndGunthas } from "@/lib/domain/g
 import { MaharashtraCropMatrix, type CropId } from "@/config/cropMatrix";
 import { formatNumber, parseNumber, selectedWeatherDay } from "@/lib/ui/format";
 import { Card, DataCaption } from "@/components/dashboard/Card";
+import { t } from "@/config/i18n";
 
 export function IrrigationPanel() {
   const state = useBalramStore((value) => value);
+  const text=t(state.locale);
   // Remount the editor when switching fields or sample mode, so confirmation cannot carry across blocks.
   return <Editor key={`${state.hydrated}:${state.sampleDataActive}:${JSON.stringify(state.fieldGeometry)}:${JSON.stringify(state.cropAllocations)}`} />;
 }
 
 function Editor() {
   const state = useBalramStore((value) => value);
+  const text=t(state.locale);
   const setup = state.irrigationSetup;
   const [flow, setFlow] = useState(setup?.systemFlowLitresPerHour?.toString() ?? "");
   const [efficiency, setEfficiency] = useState(setup?.applicationEfficiency == null ? "" : String(setup.applicationEfficiency * 100));
@@ -59,12 +62,12 @@ function Editor() {
   }
   const reset = () => { setSubmitted(false); setConfirmed(false); };
   const blueprint = crop ? MaharashtraCropMatrix[crop.cropId as CropId] : null;
-  return <Card id="irrigation" title="Plan water for your plots" eyebrow="Saved forecast and simple estimates">
+  return <Card id="irrigation" title={text.irrigation} eyebrow={text.irrigationEyebrow}>
     <p className="mt-2 text-sm">Planning estimates only. Check field moisture and local guidance before irrigating.</p>
     {state.connection==="offline"&&<p className="notice mt-2">Offline · using saved forecast where available.</p>}{state.weatherStale&&<p className="notice mt-2">Stale forecast — check dates before relying on it.</p>}{resolved?.provenance==="hargreaves-fallback"&&<p className="notice mt-2">Calculated via Hargreaves temperature fallback.</p>}{!day&&<p className="notice mt-2">No forecast saved. Using a 4.5 mm/day Maharashtra baseline planning reference.</p>}
     <section className="mt-4 rounded-xl bg-sky/10 p-4"><h3 className="font-bold">Simple plot water plan</h3>
       <label className="mt-2 block text-sm">Plot<select className="form-input mt-1" value={cropId} onChange={e=>setCropId(e.target.value)}><option value="">Select plot</option>{state.cropAllocations.map((p,i)=><option key={p.plotId??i} value={p.cropId}>{p.plotName??"Plot"} · {MaharashtraCropMatrix[p.cropId as CropId]?.name} · {p.lifecycleStage??"planned"}</option>)}</select></label>
-      <div className="mt-3 grid gap-2 sm:grid-cols-3">{(["drip","sprinkler","canal_flood"] as const).map(m=><button type="button" key={m} aria-pressed={deliveryMethod===m} className={`min-h-12 rounded-lg border p-2 ${deliveryMethod===m?"border-forest bg-forest text-white":"border-forest/20"}`} onClick={()=>setDeliveryMethod(m)}>{m==="drip"?"Drip Line · 90%":m==="sprinkler"?"Sprinkler · 75%":"Canal / Flood · 60%"}</button>)}</div>
+      <div className="mt-3 grid gap-2 sm:grid-cols-3">{(["drip","sprinkler","canal_flood"] as const).map(m=><button type="button" key={m} aria-pressed={deliveryMethod===m} className={`min-h-12 rounded-lg border p-2 ${deliveryMethod===m?"border-forest bg-forest text-white":"border-forest/20"}`} onClick={()=>setDeliveryMethod(m)}>{m==="drip"?`${text.drip} · 90%`:m==="sprinkler"?`${text.sprinkler} · 75%`:`${text.canal} · 60%`}</button>)}</div>
       <label className="mt-2 block text-sm">Optional pump flow override (L/hour)<input className="form-input mt-1" type="number" min="0.1" step="any" value={flowOverride} onChange={e=>setFlowOverride(e.target.value)} placeholder="Use delivery preset"/></label>
       {phase&&<div className="mt-3 rounded-xl bg-white p-3"><p className="font-bold">Current stage · {currentStage.replaceAll("_"," ")}</p><p>{formatNumber(phase.dailyGrossLitres,0)} L/day · {formatNumber(phase.dailyRuntimeMinutes/60,0)} h {formatNumber(phase.dailyRuntimeMinutes%60,0)} min/day</p><p>{formatNumber(phase.weeklyGrossLitres,0)} L/week · {formatNumber(phase.weeklyTankerCount,1)} tankers of 10,000 L</p></div>}
       {phases.length>0&&<div className="mt-3 overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr><th>Phase</th><th>Weeks</th><th>Kc</th><th>L/week</th><th>Tankers/week</th><th>Min/day</th></tr></thead><tbody>{phases.map(p=><tr key={p.stage} className={`border-t ${p.stage===currentStage?"bg-amber/20 font-bold":""}`}><td>{p.stage.replaceAll("_"," ")}</td><td>{p.durationWeeks}</td><td>{p.stageKc}</td><td>{formatNumber(p.weeklyGrossLitres,0)}</td><td>{formatNumber(p.weeklyTankerCount,1)}</td><td>{formatNumber(p.dailyRuntimeMinutes,0)}</td></tr>)}</tbody></table></div>}

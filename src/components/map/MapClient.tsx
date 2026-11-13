@@ -7,6 +7,7 @@ import { calculateFieldGeometry, createFieldId, GUNTHAS_PER_ACRE, squareMetresTo
 import { FieldGeometrySchema } from "@/types/domain";
 import { formatNumber, parseNumber } from "@/lib/ui/format";
 import { Card, DataCaption } from "@/components/dashboard/Card";
+import { t } from "@/config/i18n";
 
 const FarmMap = dynamic(() => import("./FarmMap"), {
   ssr: false, loading: () => <div className="flex h-[420px] items-center justify-center rounded-xl bg-stone-100" role="status">Loading field map…</div>,
@@ -20,10 +21,11 @@ class MapBoundary extends Component<{ children: ReactNode }, { failed: boolean }
 
 export function MapClient() {
   const state = useBalramStore((value) => value);
-  return <Card id="field-map" title="Define your field" eyebrow="Location & acreage">
+  const text=t(state.locale);
+  return <Card id="field-map" title={text.field} eyebrow={text.location}>
     <p className="mt-3 text-sm leading-6">Draw a boundary or enter coordinates. Changes clear old weather and soil results; your crop choices stay saved.</p>
     <div className="my-5 flex flex-wrap gap-x-8 gap-y-3 rounded-xl bg-forest/5 p-4">
-      <div><p className="text-xs text-stone-600">Field area</p><p className="text-xl font-bold">{state.fieldGeometry?.areaSquareMetres == null ? "Not set" : (()=>{const a=squareMetresToAcresAndGunthas(state.fieldGeometry.areaSquareMetres);return `${a.acres} ${a.acres===1?"Acre":"Acres"} ${a.gunthas} Gunthas`})()}</p>
+      <div><p className="text-xs text-stone-600">{text.fieldArea}</p><p className="text-xl font-bold">{state.fieldGeometry?.areaSquareMetres == null ? "Not set" : (()=>{const a=squareMetresToAcresAndGunthas(state.fieldGeometry.areaSquareMetres);return `${a.acres} ${a.acres===1?"Acre":"Acres"} ${a.gunthas} Gunthas`})()}</p>
         {state.fieldGeometry?.areaSquareMetres != null && <p className="text-sm">{formatNumber(squareMetresToAcresAndGunthas(state.fieldGeometry.areaSquareMetres).totalAcres,2)} acres · {formatNumber(squareMetresToAcresAndGunthas(state.fieldGeometry.areaSquareMetres).totalGunthas,1)} gunthas</p>}</div>
       <div><p className="text-xs text-stone-600">Location</p><p className="mt-1 text-sm tabular-nums">{state.fieldGeometry
         ? `${state.fieldGeometry.center[1].toFixed(5)}, ${state.fieldGeometry.center[0].toFixed(5)}` : "Not selected"}</p></div>

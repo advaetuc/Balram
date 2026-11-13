@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { useBalramStore } from "@/store/useBalramStore";
+import { t } from "@/config/i18n";
 
 export function Header() {
   const state = useBalramStore((value) => value);
   const canShowSample = state.sampleDataActive || (!state.farmProfile && !state.fieldGeometry &&
     state.cropAllocations.length === 0 && !state.irrigationSetup);
   const stale = state.weatherStale;
+  const text = t(state.locale);
   const badge = "inline-flex min-h-8 items-center gap-2 rounded-full border px-3 py-1 text-sm font-semibold";
 
   return (
@@ -20,15 +22,18 @@ export function Header() {
             </svg>
           </span>
           <span><span className="block text-2xl font-bold tracking-tight text-forest">Balram</span>
-            <span className="block text-xs font-medium text-ink">Your field. Your plan.</span></span>
+            <span className="block text-xs font-medium text-ink">{text.tagline}</span></span>
         </Link>
         <nav aria-label="Primary" className="flex flex-wrap items-center gap-2 text-sm font-semibold">
-          <a href="#farm-overview" className="inline-flex items-center rounded-lg px-4 hover:bg-forest/5">Farm overview</a>
+          <a href="#farm-overview" className="inline-flex min-h-12 items-center rounded-lg px-4 hover:bg-forest/5">{text.overview}</a>
+          <button type="button" className="min-h-12 min-w-12 rounded-lg border border-forest px-3" disabled={!state.hydrated}
+            aria-label={state.locale === "en" ? "Switch to Marathi" : "Switch to English"}
+            onClick={() => state.setLocale(state.locale === "en" ? "mr" : "en")}>{state.locale === "en" ? "मराठी" : "English"}</button>
           {canShowSample && (
             <button type="button" disabled={!state.hydrated} aria-pressed={state.sampleDataActive}
               onClick={() => state.setSampleData(!state.sampleDataActive)}
-              className="rounded-lg bg-forest px-4 py-3 text-white hover:bg-forest/90">
-              {state.sampleDataActive ? "Exit sample" : "Explore sample"}
+              className="min-h-12 rounded-lg bg-forest px-4 py-3 text-white hover:bg-forest/90">
+              {state.sampleDataActive ? text.exitSample : text.exploreSample}
             </button>
           )}
         </nav>
@@ -36,19 +41,19 @@ export function Header() {
       <div className="border-t border-forest/10 bg-daylight">
         <div role="status" aria-live="polite" aria-atomic="true"
           className="mx-auto flex max-w-7xl flex-wrap items-center gap-2 px-4 py-3 sm:px-6">
-          {!state.hydrated ? <span className="text-sm">Loading saved farm…</span> : <>
+          {!state.hydrated ? <span className="text-sm">{text.loading}</span> : <>
             {state.sampleDataActive && <span className={`${badge} border-amber bg-amber text-ink`}>Sample data</span>}
-            {state.connection === "offline" && <span className={`${badge} border-amber bg-amber/20`}>Offline · saved data only</span>}
+            {state.connection === "offline" && <span className={`${badge} border-amber bg-amber/20`}>{text.offline}</span>}
             {state.connection === "online" && <span className={`${badge} border-forest/30 text-forest`}>
-              <span className="size-2 rounded-full bg-forest" aria-hidden="true" />Online</span>}
-            {stale && <span className={`${badge} border-amber bg-amber/20`}>Stale data · check dates</span>}
+              <span className="size-2 rounded-full bg-forest" aria-hidden="true" />{text.online}</span>}
+            {stale && <span className={`${badge} border-amber bg-amber/20`}>{text.stale}</span>}
             {state.weatherCached && <span className={`${badge} border-sky bg-sky/10`}>Saved weather</span>}
             {state.weatherStatus.provenance === "modelled" && <span className={`${badge} border-sky bg-sky/10`}>Modelled estimate</span>}
             {state.weatherStatus.state === "loading" && <span className="text-sm">Updating weather…</span>}
             {state.weatherStatus.state === "error" && <span className="text-sm">Weather unavailable</span>}
             {state.storageStatus.mode === "memory" ? (
               <span className={`${badge} border-amber bg-amber/20`}>Not saved · this tab only</span>
-            ) : <span className="text-sm">{state.storageStatus.pendingWrites > 0 ? "Saving in this browser…" : "Saved in this browser"}</span>}
+            ) : <span className="text-sm">{state.storageStatus.pendingWrites > 0 ? text.saving : text.saved}</span>}
           </>}
         </div>
         {state.hydrated && state.storageStatus.message && <p className="mx-auto max-w-7xl px-4 pb-3 text-sm sm:px-6">

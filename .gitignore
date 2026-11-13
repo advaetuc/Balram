@@ -6,3 +6,4 @@ out/
 !.env.example
 .verification/
 .vscode/
+.DS_Store

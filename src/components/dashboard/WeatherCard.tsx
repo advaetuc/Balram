@@ -6,9 +6,11 @@ import { WeatherSnapshotSchema } from "@/types/domain";
 import { submitProvider, providerErrorMessage } from "@/lib/api/client";
 import { formatNumber, selectedWeatherDay } from "@/lib/ui/format";
 import { Card, DataCaption } from "./Card";
+import { t } from "@/config/i18n";
 
 export function WeatherCard() {
   const state = useBalramStore((value) => value);
+  const text=t(state.locale);
   const snapshot = state.weatherSnapshot;
   const day = selectedWeatherDay(state);
   const loading = state.weatherStatus.state === "loading";
@@ -24,7 +26,7 @@ export function WeatherCard() {
       if (!request.signal.aborted) state.failWeatherRequest(request, providerErrorMessage(error, "Weather"));
     }
   }
-  return <Card id="weather" title="Weather & water demand" eyebrow="Field conditions">
+  return <Card id="weather" title={text.weather} eyebrow={text.conditions}>
     <div className="mt-5 grid grid-cols-2 gap-4" aria-busy={loading}>
       <div><p className="text-xs text-stone-600">Reference ET₀</p>
         <p className="mt-1 text-3xl font-semibold tabular-nums">{formatNumber(day?.referenceEvapotranspiration)}</p>
