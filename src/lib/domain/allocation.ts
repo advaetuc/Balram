@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { CropAllocationSchema, lifecycleToGrowthStage, type CropAllocation, type LifecycleStage } from "@/types/domain";
 import { acresToSquareMetres, squareMetresToGunthas } from "./geometry";
+import { createFieldId } from "./geometry";
+import { MaharashtraCropMatrix, type CropId } from "@/config/cropMatrix";
 
 function basisPoints(percentage: number): number {
   const value = z.number().finite().min(0).max(100).parse(percentage) * 100;
@@ -61,10 +63,26 @@ export function allocatePlotsByGunthas(plots:readonly CropAllocation[],totalArea
 }
 export function upsertPlotAllocation(plots:readonly CropAllocation[],input:{plotId?:string;plotName:string;cropId:string;areaGunthas:number;lifecycleStage:LifecycleStage;plantingDate?:string|null},totalAreaSquareMetres:number|null):CropAllocation[] {
  const area=z.number().finite().positive().parse(input.areaGunthas), total=totalAreaSquareMetres===null?null:squareMetresToGunthas(z.number().finite().positive().parse(totalAreaSquareMetres));
- const id=input.plotId??`plot-${Date.now()}`, previous=plots.filter(p=>p.plotId!==id);
+ const id=input.plotId??createFieldId().replace(/^field-/,"plot-"), previous=plots.filter(p=>p.plotId!==id);
  const sum=previous.reduce((s,p)=>s+(p.areaGunthas??0),0)+area;
  if(total!==null&&sum>total+.05) throw new RangeError("Plot areas exceed the total farm area.");
- const all=[...previous,{plotId:id,plotName:input.plotName,cropId:input.cropId,areaGunthas:area,lifecycleStage:input.lifecycleStage,percentage:1,season:"kharif" as const,growthStage:lifecycleToGrowthStage(input.lifecycleStage),plantingDate:input.plantingDate??null}];
+ const season=(MaharashtraCropMatrix[input.cropId as CropId]?.season.toLowerCase()??"kharif") as CropAllocation["season"];
+ const all=[...previous,{plotId:id,plotName:input.plotName,cropId:input.cropId,areaGunthas:area,lifecycleStage:input.lifecycleStage,percentage:1,season,growthStage:lifecycleToGrowthStage(input.lifecycleStage),plantingDate:input.plantingDate??null}];
  const denom=total??sum;
  return all.map(p=>({...p,percentage:Math.round((p.areaGunthas??0)/denom*10000)/100}));
+}
+
+/** Canonical plot-area update: gunthas are stored to 0.1 and all shares derive from them. */
+export function updatePlotGunthas(plots:readonly CropAllocation[],targetPlotId:string,nextGunthas:number,totalAreaSquareMetres:number|null):CropAllocation[] {
+ const rounded=Math.round(z.number().finite().positive().parse(nextGunthas)*10)/10;
+ if(rounded<=0)throw new RangeError("Plot area must be at least 0.1 guntha.");
+ const total=totalAreaSquareMetres===null?null:squareMetresToGunthas(z.number().finite().positive().parse(totalAreaSquareMetres));
+ const resolved=plots.map(plot=>({...plot,areaGunthas:plot.areaGunthas??(total===null?null:total*plot.percentage/100)}));
+ if(!resolved.some((p,i)=>(p.plotId??`${p.cropId}-${i}`)===targetPlotId))throw new RangeError("The selected plot could not be found.");
+ const next=resolved.map((p,i)=>(p.plotId??`${p.cropId}-${i}`)===targetPlotId?{...p,areaGunthas:rounded}:p);
+ const sum=next.reduce((s,p)=>s+(p.areaGunthas??0),0);
+ if(total!==null&&sum>total+.05)throw new RangeError("Plot areas exceed the remaining farm land.");
+ const denominator=total??sum;
+ if(denominator<=0)throw new RangeError("Enter a valid total plot area.");
+ return next.map(p=>({...p,percentage:Math.round(((p.areaGunthas??0)/denominator)*10000)/100}));
 }

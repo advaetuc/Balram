@@ -92,5 +92,8 @@ export function simulateDroughtReallocation(input:{allocations:readonly CropAllo
  const totalGunthas=p.totalAreaSquareMetres/101.17141056, plots=p.allocations as CropAllocation[];
  const demand=plots.reduce((sum,a)=>sum+p.baseEt0MmPerDay*MaharashtraCropMatrix[a.cropId as CropId]?.baseKc*(a.areaGunthas??totalGunthas*a.percentage/100)*101.17141056,0);
  const deficit=demand*(1-p.waterAvailabilityPercent/100), shift=deficit/(p.baseEt0MmPerDay*1.05*101.17141056);
- return {dailyDemandLitres:demand,availableDailyLitres:demand*p.waterAvailabilityPercent/100,deficitLitres:Math.max(0,deficit),suggestedShiftGunthas:p.waterAvailabilityPercent<100?Math.min(totalGunthas,shift):0,recommendation:p.waterAvailabilityPercent<100?`Consider shifting about ${Math.min(totalGunthas,shift).toFixed(1)} gunthas from water-intensive crops toward drought-tolerant crops; review locally before changing planting.`:"Current scenario has no modeled water deficit."};
+ const suggestedShiftGunthas=p.waterAvailabilityPercent<100?Math.min(totalGunthas,shift):0;
+ const recommendation=p.waterAvailabilityPercent<100?`Consider shifting about ${suggestedShiftGunthas.toFixed(1)} gunthas from water-intensive crops toward drought-tolerant crops; review locally before changing planting.`:"Current scenario has no modeled water deficit.";
+ const recommendationBilingual={en:recommendation,mr:p.waterAvailabilityPercent<100?`उष्ण व पाण्याची जास्त गरज असलेल्या पिकांमधून सुमारे ${suggestedShiftGunthas.toFixed(1)} गुंठे दुष्काळ सहनशील पिकांकडे वळवण्याचा विचार करा. पीक क्षेत्र बदलण्यापूर्वी स्थानिक तज्ज्ञांचा सल्ला घ्या.`:"या परिस्थितीत गणितानुसार पाण्याची तूट नाही. स्थानिक परिस्थितीची खात्री करा."};
+ return {dailyDemandLitres:demand,availableDailyLitres:demand*p.waterAvailabilityPercent/100,deficitLitres:Math.max(0,deficit),suggestedShiftGunthas,recommendation,recommendationBilingual};
 }

@@ -1,12 +1,13 @@
 {
   "name": "balram",
-  "version": "0.1.0",
+  "version": "0.2.1",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build && node scripts/finalize-release.mjs",
     "start": "next start",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --experimental-loader ./scripts/test-loader.mjs --test tests/*.test.ts"
   },
   "dependencies": {
     "@turf/area": "^7.4.0",
