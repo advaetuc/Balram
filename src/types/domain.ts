@@ -31,12 +31,26 @@ export type OptionalNutrientLevel = z.infer<typeof OptionalNutrientLevelSchema>;
 export const SalinityLevelSchema = z.enum(["normal", "elevated", "high", "untested"]);
 export type SalinityLevel = z.infer<typeof SalinityLevelSchema>;
 export const SoilKitReadingSchema = z.object({
-  kitType: z.enum(["balram_inhouse", "commercial_rapid"]), ph: z.number().finite().min(3.5).max(10.5),
+  kitType: z.enum(["balram_inhouse", "commercial_rapid", "soil_health_card"]), ph: z.number().finite().min(3.5).max(10.5),
   nitrogenLevel: NutrientLevelSchema, phosphorusLevel: NutrientLevelSchema,
   potassiumLevel: OptionalNutrientLevelSchema, organicCarbon: OptionalNutrientLevelSchema,
   salinity: SalinityLevelSchema, testedAt: z.string().date(),
+  nitrogenKgPerHa: z.number().finite().positive().max(2000).nullable().default(null),
+  phosphorusKgPerHa: z.number().finite().positive().max(500).nullable().default(null),
 });
 export interface SoilKitReading extends z.infer<typeof SoilKitReadingSchema> {}
+
+export const CheckInEventSchema = z.enum(["none", "heavy_rain", "hail", "heat_wave", "cold_night", "water_shortage"]);
+export type CheckInEvent = z.infer<typeof CheckInEventSchema>;
+export const CheckInSchema = z.object({
+  id,
+  date: z.string().date(),
+  plotId: id.nullable(),
+  stage: LifecycleStageSchema.nullable(),
+  event: CheckInEventSchema,
+  note: z.string().trim().max(280).default(""),
+});
+export interface CheckIn extends z.infer<typeof CheckInSchema> {}
 
 function cross(a: Coordinate, b: Coordinate, c: Coordinate): number {
   return (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
@@ -228,6 +242,9 @@ export const PersistedFarmSchema = z.object({
   sampleDataActive: z.boolean(),
   soilKitReading: SoilKitReadingSchema.nullable().default(null),
   locale: LocaleSchema.default("en"),
+  soilSkipped: z.boolean().default(false),
+  setupCompletedAt: z.string().date().nullable().default(null),
+  checkIns: z.array(CheckInSchema).max(104).default([]),
 }).superRefine((value, ctx) => {
   const weather = value.weatherSnapshot;
   const field = value.fieldGeometry;

@@ -1,7 +1,22 @@
 import { SoilKitReadingSchema, type SoilKitReading } from "@/types/domain";
+import { z } from "zod";
+import type { NutrientLevel } from "@/types/domain";
 export type SoilPhCategory="strongly_acidic"|"slightly_acidic"|"optimal_neutral"|"moderately_alkaline"|"strongly_alkaline";
 export interface SoilEnrichmentStep {readonly id:string;readonly parameter:"ph"|"nitrogen"|"phosphorus"|"potassium"|"organic_carbon"|"salinity";readonly severity:"good"|"attention"|"critical";readonly badgeLabel:{readonly en:string;readonly mr:string};readonly plainExplanation:{readonly en:string;readonly mr:string};readonly actionStep:{readonly en:string;readonly mr:string}}
 export interface SoilKitInterpretation {readonly phCategory:SoilPhCategory;readonly overallHealth:"optimal"|"needs_enrichment"|"critical_amendment";readonly headline:{readonly en:string;readonly mr:string};readonly assayNotes:{readonly en:string;readonly mr:string};readonly steps:readonly SoilEnrichmentStep[]}
+// Alkaline KMnO₄ available N thresholds: Subbiah & Asija (1956), as adopted by India's Soil Health Card guidance.
+export const ALKALINE_KMNO4_N_LOW_MAX=280;
+// Olsen available P thresholds: Olsen et al. (1954), as adopted by India's Soil Health Card guidance.
+export const OLSEN_P_LOW_MAX=10;
+const positiveLabValue=z.number().finite().positive();
+export function classifyNitrogenKgPerHa(kgPerHa:number):NutrientLevel {
+ const value=positiveLabValue.parse(kgPerHa);
+ return value<ALKALINE_KMNO4_N_LOW_MAX?"low":value<=560?"medium":"high";
+}
+export function classifyPhosphorusKgPerHa(kgPerHa:number):NutrientLevel {
+ const value=positiveLabValue.parse(kgPerHa);
+ return value<OLSEN_P_LOW_MAX?"low":value<=25?"medium":"high";
+}
 const phText:Record<SoilPhCategory,{label:[string,string];explanation:[string,string];action:[string,string];severity:"good"|"attention"|"critical"}>={
  strongly_acidic:{label:["Acidic","आम्लीय"],explanation:["Acidity can restrict roots and phosphorus availability.","आम्लीय मातीमुळे मुळांची वाढ आणि स्फुरदाचे शोषण कमी होऊ शकते."],action:["Before sowing, ask a local soil adviser about agricultural lime and add well-decomposed FYM.","पेरणीपूर्वी कृषी तज्ज्ञांचा सल्ला घेऊन शेतीचा चुना वापरा आणि चांगले कुजलेले शेणखत मिसळा."],severity:"critical"},
  slightly_acidic:{label:["Slightly acidic","किंचित आम्लीय"],explanation:["Mild acidity may limit availability of some nutrients.","किंचित आम्लीय मातीत काही अन्नद्रव्ये पिकांना कमी उपलब्ध होऊ शकतात."],action:["Add compost or FYM and avoid acid-forming fertilizers unless advised.","कंपोस्ट किंवा शेणखत घाला; सल्ल्याशिवाय आम्लता वाढवणारी खते टाळा."],severity:"attention"},

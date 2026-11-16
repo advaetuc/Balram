@@ -12,6 +12,9 @@ export function createEmptyFixture(): PersistedFarm {
     sampleDataActive: false,
     soilKitReading: null,
     locale: "en",
+    soilSkipped: false,
+    setupCompletedAt: null,
+    checkIns: [],
   };
 }
 
@@ -30,8 +33,11 @@ export function createSampleFixture(): PersistedFarm {
       { plotId: "plot-well", plotName: "Well Plot", areaGunthas: 48, lifecycleStage: "harvesting", cropId: "bajra", percentage: 60, season: "kharif", growthStage: "late-season", plantingDate: "2026-06-20" },
       { plotId: "plot-borewell", plotName: "Borewell Patch", areaGunthas: 32, lifecycleStage: "harvesting", cropId: "groundnut", percentage: 40, season: "kharif", growthStage: "late-season", plantingDate: "2026-06-22" },
     ],
-    soilKitReading: { kitType: "balram_inhouse", ph: 7.9, nitrogenLevel: "low", phosphorusLevel: "medium", potassiumLevel: "untested", organicCarbon: "low", salinity: "normal", testedAt: "2026-10-01" },
+    soilKitReading: { kitType: "balram_inhouse", ph: 7.9, nitrogenLevel: "low", phosphorusLevel: "medium", potassiumLevel: "untested", organicCarbon: "low", salinity: "normal", testedAt: "2026-10-01", nitrogenKgPerHa: null, phosphorusKgPerHa: null },
     locale: "en",
+    soilSkipped: false,
+    setupCompletedAt: "2026-10-01",
+    checkIns: [],
     irrigationSetup: {
       method: "drip", systemFlowLitresPerHour: null,
       applicationEfficiency: null, flowConfirmedByFarmer: false,
