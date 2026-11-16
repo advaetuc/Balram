@@ -12,6 +12,8 @@ import { FarmReport } from "@/components/report/FarmReport";
 import { RoadmapList } from "@/components/journey/RoadmapList";
 import { ProvenanceBadge } from "@/components/ui/ProvenanceBadge";
 import { t } from "@/config/i18n";
+import { CheckInCard } from "@/components/home/CheckInCard";
+import { BackupControls } from "@/components/home/BackupControls";
 
 type HomeTab="today"|"farm"|"water"|"report";
 const tabs:readonly HomeTab[]=["today","farm","water","report"];
@@ -28,13 +30,13 @@ export function DailyHome({ onSetup }: { onSetup: () => void }) {
     </div>
     <section id="daily-panel" role="tabpanel" aria-labelledby={`home-tab-${tab}`} className="min-w-0">
       {tab==="today"&&<div className="space-y-5">
+        {!state.sampleDataActive&&state.cropAllocations.length>0&&<CheckInCard/>}
         {state.soilSkipped&&!state.soilKitReading&&<p className="notice">{text.soilNotTested}</p>}
         {advisory&&<article className="bento-card border-l-4 border-l-amber"><div className="flex flex-wrap items-center justify-between gap-2"><h2 className="text-xl font-bold">{advisory.headline[state.locale]}</h2>{state.sampleDataActive&&<ProvenanceBadge provenance="sample" locale={state.locale}/>}</div><p className="mt-2 leading-6">{advisory.message[state.locale]}</p><p className="mt-2 font-semibold">{advisory.actionLabel[state.locale]}</p><details className="mt-2"><summary>{text.whyAdvice}</summary><p className="rounded-lg bg-daylight p-3 text-sm">{advisory.reason[state.locale]}</p></details></article>}
         <section className="bento-card"><h2 className="text-xl font-bold">{text.todayWater}</h2>{irrigationItems.length?<ul className="mt-3 space-y-3">{irrigationItems.map(item=><li key={item.id} className="rounded-xl border border-forest/15 p-3"><div className="flex flex-wrap items-start justify-between gap-2"><b>{item.title[state.locale]}</b><ProvenanceBadge provenance={item.provenance} locale={state.locale}/></div><p className="mt-1 text-sm">{item.detail[state.locale]}</p></li>)}</ul>:<p className="mt-2 text-sm">{mr?"पाण्याचा अंदाज पाहण्यासाठी जमीन व पीक प्लॉट जोडा.":"Add field land and crop plots to see a water estimate."}</p>}</section>
         <section className="bento-card"><h2 className="text-xl font-bold">{text.nextActions}</h2><div className="mt-3"><RoadmapList items={thisWeek} locale={state.locale}/></div></section>
-        <div className="flex flex-wrap items-center gap-3"><button type="button" className="button-secondary" disabled>{mr?"शेताची नोंद":"Quick check-in"}</button><span className="text-sm text-stone-600">{text.comingSoon}</span></div>
       </div>}
-      {tab==="farm"&&<div className="space-y-5"><MapClient/><PortfolioCard/><SoilCard/><button type="button" className="button-secondary w-full" onClick={onSetup}>{text.editSetup}</button></div>}
+      {tab==="farm"&&<div className="space-y-5"><MapClient/><PortfolioCard/><SoilCard/><BackupControls/><button type="button" className="button-secondary w-full" onClick={onSetup}>{text.editSetup}</button></div>}
       {tab==="water"&&<IrrigationPanel/>}
       {tab==="report"&&<FarmReport/>}
     </section>

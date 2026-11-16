@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useBalramStore } from "@/store/useBalramStore";
 import { t, stationLabel } from "@/config/i18n";
 import { deriveJourney, type JourneyStationId } from "@/lib/domain/journey";
@@ -17,6 +17,7 @@ export function AppShell(){
   const state=useBalramStore(s=>s),text=t(state.locale);
   const [view,setView]=useState<View>("landing");
   const [samplePending,setSamplePending]=useState(false);
+  const persistenceRequested=useRef(false);
   const nowIso=state.now===null?null:new Date(state.now).toISOString();
   const journey=deriveJourney(state,nowIso);
   useEffect(()=>{
@@ -24,6 +25,11 @@ export function AppShell(){
     window.addEventListener("balram:show-landing",returnToLanding);
     return()=>window.removeEventListener("balram:show-landing",returnToLanding);
   },[]);
+  useEffect(()=>{
+    if(!state.hydrated||persistenceRequested.current)return;
+    persistenceRequested.current=true;
+    try { void navigator.storage?.persist?.().catch(()=>false); } catch { /* Best-effort browser storage protection. */ }
+  },[state.hydrated]);
   if(!state.hydrated)return <div className="space-y-5" aria-busy="true" role="status"><div className="h-8 w-56 animate-pulse rounded bg-forest/10"/><div className="h-48 rounded-2xl bg-white p-5 shadow-sm"><span className="sr-only">{text.loading}</span></div><div className="h-24 rounded-2xl bg-white p-5 shadow-sm"/></div>;
   const launchJourney=()=>setView("journey");
   return <>

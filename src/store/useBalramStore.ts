@@ -86,9 +86,11 @@ function persistedSlice(state: BalramState): PersistedFarm {
 
 /** Pure persisted-slice upgrader so old local snapshots can be verified without browser storage. */
 export function migratePersistedFarm(saved: unknown, version: number): PersistedFarm {
-  if (![0, 1, 2, 3].includes(version) || !saved || typeof saved !== "object") {
+  if (!saved || typeof saved !== "object") {
     throw new Error("Unsupported saved data version.");
   }
+  if (version === PERSISTENCE_VERSION) return PersistedFarmSchema.parse(saved);
+  if (![0, 1, 2, 3].includes(version)) throw new Error("Unsupported saved data version.");
   const legacy = saved as Partial<PersistedFarm> & Record<string, unknown>;
   const cropAllocations = Array.isArray(legacy.cropAllocations) ? legacy.cropAllocations.map((item, index) => {
     if (!item || typeof item !== "object") return item;

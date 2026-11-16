@@ -1,27 +1,31 @@
-# Balram v0.2.0 — Maharashtra farm planning
+# Balram v0.3.0 — Maharashtra farm planning
 
-Balram is a local-first, zero-database farm planning app for Maharashtra. It combines field mapping, Acres and Gunthas plot management, crop planning, on-site soil-kit records, weather context, irrigation estimates, and printable reports. English and Marathi (`मराठी`) are available from the header.
+Balram is a local-first, zero-database farm planning app for Maharashtra. It combines field mapping, Acres and Gunthas plot management, crop planning, on-site soil records, weather context, irrigation estimates, check-ins, and printable reports. English and Marathi (`मराठी`) are available.
 
-## v0.2.0 features
+## v0.3.0 features
 
-- **Local persistence:** Zustand state is hydrated from IndexedDB (`PERSISTENCE_VERSION = 3`). Farm boundaries, plots, soil-kit readings, locale, and last-good provider snapshots remain in the browser. A session-memory fallback keeps edits available when IndexedDB cannot be used.
-- **Field and plot management:** Draw or enter a field boundary, with GeoJSON stored in `[longitude, latitude]` order. Divide land into named plots in Acres and Gunthas, assign crops, and track planned, vegetative, flowering/fruiting, or harvesting stages.
-- **Soil kit:** Record pH, available nitrogen and phosphorus, with optional commercial rapid-kit potassium, organic carbon, and salinity readings. Deterministic interpretation presents bilingual soil notes and enrichment actions.
-- **Crop Advisor:** Rank Maharashtra crops by season, soil-kit compatibility, and the saved weather forecast.
-- **Balram's Field Voice:** Provide bilingual plain-language crop-stage, soil, and weather advisories.
-- **Water planning:** Estimate current and lifecycle-phase water needs, include delivery presets and a drought allocation scenario, and retain an advanced measured-flow calculator. Estimates are planning aids, not irrigation commands.
-- **Offline use:** After a successful online installation, the build-generated service worker caches an allowlist of application files. Farm data remains in IndexedDB; provider responses and map tiles are not cached.
+- **Growing Path:** a six-station guided setup for land, weather, soil, crops, advice, and a prioritized roadmap.
+- **Local persistence:** Zustand hydrates farm records from IndexedDB (`PERSISTENCE_VERSION = 4`). A session-memory fallback keeps editing available when IndexedDB is unavailable. The app requests persistent browser storage after hydration when supported.
+- **Read-only Sample Farm overlay:** explore illustrative Pune data without changing the saved farm.
+- **Field and plots:** draw or enter a field boundary, with persisted GeoJSON coordinates in `[longitude, latitude]` order. Divide land into named plots and track crop lifecycle stages.
+- **Soil Health Card:** enter pH and available nitrogen/phosphorus values in kg/ha. Balram classifies entered nutrient values and explains the categories; it does not replace laboratory interpretation.
+- **Check-ins:** record a plot stage, recent field event, and optional short note. Check-ins are farmer-entered records and do not overwrite weather data.
+- **Backup and restore:** download or restore a validated JSON farm backup. Backup files contain field map coordinates; keep them private. Restore validation completes before saved state is replaced.
+- **Coordinate-free sharing:** share or copy a farm summary with plot, soil, and roadmap details. Map coordinates and boundary geometry are excluded.
+- **Balram's Field Voice and water planning:** bilingual plain-language advisories and phase-wise water estimates. Estimates are planning aids, not irrigation commands.
+- **Offline use:** after a successful production build/install, the service worker caches an allowlist of application files. Farm data is kept locally; provider responses and map tiles are not cached.
 
 ## Architecture
 
 - Next.js 15 App Router, React 19, TypeScript, and Tailwind CSS.
 - `src/types/domain.ts`: Zod contracts for browser-persisted farm state.
-- `src/store/useBalramStore.ts`: hydration-safe Zustand store, migration, request-generation guards, and local persistence.
+- `src/store/useBalramStore.ts`: hydration-safe Zustand store, migrations, request-generation guards, check-ins, and local persistence.
 - `src/lib/domain/`: geometry, land allocation, soil interpretation, crop recommendations, Field Voice, and irrigation calculations.
+- `src/lib/storage/`: IndexedDB adapter and validated backup/restore format.
 - `src/lib/api/` and `src/app/api/`: bounded same-origin provider proxy routes. Open-Meteo weather is request-driven; SoilGrids and Agmarknet are disabled. Geocoding is unavailable on Edge deployments without a shared rate-limit authority.
 - `scripts/finalize-release.mjs`: adds per-document inline script CSP hashes and generates `public/sw.js` from the exact production build assets.
 
-There are no user accounts, remote farm database, analytics, or geometry uploads. Provider availability is not guaranteed. Review provider licensing and deployment constraints in [RELEASE.md](RELEASE.md).
+There are no user accounts, remote farm database, or analytics. Provider availability is not guaranteed. Review provider licensing and deployment constraints in [RELEASE.md](RELEASE.md).
 
 ## Development and verification
 
@@ -29,6 +33,7 @@ There are no user accounts, remote farm database, analytics, or geometry uploads
 npm install
 npm run dev
 npm run typecheck
+npm test
 npm run build
 npm start
 ```
