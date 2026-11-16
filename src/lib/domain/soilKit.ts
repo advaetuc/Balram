@@ -17,6 +17,11 @@ export function classifyPhosphorusKgPerHa(kgPerHa:number):NutrientLevel {
  const value=positiveLabValue.parse(kgPerHa);
  return value<OLSEN_P_LOW_MAX?"low":value<=25?"medium":"high";
 }
+export function createSoilHealthCardReading(input:{ph:number;nitrogenKgPerHa:number;phosphorusKgPerHa:number;testedAt:string}):SoilKitReading {
+ return SoilKitReadingSchema.parse({kitType:"soil_health_card",...input,
+  nitrogenLevel:classifyNitrogenKgPerHa(input.nitrogenKgPerHa),phosphorusLevel:classifyPhosphorusKgPerHa(input.phosphorusKgPerHa),
+  potassiumLevel:"untested",organicCarbon:"untested",salinity:"untested"});
+}
 const phText:Record<SoilPhCategory,{label:[string,string];explanation:[string,string];action:[string,string];severity:"good"|"attention"|"critical"}>={
  strongly_acidic:{label:["Acidic","आम्लीय"],explanation:["Acidity can restrict roots and phosphorus availability.","आम्लीय मातीमुळे मुळांची वाढ आणि स्फुरदाचे शोषण कमी होऊ शकते."],action:["Before sowing, ask a local soil adviser about agricultural lime and add well-decomposed FYM.","पेरणीपूर्वी कृषी तज्ज्ञांचा सल्ला घेऊन शेतीचा चुना वापरा आणि चांगले कुजलेले शेणखत मिसळा."],severity:"critical"},
  slightly_acidic:{label:["Slightly acidic","किंचित आम्लीय"],explanation:["Mild acidity may limit availability of some nutrients.","किंचित आम्लीय मातीत काही अन्नद्रव्ये पिकांना कमी उपलब्ध होऊ शकतात."],action:["Add compost or FYM and avoid acid-forming fertilizers unless advised.","कंपोस्ट किंवा शेणखत घाला; सल्ल्याशिवाय आम्लता वाढवणारी खते टाळा."],severity:"attention"},

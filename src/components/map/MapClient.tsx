@@ -30,7 +30,8 @@ export function MapClient() {
       <div><p className="text-xs text-stone-600">Location</p><p className="mt-1 text-sm tabular-nums">{state.fieldGeometry
         ? `${state.fieldGeometry.center[1].toFixed(5)}, ${state.fieldGeometry.center[0].toFixed(5)}` : "Not selected"}</p></div>
     </div>
-    {state.hydrated ? <MapBoundary key={String(state.sampleDataActive)}><FarmMap /></MapBoundary>
+    {state.sampleDataActive && <p className="notice mb-3">{state.locale === "mr" ? "नमुना शेत फक्त पाहण्यासाठी आहे." : "Sample farm is view-only."}</p>}
+    {state.hydrated ? <MapBoundary key={String(state.sampleDataActive)}><FarmMap readOnly={state.sampleDataActive} /></MapBoundary>
       : <div className="h-[420px] rounded-xl bg-stone-100 p-5" role="status">Loading saved field…</div>}
     <LocationForm key={`${state.hydrated}:${state.sampleDataActive}:${JSON.stringify(state.fieldGeometry)}`} />
     <DataCaption source={state.fieldGeometry?.boundary ? "Your boundary · Turf geodesic area" : "Your location and acreage inputs"}
@@ -85,7 +86,7 @@ function LocationForm() {
   }
   return <div className="mt-4 space-y-3">
     <details open={!field}><summary>Enter coordinates & acreage</summary>
-      <form onSubmit={save} className="mt-3 space-y-4"><fieldset disabled={!state.hydrated} className="grid gap-3 sm:grid-cols-2">
+      <form onSubmit={save} className="mt-3 space-y-4"><fieldset disabled={!state.hydrated || state.sampleDataActive} className="grid gap-3 sm:grid-cols-2">
         <legend className="sr-only">Field location</legend>
         <label className="text-sm">Latitude<input className="form-input mt-1" type="number" inputMode="decimal" required min="-90" max="90" step="any" value={lat} onChange={(event) => setLat(event.target.value)} /></label>
         <label className="text-sm">Longitude<input className="form-input mt-1" type="number" inputMode="decimal" required min="-180" max="180" step="any" value={lng} onChange={(event) => setLng(event.target.value)} /></label>
@@ -97,10 +98,10 @@ function LocationForm() {
     </details>
     <details><summary>Enter or edit boundary vertices</summary>
       <form onSubmit={saveBoundary} className="mt-3 space-y-3"><label className="block text-sm">Latitude, longitude pairs (one pair per line)
-        <textarea className="form-input mt-2 font-mono text-xs" rows={6} maxLength={50000} value={vertices} onChange={(event) => setVertices(event.target.value)} required disabled={!state.hydrated} /></label>
-        <button className="button-secondary w-full" type="submit" disabled={!state.hydrated}>Save boundary</button></form>
+        <textarea className="form-input mt-2 font-mono text-xs" rows={6} maxLength={50000} value={vertices} onChange={(event) => setVertices(event.target.value)} required disabled={!state.hydrated || state.sampleDataActive} /></label>
+        <button className="button-secondary w-full" type="submit" disabled={!state.hydrated || state.sampleDataActive}>Save boundary</button></form>
     </details>
-    {field && <button className="button-quiet w-full" onClick={() => state.setFieldGeometry(null)}>Clear field and its telemetry</button>}
+    {field && <button className="button-quiet w-full" disabled={state.sampleDataActive} onClick={() => state.setFieldGeometry(null)}>Clear field and its telemetry</button>}
     {error && <p role="alert" className="notice">{error}</p>}
   </div>;
 }

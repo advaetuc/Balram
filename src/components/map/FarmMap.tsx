@@ -13,7 +13,7 @@ const drawing: React.ComponentProps<typeof EditControl>["draw"] = {
 };
 const editing = { edit: {}, poly: { allowIntersection: false } };
 
-function EditableBoundary({ onError }: { onError: (message: string | null) => void }) {
+function EditableBoundary({ onError, readOnly }: { onError: (message: string | null) => void; readOnly: boolean }) {
   const state = useBalramStore((value) => value);
   const latest = useRef(state);
   latest.current = state;
@@ -55,11 +55,11 @@ function EditableBoundary({ onError }: { onError: (message: string | null) => vo
   }, [onError]);
   const editStarted = useCallback(() => latest.current.resetDerivedForFieldChange(), []);
 
-  return <FeatureGroup ref={group}><EditControl position="topleft" draw={drawing} edit={editing}
-    onCreated={created} onEdited={edited} onDeleted={deleted} onEditStart={editStarted} /></FeatureGroup>;
+  return <FeatureGroup ref={group}>{!readOnly && <EditControl position="topleft" draw={drawing} edit={editing}
+    onCreated={created} onEdited={edited} onDeleted={deleted} onEditStart={editStarted} />}</FeatureGroup>;
 }
 
-export default function FarmMap() {
+export default function FarmMap({ readOnly = false }: { readOnly?: boolean }) {
   const state = useBalramStore((value) => value);
   const [error, setError] = useState<string | null>(null);
   const [tileError, setTileError] = useState(false);
@@ -68,7 +68,7 @@ export default function FarmMap() {
   const tileEvents = useMemo(() => ({ tileerror: () => setTileError(true), load: () => undefined }), []);
   return <div>
     <div className="mb-3">
-      <button className="button-secondary" disabled={state.connection !== "online" && !tilesEnabled}
+      <button className="button-secondary" disabled={readOnly || (state.connection !== "online" && !tilesEnabled)}
         onClick={() => { setTilesEnabled((enabled) => !enabled); setTileError(false); }}>
         {tilesEnabled ? "Hide online map" : "Load online map"}
       </button>
@@ -80,7 +80,7 @@ export default function FarmMap() {
         {tilesEnabled && state.connection === "online" && <TileLayer url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>'
           keepBuffer={0} updateWhenIdle updateWhenZooming={false} maxZoom={19} eventHandlers={tileEvents} />}
-        <EditableBoundary onError={setError} />
+        <EditableBoundary onError={setError} readOnly={readOnly} />
         {state.fieldGeometry && <CircleMarker center={[state.fieldGeometry.center[1], state.fieldGeometry.center[0]]}
           radius={6} pathOptions={{ color: "#212121", fillColor: "#FFBF00", fillOpacity: 1 }} interactive={false} />}
       </MapContainer>

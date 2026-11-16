@@ -25,6 +25,7 @@ export interface WeatherRequest {
 
 export interface BalramState extends PersistedFarm {
   hydrated: boolean;
+  sampleOverlayActive: boolean;
   hydrationError: string | null;
   storageStatus: StorageStatus;
   connection: "unknown" | "online" | "offline";
@@ -44,7 +45,7 @@ export interface BalramState extends PersistedFarm {
   replacePersistedState(next: PersistedFarm): void;
   setLocale(locale: Locale): void;
   resetDerivedForFieldChange(): void;
-  setSampleData(active: boolean): void;
+  setSampleData(active: boolean): Promise<void>;
   beginWeatherRequest(): WeatherRequest;
   commitWeatherRequest(request: WeatherRequest, snapshot: WeatherSnapshot, cached?: boolean): boolean;
   failWeatherRequest(request: WeatherRequest, message?: string): boolean;
@@ -128,6 +129,8 @@ export function createBalramStore() {
   let sequence = 0;
   let active: { request: WeatherRequest; controller: AbortController } | null = null;
   let activeSoil: { request: WeatherRequest; controller: AbortController } | null = null;
+  let realFarmBackup: PersistedFarm | null = null;
+  let sampleTransition = false;
 
   const storage = createJSONStorage<PersistedFarm>(() => ({
     getItem: async (name) => {
@@ -154,8 +157,12 @@ export function createBalramStore() {
         throw new Error("Wait for local data to finish loading before editing.");
       }
     };
-    const invalidate = (patch: Partial<PersistedFarm> = {}) => {
+    const requireWritable = () => {
       requireReady();
+      if (sampleTransition || get().sampleDataActive || get().sampleOverlayActive) throw new Error("Sample farm is read-only. Exit sample mode to edit your farm.");
+    };
+    const invalidate = (patch: Partial<PersistedFarm> = {}) => {
+      requireWritable();
       const previous = active;
       const previousSoil = activeSoil;
       active = null;
@@ -173,29 +180,29 @@ export function createBalramStore() {
       !request.signal.aborted && request.generation === generation && request.fieldKey === JSON.stringify(get().fieldGeometry);
 
     return {
-      ...createEmptyFixture(), hydrated: false, hydrationError: null,
+      ...createEmptyFixture(), hydrated: false, sampleOverlayActive: false, hydrationError: null,
       storageStatus: disk.getStatus(), connection: "unknown", weatherStatus: idleWeather(), weatherCached: false, weatherStale: false,
       soilStatus: idleSoil(), now: null,
-      setFarmProfile: (profile) => { requireReady(); set({ farmProfile: FarmProfileSchema.parse(profile), planningUpdatedAt: new Date().toISOString() }); },
+      setFarmProfile: (profile) => { requireWritable(); set({ farmProfile: FarmProfileSchema.parse(profile), planningUpdatedAt: new Date().toISOString() }); },
       setFieldGeometry: (geometry) => {
-        requireReady();
+        requireWritable();
         const next = geometry === null ? null : FieldGeometrySchema.parse(geometry);
         if (JSON.stringify(next) !== JSON.stringify(get().fieldGeometry)) invalidate({ fieldGeometry: next });
       },
-      setCropAllocations: (allocations) => { requireReady(); set({ cropAllocations: CropAllocationsSchema.parse(allocations), planningUpdatedAt: new Date().toISOString() }); },
+      setCropAllocations: (allocations) => { requireWritable(); set({ cropAllocations: CropAllocationsSchema.parse(allocations), planningUpdatedAt: new Date().toISOString() }); },
       setIrrigationSetup: (setup) => {
-        requireReady();
+        requireWritable();
         set({ irrigationSetup: setup === null ? null : IrrigationSetupSchema.parse(setup), planningUpdatedAt: new Date().toISOString() });
       },
-      setSoilKitReading: (reading) => { requireReady(); set({ soilKitReading: reading === null ? null : SoilKitReadingSchema.parse(reading), planningUpdatedAt: new Date().toISOString() }); },
-      setSoilSkipped: (skipped) => { requireReady(); set({ soilSkipped: z.boolean().parse(skipped), planningUpdatedAt: new Date().toISOString() }); },
+      setSoilKitReading: (reading) => { requireWritable(); set({ soilKitReading: reading === null ? null : SoilKitReadingSchema.parse(reading), soilSkipped: reading === null ? get().soilSkipped : false, planningUpdatedAt: new Date().toISOString() }); },
+      setSoilSkipped: (skipped) => { requireWritable(); set({ soilSkipped: z.boolean().parse(skipped), planningUpdatedAt: new Date().toISOString() }); },
       setSetupCompletedAt: (dateIso) => {
-        requireReady();
+        requireWritable();
         const parsed = z.string().date().nullable().parse(dateIso);
         set({ setupCompletedAt: parsed });
       },
       addCheckIn: (input) => {
-        requireReady();
+        requireWritable();
         const checkIn = CheckInSchema.parse(input);
         const cropAllocations = checkIn.plotId && checkIn.stage
           ? get().cropAllocations.map((plot) => plot.plotId === checkIn.plotId
@@ -206,7 +213,7 @@ export function createBalramStore() {
           planningUpdatedAt: new Date().toISOString() });
       },
       replacePersistedState: (input) => {
-        requireReady();
+        requireWritable();
         const next = PersistedFarmSchema.parse(input);
         const previous = active;
         const previousSoil = activeSoil;
@@ -223,21 +230,40 @@ export function createBalramStore() {
       },
       setLocale: (locale) => { requireReady(); set({ locale: LocaleSchema.parse(locale) }); },
       resetDerivedForFieldChange: () => invalidate(),
-      setSampleData: (enabled) => {
+      setSampleData: async (enabled) => {
         requireReady();
         const current = get();
-        if (current.sampleDataActive === enabled) return;
-        if (enabled && (current.farmProfile || current.fieldGeometry || current.cropAllocations.length || current.irrigationSetup || current.soilKitReading)) {
-          throw new Error("Sample mode is available only for an empty workspace.");
-        }
-        const next = enabled ? createSampleFixture() : createEmptyFixture();
+        if (current.sampleOverlayActive === enabled) return;
         const previous = active;
         const previousSoil = activeSoil;
         active = null;
         activeSoil = null;
         generation++;
-        set({ ...next, soilStatus: idleSoil(), weatherStatus: statusFor(next.weatherSnapshot), weatherCached: false,
-          weatherStale: !!next.weatherSnapshot && isWeatherStale(next.weatherSnapshot, Date.now()) });
+        let next: PersistedFarm;
+        if (enabled) {
+          realFarmBackup = current.sampleDataActive ? createEmptyFixture() : persistedSlice(current);
+          writesEnabled = false;
+          sampleTransition = true;
+          set({ sampleOverlayActive: true });
+          await disk.flush();
+          if (!get().sampleOverlayActive) return;
+          next = createSampleFixture();
+          sampleTransition = false;
+          set({ ...next, sampleOverlayActive: true, soilStatus: idleSoil(), weatherStatus: statusFor(next.weatherSnapshot), weatherCached: false,
+            weatherStale: !!next.weatherSnapshot && isWeatherStale(next.weatherSnapshot, Date.now()) });
+        } else {
+          sampleTransition = true;
+          next = realFarmBackup ?? (current.sampleDataActive ? createEmptyFixture() : persistedSlice(current));
+          next = { ...next, sampleDataActive: false };
+          realFarmBackup = null;
+          writesEnabled = true;
+          set({ ...next, sampleOverlayActive: false, soilStatus: next.soilSnapshot
+              ? { provider: "soil", state: "success", provenance: "modelled", requestId: null, updatedAt: next.soilSnapshot.fetchedAt, error: null }
+              : idleSoil(),
+            weatherStatus: statusFor(next.weatherSnapshot), weatherCached: !!next.weatherSnapshot,
+            weatherStale: !!next.weatherSnapshot && isWeatherStale(next.weatherSnapshot, Date.now()) });
+          sampleTransition = false;
+        }
         previous?.controller.abort();
         previousSoil?.controller.abort();
       },

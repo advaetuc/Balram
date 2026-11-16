@@ -37,9 +37,9 @@ export function WeatherCard() {
     </div>
     <p className="mt-4 text-sm">{day ? `${day.date} · ${formatNumber(day.temperatureMin)} to ${formatNumber(day.temperatureMax)} °C`
       : "No current-day forecast. Select a field and request weather."}</p>
-    {state.weatherStatus.error && <p role="alert" className="notice mt-4">{state.weatherStatus.error}</p>}
+    {state.weatherStatus.error && <p role="alert" className="notice mt-4">{state.locale === "mr" ? text.weatherError : state.weatherStatus.error}</p>}
     <button className="button-secondary mt-5 w-full" disabled={!state.hydrated || !state.fieldGeometry || loading || state.sampleDataActive || state.connection === "offline"}
-      onClick={() => void update()}>{loading ? "Updating weather…" : snapshot ? "Refresh weather" : "Get weather"}</button>
+      onClick={() => void update()}>{loading ? text.weatherLoading : state.weatherStatus.error ? text.weatherRetry : snapshot ? (state.locale === "mr" ? "हवामान अद्ययावत करा" : "Refresh weather") : (state.locale === "mr" ? "हवामान मिळवा" : "Get weather")}</button>
     <p className="mt-2 text-xs leading-5 text-stone-600">This sends your field&apos;s approximate center to Open-Meteo when you request an update.</p>
     {snapshot && <details className="mt-3"><summary>Forecast details</summary>
       <ul className="divide-y divide-forest/10 text-sm">{snapshot.daily.map((item) => <li key={item.date} className="py-3">

@@ -105,7 +105,7 @@ function Editor() {
       {state.weatherStale && !state.sampleDataActive && <p className="notice">Weather is stale. Refresh it before calculating runtime.</p>}
       {state.connection === "offline" && !state.sampleDataActive && <p className="notice">Offline: review saved inputs now and reconnect for a current runtime estimate.</p>}
       {error && <p role="alert" className="notice">{error}</p>}
-      <button className="button-primary w-full" type="submit" disabled={!state.hydrated}>Calculate planning estimate</button>
+      <button className="button-primary w-full" type="submit" disabled={!state.hydrated||state.sampleDataActive}>Calculate planning estimate</button>
     </form>
     {estimate && <div role="status" className="mt-5 rounded-xl bg-sky/10 p-5">
       <p className="text-xs font-bold uppercase tracking-widest">{state.sampleDataActive ? "Sample calculation only" : "Planning estimate"}</p>

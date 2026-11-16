@@ -4,6 +4,11 @@ import { SQUARE_METRES_PER_GUNTHA } from "./geometry";
 export type JourneyStationId = "land" | "weather" | "soil" | "crops" | "advice" | "roadmap";
 export type JourneyStationStatus = "done" | "current" | "ready" | "skipped" | "locked" | "needs_update";
 export interface JourneyStation { readonly id: JourneyStationId; readonly status: JourneyStationStatus }
+const journeyOrder: readonly JourneyStationId[] = ["land", "weather", "soil", "crops", "advice", "roadmap"];
+export function adjacentJourneyStation(stations: readonly JourneyStation[], current: JourneyStationId, direction: -1|1): JourneyStationId|null {
+  const index=journeyOrder.indexOf(current),candidate=stations[index+direction];
+  return candidate&&candidate.status!=="locked"?candidate.id:null;
+}
 
 function weatherIsStale(state: PersistedFarm, nowIso: string | null): boolean {
   const snapshot = state.weatherSnapshot;
@@ -41,5 +46,5 @@ export function deriveJourney(state: PersistedFarm, nowIso: string | null): read
     advice: adviceLocked ? "locked" : weatherStale ? "needs_update" : "ready",
     roadmap: !landDone || !cropsDone ? "locked" : state.setupCompletedAt && weatherStale ? "needs_update" : state.setupCompletedAt ? "done" : "ready",
   };
-  return (["land", "weather", "soil", "crops", "advice", "roadmap"] as const).map((id) => ({ id, status: statuses[id] }));
+  return journeyOrder.map((id) => ({ id, status: statuses[id] }));
 }

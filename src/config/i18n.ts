@@ -1,5 +1,7 @@
 import type { Locale, LifecycleStage } from "@/types/domain";
 import type { CropId } from "@/config/cropMatrix";
+import type { JourneyStationId, JourneyStationStatus } from "@/lib/domain/journey";
+import type { ProvenanceTag } from "@/lib/domain/roadmap";
 
 const dictionary = {
   en: {
@@ -13,6 +15,15 @@ const dictionary = {
     stages:{planned:"Planned (Seed & Soil Prep)",vegetative:"Vegetative (Active Growth)",flowering_fruiting:"Flowering / Fruiting (Peak Need)",harvesting:"Harvesting (Ready for Market)"},
     cropNames:{sugarcane:"Sugarcane",rabi_jowar:"Rabi Jowar",onion:"Onion",bajra:"Bajra",pomegranate:"Pomegranate",groundnut:"Groundnut"},
     stageNames:{planned:"Planned",vegetative:"Vegetative",flowering_fruiting:"Flowering / Fruiting",harvesting:"Harvesting"},
+    languageSelector:"Choose your language", myFarm:"My Farm", startSetup:"Start Setup", continueSetup:"Continue setup", openDailyHome:"Open Daily Home", editSetup:"Edit setup", sampleFarm:"Sample Farm (Pune)", home:"Home",
+    setupJourney:"Setup Journey", step:"Step", of:"of", next:"Next", back:"Back", finishSetup:"Finish Setup", stationNames:{land:"My Land",weather:"Weather",soil:"My Soil",crops:"My Crops",advice:"Balram's Advice",roadmap:"My Roadmap"},
+    stationStatuses:{done:"Done",current:"Current",ready:"Ready",skipped:"Skipped",locked:"Locked",needs_update:"Needs update"}, dailyTabs:{today:"Today",farm:"My Farm",water:"Water",report:"Report"},
+    sampleBanner:"Sample farm · read-only", exitSampleButton:"Exit sample", sampleReadOnly:"Sample Farm is read-only. Your farm data is safely stored separately.",
+    weatherAuto:"Weather updates automatically after you save your land.", weatherLoading:"Getting a local forecast…", weatherRetry:"Retry", weatherError:"Weather could not be updated. Your saved farm plan is safe; you can retry when ready.",
+    soilNotTested:"Soil not tested", soilModeHouse:"Balram In-House Kit", soilModeCard:"Soil Health Card / lab values (kg/ha)", soilModeRapid:"Full Rapid Kit", soilSkip:"I haven't tested yet · Skip for now", soilNitrogenKg:"Available nitrogen (kg/ha)", soilPhosphorusKg:"Available phosphorus (kg/ha)", soilSave:"Save soil test", soilSkipped:"Soil testing skipped for now.",
+    whyAdvice:"Why this advice?", roadmapBuckets:{this_week:"This Week",next_two_weeks:"Next Two Weeks",later:"Later"}, roadmapEmpty:"No roadmap actions yet. Add a plot or soil result to build a plan.", reportPreview:"Farm report preview", finishSetupDone:"Setup complete. Your farm plan is ready.",
+    provenance:{measured_by_kit:"Measured by kit",forecast:"Forecast",estimated:"Estimated",you_entered:"You entered",assumed:"Assumed",sample:"Sample"},
+    statusDone:"Done", statusReady:"Ready", comingSoon:"Check-in available in a later phase", todayWater:"Today's planned water", nextActions:"Next actions", continueStep:"Continue: Step",
   },
   mr: {
     tagline:"तुमचे शेत. तुमचे नियोजन.", overview:"शेताचा आढावा", exploreSample:"नमुना पहा", exitSample:"नमुना बंद करा",
@@ -25,9 +36,21 @@ const dictionary = {
     stages:{planned:"नियोजित (बियाणे व मशागत)",vegetative:"वाढीचा काळ (पाने व खोड वाढ)",flowering_fruiting:"फुलोरा व फळधारणा (पाण्याची मुख्य गरज)",harvesting:"काढणी (कापणीस तयार)"},
     cropNames:{sugarcane:"ऊस",rabi_jowar:"रब्बी ज्वारी",onion:"कांदा",bajra:"बाजरी",pomegranate:"डाळिंब",groundnut:"भुईमूग"},
     stageNames:{planned:"नियोजित",vegetative:"वाढीचा काळ",flowering_fruiting:"फुलोरा / फळधारणा",harvesting:"काढणी"},
+    languageSelector:"भाषा निवडा", myFarm:"माझे शेत", startSetup:"सुरुवात करा", continueSetup:"सेटअप पुढे सुरू ठेवा", openDailyHome:"आजचे शेत उघडा", editSetup:"सेटअप बदला", sampleFarm:"नमुना शेत (पुणे)", home:"मुख्यपृष्ठ",
+    setupJourney:"शेताची तयारी", step:"टप्पा", of:"पैकी", next:"पुढे", back:"मागे", finishSetup:"सेटअप पूर्ण करा", stationNames:{land:"माझी जमीन",weather:"हवामान",soil:"माझी माती",crops:"माझी पिके",advice:"बलरामचा सल्ला",roadmap:"पुढची वाटचाल"},
+    stationStatuses:{done:"पूर्ण",current:"सध्या सुरू",ready:"तयार",skipped:"वगळले",locked:"बंद",needs_update:"अद्ययावत करा"}, dailyTabs:{today:"आज",farm:"माझे शेत",water:"पाणी",report:"अहवाल"},
+    sampleBanner:"नमुना शेत · फक्त पाहण्यासाठी", exitSampleButton:"नमुना बंद करा", sampleReadOnly:"नमुना शेतात बदल करता येत नाहीत. तुमच्या शेताची माहिती सुरक्षित आहे.",
+    weatherAuto:"जमीन जतन केल्यावर हवामानाचा अंदाज आपोआप घेतला जाईल.", weatherLoading:"स्थानिक हवामानाचा अंदाज घेत आहोत…", weatherRetry:"पुन्हा प्रयत्न करा", weatherError:"हवामान अद्ययावत झाले नाही. तुमचे नियोजन सुरक्षित आहे; तयार असाल तेव्हा पुन्हा प्रयत्न करा.",
+    soilNotTested:"मातीची चाचणी नाही", soilModeHouse:"बलराम इन-हाऊस किट", soilModeCard:"मृदा आरोग्य पत्रिका / प्रयोगशाळेचे आकडे (kg/ha)", soilModeRapid:"पूर्ण जलद चाचणी किट", soilSkip:"अजून चाचणी नाही · सध्या वगळा", soilNitrogenKg:"उपलब्ध नत्र (kg/ha)", soilPhosphorusKg:"उपलब्ध स्फुरद (kg/ha)", soilSave:"माती चाचणी जतन करा", soilSkipped:"मातीची चाचणी सध्या वगळली आहे.",
+    whyAdvice:"हा सल्ला का?", roadmapBuckets:{this_week:"या आठवड्यात",next_two_weeks:"पुढील दोन आठवडे",later:"नंतर"}, roadmapEmpty:"सध्या पुढील कामे नाहीत. नियोजनासाठी प्लॉट किंवा मातीचा निकाल जोडा.", reportPreview:"शेत अहवालाची झलक", finishSetupDone:"सेटअप पूर्ण. तुमचे शेत नियोजन तयार आहे.",
+    provenance:{measured_by_kit:"किटद्वारे मोजलेले",forecast:"हवामान अंदाज",estimated:"अंदाजित",you_entered:"तुम्ही नोंदवलेले",assumed:"गृहीत धरलेले",sample:"नमुना"},
+    statusDone:"पूर्ण", statusReady:"तयार", comingSoon:"पुढील टप्प्यात शेत नोंद उपलब्ध होईल", todayWater:"आजचे नियोजित पाणी", nextActions:"पुढील कामे", continueStep:"पुढे: टप्पा",
   },
 } as const;
 export function t(locale:Locale){return dictionary[locale]}
 export function unitLabel(locale:Locale,unit:"acres"|"gunthas"){return t(locale)[unit]}
 export function lifecycleLabel(locale:Locale,stage:LifecycleStage){return t(locale).stages[stage]}
 export function cropLabel(locale:Locale,id:CropId){return t(locale).cropNames[id]}
+export function stationLabel(locale:Locale,id:JourneyStationId){return t(locale).stationNames[id]}
+export function stationStatusLabel(locale:Locale,status:JourneyStationStatus){return t(locale).stationStatuses[status]}
+export function provenanceLabel(locale:Locale,provenance:ProvenanceTag|"sample"){return t(locale).provenance[provenance]}
