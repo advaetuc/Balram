@@ -8,7 +8,7 @@ import { selectedWeatherDay, indiaDate } from "./format";
 export function farmRoadmap(state: BalramState) {
   const area = state.fieldGeometry?.areaSquareMetres ?? null;
   const day = selectedWeatherDay(state);
-  const et0 = resolveDailyEt0(day, state.fieldGeometry?.center[1] ?? 18.5204)?.et0MmPerDay ?? 4.5;
+  const et0 = resolveDailyEt0(day, state.fieldGeometry?.center[1] ?? 18.5204, state.weatherSnapshot?.source)?.et0MmPerDay ?? 4.5;
   const deliveryMethod = state.irrigationSetup?.method === "sprinkler" ? "sprinkler"
     : state.irrigationSetup?.method === "surface" ? "canal_flood" : "drip";
   const waterBreakdownByPlot: Record<string, ReturnType<typeof calculatePhaseWaterBreakdown>> = {};

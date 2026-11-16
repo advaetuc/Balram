@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { acresToSquareMetres } from "./geometry";
+import { indiaDate } from "./calendar";
 import { MaharashtraCropMatrix, type CropId, getCropStageKc } from "@/config/cropMatrix";
-import type { LifecycleStage, WeatherSnapshot, CropAllocation } from "@/types/domain";
+import { WeatherSnapshotSchema, type LifecycleStage, type WeatherSnapshot, type CropAllocation } from "@/types/domain";
 
 const nonnegative = z.number().finite().nonnegative();
 const positive = z.number().finite().positive();
@@ -76,8 +77,24 @@ export function calculateHargreavesEt0(input:{latitudeDeg:number;dateIso:string;
  const ra=(24*60/Math.PI)*.0820*dr*(ws*Math.sin(phi)*Math.sin(delta)+Math.cos(phi)*Math.cos(delta)*Math.sin(ws))*(1e6/2.45e6);
  return finiteResult(.0023*ra*((p.tempMaxC+p.tempMinC)/2+17.8)*Math.sqrt(Math.max(0,p.tempMaxC-p.tempMinC)));
 }
-export function resolveDailyEt0(day:WeatherSnapshot["daily"][number]|null,latitudeDeg:number) {
- if(day?.referenceEvapotranspiration!=null)return {et0MmPerDay:day.referenceEvapotranspiration,provenance:"open-meteo" as const};
+export function createRegionalBaselineWeatherSnapshot(params:{fieldId:string;coordinate:[number,number];nowMs?:number|null}):WeatherSnapshot {
+ const startDate=indiaDate(params.nowMs??null)??"2026-11-16";
+ const startDayMs=Date.parse(`${startDate}T00:00:00Z`);
+ if(!Number.isFinite(startDayMs))throw new RangeError("A valid baseline start date is required.");
+ const fetchedAtMs=params.nowMs!=null&&Number.isFinite(params.nowMs)?params.nowMs:Date.parse(`${startDate}T06:00:00+05:30`);
+ const fetchedAt=new Date(fetchedAtMs).toISOString();
+ const daily=Array.from({length:7},(_,index)=>{
+  const date=new Date(startDayMs+index*86_400_000).toISOString().slice(0,10);
+  const month=Number(date.slice(5,7));
+  const [temperatureMin,temperatureMax,precipitation]=month>=6&&month<=9?[22,31,3] as const:month===10||month===11||month===12||month===1||month===2?[16,30,0] as const:[24,37,0] as const;
+  return {date,temperatureMin,temperatureMax,precipitation,referenceEvapotranspiration:calculateHargreavesEt0({latitudeDeg:params.coordinate[1],dateIso:date,tempMinC:temperatureMin,tempMaxC:temperatureMax}),soilMoisture:null};
+ });
+ const validFrom=new Date(startDayMs-19_800_000).toISOString();
+ const validTo=new Date(startDayMs+7*86_400_000-19_800_000).toISOString();
+ return WeatherSnapshotSchema.parse({fieldId:params.fieldId,coordinate:params.coordinate,source:"Balram Maharashtra seasonal baseline (Hargreaves ET₀)",provenance:"modelled",fetchedAt,modelRunAt:null,validFrom,validTo,expiresAt:new Date(fetchedAtMs+6*60*60_000).toISOString(),timezone:"Asia/Kolkata",units:{temperature:"°C",precipitation:"mm",referenceEvapotranspiration:"mm/day",soilMoisture:"m³/m³"},daily});
+}
+export function resolveDailyEt0(day:WeatherSnapshot["daily"][number]|null,latitudeDeg:number,source?:string|null) {
+ if(day?.referenceEvapotranspiration!=null)return {et0MmPerDay:day.referenceEvapotranspiration,provenance:source?.includes("seasonal baseline")?"maharashtra-baseline" as const:"open-meteo" as const};
  if(day?.temperatureMin!=null&&day.temperatureMax!=null)return {et0MmPerDay:calculateHargreavesEt0({latitudeDeg,dateIso:day.date,tempMinC:day.temperatureMin,tempMaxC:day.temperatureMax}),provenance:"hargreaves-fallback" as const};return null;
 }
 export type DeliveryMethodPreset="drip"|"sprinkler"|"canal_flood";

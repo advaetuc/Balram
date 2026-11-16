@@ -7,6 +7,12 @@ import { buildShareSummary } from "../src/lib/ui/shareSummary";
 import { createBalramStore } from "../src/store/useBalramStore";
 import type { RoadmapItem } from "../src/lib/domain/roadmap";
 import { PersistedFarmSchema } from "../src/types/domain";
+import { WeatherSnapshotSchema } from "../src/types/domain";
+import { createRegionalBaselineWeatherSnapshot } from "../src/lib/domain/irrigation";
+import { resolvedWeatherMetrics, selectedWeatherDay } from "../src/lib/ui/format";
+import { alertStatusMessages } from "../src/lib/ui/alertStatus";
+import type { BalramState } from "../src/store/useBalramStore";
+import { isSameProviderOrigin } from "../src/lib/api/origin";
 
 test("check-in due logic is hydration-safe and follows selected cadence", () => {
   assert.equal(isCheckInDue([], null), false);
@@ -55,4 +61,37 @@ test("share summary includes farm planning but no map coordinates", () => {
 test("empty fixture check-ins and backup parsing stay compatible",()=>{
   assert.deepEqual(createEmptyFixture().checkIns,[]);
   assert.deepEqual(parseFarmBackup(serializeFarmBackup(createEmptyFixture(),"2026-11-16T12:00:00.000Z")),createEmptyFixture());
+});
+
+test("regional baseline creates seven validated days with ET₀ values",()=>{
+  const snapshot=createRegionalBaselineWeatherSnapshot({fieldId:"field-test",coordinate:[73.85,18.52],nowMs:Date.parse("2026-07-01T04:30:00.000Z")});
+  const validated=WeatherSnapshotSchema.parse(snapshot);
+  assert.equal(validated.daily.length,7);
+  assert.ok(validated.daily.every(day=>day.referenceEvapotranspiration!==null&&Number.isFinite(day.referenceEvapotranspiration)));
+  assert.equal(validated.source,"Balram Maharashtra seasonal baseline (Hargreaves ET₀)");
+});
+
+test("resolved weather metrics always provide finite positive ET₀ and alerts avoid obsolete blockers",()=>{
+  const state={...createEmptyFixture(),now:null,hydrated:true,sampleOverlayActive:false,hydrationError:null,storageStatus:{mode:"memory",message:null},connection:"unknown",weatherStatus:{provider:"weather",state:"idle",provenance:"unavailable",requestId:null,updatedAt:null,error:null},weatherCached:false,weatherStale:false,soilStatus:{provider:"soil",state:"idle",provenance:"unavailable",requestId:null,updatedAt:null,error:null}} as unknown as BalramState;
+  const metrics=resolvedWeatherMetrics(state);
+  assert.ok(Number.isFinite(metrics.et0MmPerDay)&&metrics.et0MmPerDay>0);
+  assert.equal(alertStatusMessages(state).some(message=>message.includes("No reference ET₀")||message.includes("Measured block flow is not confirmed")),false);
+  const saved={...state,weatherSnapshot:createRegionalBaselineWeatherSnapshot({fieldId:"field-test",coordinate:[73.85,18.52],nowMs:null}),weatherStatus:{...state.weatherStatus,error:"upstream unavailable"}} as BalramState;
+  assert.equal(resolvedWeatherMetrics(saved).et0Provenance,"maharashtra-baseline");
+  assert.equal(selectedWeatherDay({...saved,now:Date.parse("2030-01-01T00:00:00.000Z")})?.date,saved.weatherSnapshot?.daily[0]?.date);
+  assert.match(alertStatusMessages(saved).join(" "),/saved weather snapshot is still available/);
+  const missingEt0={...saved,weatherSnapshot:{...saved.weatherSnapshot!,daily:saved.weatherSnapshot!.daily.map((day,index)=>index===0?{...day,referenceEvapotranspiration:null}:day)}} as BalramState;
+  assert.equal(resolvedWeatherMetrics(missingEt0).et0Provenance,"hargreaves-fallback");
+});
+
+test("sample farm irrigation defaults are confirmed and all forecast days have ET₀",()=>{
+  const sample=createSampleFixture();
+  assert.deepEqual(sample.irrigationSetup,{method:"drip",systemFlowLitresPerHour:4800,applicationEfficiency:0.9,flowConfirmedByFarmer:true});
+  assert.ok(sample.weatherSnapshot?.daily.every(day=>day.referenceEvapotranspiration!==null));
+});
+
+test("provider origin validation matches the forwarded deployment host",()=>{
+  assert.equal(isSameProviderOrigin("https://balram-preview.vercel.app","balram-preview.vercel.app, internal.local","internal.local","internal.local"),true);
+  assert.equal(isSameProviderOrigin("https://attacker.example","balram-preview.vercel.app","internal.local","internal.local"),false);
+  assert.equal(isSameProviderOrigin("malformed-origin","balram-preview.vercel.app","internal.local","internal.local"),false);
 });

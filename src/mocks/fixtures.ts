@@ -39,8 +39,8 @@ export function createSampleFixture(): PersistedFarm {
     setupCompletedAt: "2026-10-01",
     checkIns: [],
     irrigationSetup: {
-      method: "drip", systemFlowLitresPerHour: null,
-      applicationEfficiency: null, flowConfirmedByFarmer: false,
+      method: "drip", systemFlowLitresPerHour: 4800,
+      applicationEfficiency: 0.9, flowConfirmedByFarmer: true,
     },
     weatherSnapshot: {
       fieldId: "sample-field", coordinate: [73.8567, 18.5204],
@@ -52,7 +52,7 @@ export function createSampleFixture(): PersistedFarm {
       daily: [
         { date: "2026-10-01", temperatureMin: 21, temperatureMax: 30, precipitation: 2, referenceEvapotranspiration: 4.1, soilMoisture: 0.29 },
         { date: "2026-10-02", temperatureMin: 20, temperatureMax: 31, precipitation: 0, referenceEvapotranspiration: 4.4, soilMoisture: 0.28 },
-        { date: "2026-10-03", temperatureMin: 22, temperatureMax: 29, precipitation: 5, referenceEvapotranspiration: null, soilMoisture: null },
+        { date: "2026-10-03", temperatureMin: 22, temperatureMax: 29, precipitation: 5, referenceEvapotranspiration: 4.0, soilMoisture: null },
       ],
     },
     sampleDataActive: true,

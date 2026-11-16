@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useBalramStore } from "@/store/useBalramStore";
 import { calculateSystemRuntime, calculatePhaseWaterBreakdown, resolveDailyEt0, simulateDroughtReallocation, type DeliveryMethodPreset } from "@/lib/domain/irrigation";
 import { SQUARE_METRES_PER_ACRE, gunthasToAcresAndGunthas } from "@/lib/domain/geometry";
-import { MaharashtraCropMatrix, type CropId } from "@/config/cropMatrix";
+import { MaharashtraCropMatrix, getCropStageKc, type CropId } from "@/config/cropMatrix";
 import { formatNumber, parseNumber, selectedWeatherDay } from "@/lib/ui/format";
 import { Card, DataCaption } from "@/components/dashboard/Card";
 import { t } from "@/config/i18n";
@@ -20,34 +20,42 @@ function Editor() {
   const state = useBalramStore((value) => value);
   const text=t(state.locale);
   const setup = state.irrigationSetup;
-  const [flow, setFlow] = useState(setup?.systemFlowLitresPerHour?.toString() ?? "");
-  const [efficiency, setEfficiency] = useState(setup?.applicationEfficiency == null ? "" : String(setup.applicationEfficiency * 100));
+  const [deliveryMethod,setDeliveryMethod]=useState<DeliveryMethodPreset>(setup?.method==="sprinkler"?"sprinkler":setup?.method==="surface"?"canal_flood":"drip");
   const [selectedPlotId, setSelectedPlotId] = useState(state.cropAllocations[0]?.plotId ?? state.cropAllocations[0]?.cropId ?? "");
-  const [kc, setKc] = useState("");
-  const [rain, setRain] = useState("");
-  const [confirmed, setConfirmed] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [deliveryMethod,setDeliveryMethod]=useState<DeliveryMethodPreset>("drip");
-  const [flowOverride,setFlowOverride]=useState("");
-  const [waterAvailability,setWaterAvailability]=useState(100);
   const crop = state.cropAllocations.find((item, idx) => (item.plotId ?? `${item.cropId}-${idx}`) === selectedPlotId) ?? state.cropAllocations[0];
-  const plotKey=(item:typeof state.cropAllocations[number],idx:number)=>item.plotId??`${item.cropId}-${idx}`;
   const day = selectedWeatherDay(state);
   const area = state.fieldGeometry?.areaSquareMetres;
-  const resolved=resolveDailyEt0(day,state.fieldGeometry?.center[1]??18.5204);
-  const et0=resolved?.et0MmPerDay??4.5;
   const areaGunthas=crop?.areaGunthas??(area&&crop?area/SQUARE_METRES_PER_ACRE*40*crop.percentage/100:0);
+  const flowDefault=setup?.systemFlowLitresPerHour??Math.max(400,Math.round((areaGunthas||20)*(deliveryMethod==="drip"?100:deliveryMethod==="sprinkler"?150:450)));
+  const efficiencyDefault=setup?.applicationEfficiency!=null?setup.applicationEfficiency*100:(deliveryMethod==="drip"?90:deliveryMethod==="sprinkler"?75:60);
+  const kcDefault=getCropStageKc((crop?.cropId??"onion") as CropId,crop?.lifecycleStage??"planned");
+  const rainDefault=day?.precipitation??0;
+  const [flow, setFlow] = useState(String(flowDefault));
+  const [efficiency, setEfficiency] = useState(String(efficiencyDefault));
+  const [kc, setKc] = useState(String(kcDefault));
+  const [rain, setRain] = useState(String(rainDefault));
+  const [confirmed, setConfirmed] = useState(true);
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [flowOverride,setFlowOverride]=useState("");
+  const [waterAvailability,setWaterAvailability]=useState(100);
+  const plotKey=(item:typeof state.cropAllocations[number],idx:number)=>item.plotId??`${item.cropId}-${idx}`;
+  const resolved=resolveDailyEt0(day,state.fieldGeometry?.center[1]??18.5204,state.weatherSnapshot?.source);
+  const et0=resolved?.et0MmPerDay??4.5;
+  const growthStage=crop?.growthStage==="unknown"?"initial":crop?.growthStage;
+  useEffect(()=>{
+    setFlow(String(flowDefault));setEfficiency(String(efficiencyDefault));setKc(String(kcDefault));setRain(String(rainDefault));setConfirmed(true);
+  },[selectedPlotId,deliveryMethod,setup?.systemFlowLitresPerHour,setup?.applicationEfficiency,flowDefault,efficiencyDefault,kcDefault,rainDefault]);
   const phases=crop&&areaGunthas>0?calculatePhaseWaterBreakdown({cropId:crop.cropId as CropId,areaGunthas,baseEt0MmPerDay:et0,effectiveRainfallMmPerDay:day?.precipitation??0,deliveryMethod,customSystemFlowLph:parseNumber(flowOverride)}):[];
   const currentStage=crop?.lifecycleStage??"planned";
   const phase=phases.find(p=>p.stage===currentStage)??phases[0];
   const drought=area&&state.cropAllocations.length?simulateDroughtReallocation({allocations:state.cropAllocations,totalAreaSquareMetres:area,baseEt0MmPerDay:et0,waterAvailabilityPercent:waterAvailability}):null;
   const fields = { flow: parseNumber(flow), efficiency: parseNumber(efficiency), kc: parseNumber(kc), rain: parseNumber(rain) };
-  const ready = confirmed && crop && crop.growthStage !== "unknown" && area != null && day?.referenceEvapotranspiration != null &&
+  const ready = confirmed && crop && growthStage != null && area != null &&
     fields.flow !== null && fields.efficiency !== null && fields.kc !== null && fields.rain !== null;
   let estimate: ReturnType<typeof calculateSystemRuntime> | null = null;
   if (ready && submitted) {
-    try { estimate = calculateSystemRuntime({ et0: day.referenceEvapotranspiration!, cropKc: fields.kc!,
+    try { estimate = calculateSystemRuntime({ et0, cropKc: fields.kc!,
       areaAcres: area / SQUARE_METRES_PER_ACRE * crop.percentage / 100, effectiveRainfallMm: fields.rain!,
       systemFlowLitresPerHour: fields.flow!, applicationEfficiency: fields.efficiency! / 100, inputsConfirmedByFarmer: true }); }
     catch { estimate = null; }
@@ -57,7 +65,7 @@ function Editor() {
     if (!ready || fields.flow! <= 0 || fields.efficiency! <= 0 || fields.efficiency! > 100 || fields.kc! < 0 || fields.rain! < 0) {
       setSubmitted(false); setError("Provide a confirmed crop stage, current ET₀, field area, valid flow, efficiency, Kc and effective rainfall."); return;
     }
-    state.setIrrigationSetup({ method: "drip", systemFlowLitresPerHour: fields.flow!,
+    state.setIrrigationSetup({ method: deliveryMethod==="canal_flood"?"surface":deliveryMethod, systemFlowLitresPerHour: fields.flow!,
       applicationEfficiency: fields.efficiency! / 100, flowConfirmedByFarmer: true });
     setSubmitted(true); setError(null);
   }
@@ -75,7 +83,7 @@ function Editor() {
     </section>
     <details className="mt-4"><summary>{state.locale==="mr"?"दुष्काळ व मर्यादित कालवा पाणी नियोजन":"Drought & limited dam-release simulator"}</summary><p className="notice mt-2">{state.locale==="mr"?"उदाहरणात्मक अंदाज · पीक क्षेत्र बदलण्यापूर्वी स्थानिक पातळीवर खात्री करा":"Illustrative scenario · verify locally before changing crop areas"}</p><label className="mt-2 block text-sm">{state.locale==="mr"?"उपलब्ध पाणी":"Water availability"} · {waterAvailability}%<input className="form-input mt-1" type="range" min="20" max="100" step="1" value={waterAvailability} onChange={e=>setWaterAvailability(Number(e.target.value))}/></label>{drought&&<div className="notice mt-2"><p>{state.locale==="mr"?"शेताची पाण्याची गरज":"Farm demand"}: {formatNumber(drought.dailyDemandLitres,0)} L/day · {formatNumber(drought.dailyDemandLitres*7,0)} L/week</p><p>{state.locale==="mr"?"उपलब्ध":"Available"}: {formatNumber(drought.availableDailyLitres,0)} L/day</p><p>{drought.recommendationBilingual[state.locale]}</p></div>}</details>
     <details className="mt-4"><summary>Advanced: Measured block flow & custom Kc override</summary>
-    <p className="mt-3 text-sm leading-6">Use measured total flow for the selected crop block. Enter efficiency yourself; the app never assumes emitter flow or a default system efficiency.</p>
+    <p className="mt-3 text-sm leading-6">Starting planning values are filled from the selected plot and delivery preset. Check the actual block flow and application efficiency before relying on a runtime.</p>
     <form onSubmit={calculate} className="mt-5 space-y-4">
       <fieldset disabled={!state.hydrated} className="grid gap-4 sm:grid-cols-2">
         <legend className="sr-only">Irrigation inputs</legend>
@@ -85,23 +93,23 @@ function Editor() {
               {entry.plotName??"Plot"} · {MaharashtraCropMatrix[entry.cropId as CropId]?.name ?? entry.cropId} ({entry.areaGunthas??"?"} gunthas)</option>)}</select></label>
         <label className="text-sm">System flow (L/hour)
           <input className="form-input mt-1" type="number" inputMode="decimal" min="0.01" step="any" required value={flow}
-            onChange={(event) => { setFlow(event.target.value); reset(); }} /></label>
+            onBlur={() => { if(!flow)setFlow(String(flowDefault)); }} onChange={(event) => { setFlow(event.target.value); reset(); }} /></label>
         <label className="text-sm">Application efficiency (%)
           <input className="form-input mt-1" type="number" inputMode="decimal" min="0.01" max="100" step="any" required value={efficiency}
-            onChange={(event) => { setEfficiency(event.target.value); reset(); }} /></label>
+            onBlur={() => { if(!efficiency)setEfficiency(String(efficiencyDefault)); }} onChange={(event) => { setEfficiency(event.target.value); reset(); }} /></label>
         <label className="text-sm">Crop coefficient (Kc)
           <input className="form-input mt-1" type="number" inputMode="decimal" min="0" step="any" required value={kc}
-            onChange={(event) => { setKc(event.target.value); reset(); }} /></label>
+            onBlur={() => { if(!kc)setKc(String(kcDefault)); }} onChange={(event) => { setKc(event.target.value); reset(); }} /></label>
         <label className="text-sm">Effective rainfall (mm/day)
           <input className="form-input mt-1" type="number" inputMode="decimal" min="0" step="any" required value={rain}
-            onChange={(event) => { setRain(event.target.value); reset(); }} /></label>
+            onBlur={() => { if(!rain)setRain(String(rainDefault)); }} onChange={(event) => { setRain(event.target.value); reset(); }} /></label>
         <label className="flex min-h-12 cursor-pointer items-start gap-3 text-sm leading-6 sm:col-span-2">
           <input type="checkbox" className="size-12 shrink-0 accent-forest" checked={confirmed}
             onChange={(event) => { setConfirmed(event.target.checked); setSubmitted(false); }} />
           <span>I confirm the flow and efficiency for this crop block, its growth stage, Kc and effective rainfall.</span></label>
       </fieldset>
-      {crop?.growthStage === "unknown" && <p className="notice">Confirm the crop&apos;s growth stage in the portfolio first.</p>}
-      {(!day || day.referenceEvapotranspiration == null) && <p className="notice">Current-day ET₀ is unavailable. No runtime can be calculated.</p>}
+      {resolved?.provenance === "hargreaves-fallback" && <p className="notice">ET₀ calculated from daily minimum and maximum temperatures.</p>}
+      {resolved?.provenance == null && <p className="notice">Using the Maharashtra 4.5 mm/day baseline planning reference.</p>}
       {state.weatherStale && !state.sampleDataActive && <p className="notice">Weather is stale. Refresh it before calculating runtime.</p>}
       {state.connection === "offline" && !state.sampleDataActive && <p className="notice">Offline: review saved inputs now and reconnect for a current runtime estimate.</p>}
       {error && <p role="alert" className="notice">{error}</p>}

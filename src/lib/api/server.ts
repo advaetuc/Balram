@@ -3,6 +3,7 @@ import { COORDINATE_DECIMALS, hasSingleProviderAuthority, PROVIDER_LIMITS, type 
 import { CoordinateSchema, type Coordinate } from "@/types/domain";
 import { sourceFor, type ApiFailure, type ApiSuccess } from "@/types/api";
 import { abortable, ApiError, delay, readJson, throwIfAborted } from "./http";
+import { isSameProviderOrigin } from "./origin";
 
 type Pending = { controller: AbortController; promise: Promise<ApiSuccess<unknown>>; users: number };
 interface Authority {
@@ -99,8 +100,9 @@ export async function providerRoute<T>(request: Request, provider: ProviderName,
   const timer = setTimeout(cancel, 45_000);
   try {
     const url = new URL(request.url);
+    const origin = request.headers.get("origin");
     if (url.search || request.headers.get("sec-fetch-site") === "cross-site" ||
-        (request.headers.get("origin") && request.headers.get("origin") !== url.origin)) {
+        !isSameProviderOrigin(origin, request.headers.get("x-forwarded-host"), request.headers.get("host"), url.host)) {
       throw new ApiError("INVALID_INPUT", "Use a same-origin form submission with a JSON body.", 400);
     }
     let input: T;

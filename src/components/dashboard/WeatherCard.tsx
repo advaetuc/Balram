@@ -4,15 +4,17 @@ import { z } from "zod";
 import { useBalramStore } from "@/store/useBalramStore";
 import { WeatherSnapshotSchema } from "@/types/domain";
 import { submitProvider, providerErrorMessage } from "@/lib/api/client";
-import { formatNumber, selectedWeatherDay } from "@/lib/ui/format";
+import { formatNumber, resolvedWeatherMetrics, selectedWeatherDay } from "@/lib/ui/format";
 import { Card, DataCaption } from "./Card";
 import { t } from "@/config/i18n";
+import { createRegionalBaselineWeatherSnapshot, resolveDailyEt0 } from "@/lib/domain/irrigation";
 
 export function WeatherCard() {
   const state = useBalramStore((value) => value);
   const text=t(state.locale);
   const snapshot = state.weatherSnapshot;
   const day = selectedWeatherDay(state);
+  const metrics = resolvedWeatherMetrics(state);
   const loading = state.weatherStatus.state === "loading";
   async function update() {
     const field = state.fieldGeometry;
@@ -23,29 +25,43 @@ export function WeatherCard() {
         latitude: field.center[1], longitude: field.center[0] }, z.object({ snapshot: WeatherSnapshotSchema }), request.signal);
       state.commitWeatherRequest(request, result.data.snapshot, result.cached);
     } catch (error) {
-      if (!request.signal.aborted) state.failWeatherRequest(request, providerErrorMessage(error, "Weather"));
+      if (!request.signal.aborted) {
+        if (state.weatherSnapshot === null) {
+          const baseline=createRegionalBaselineWeatherSnapshot({fieldId:field.fieldId,coordinate:field.center,nowMs:state.now});
+          if (state.commitWeatherRequest(request,baseline,false)) return;
+        }
+        state.failWeatherRequest(request, providerErrorMessage(error, "Weather"));
+      }
     }
   }
   return <Card id="weather" title={text.weather} eyebrow={text.conditions}>
     <div className="mt-5 grid grid-cols-2 gap-4" aria-busy={loading}>
       <div><p className="text-xs text-stone-600">Reference ET₀</p>
-        <p className="mt-1 text-3xl font-semibold tabular-nums">{formatNumber(day?.referenceEvapotranspiration)}</p>
-        <p className="text-sm text-stone-600">{day?.referenceEvapotranspiration != null ? "mm/day" : "No estimate for this day"}</p></div>
+        <p className="mt-1 text-3xl font-semibold tabular-nums">{formatNumber(metrics.et0MmPerDay)}</p>
+        <p className="text-sm text-stone-600">mm/day</p></div>
       <div><p className="text-xs text-stone-600">Forecast rainfall</p>
-        <p className="mt-1 text-3xl font-semibold tabular-nums">{formatNumber(day?.precipitation)}</p>
-        <p className="text-sm text-stone-600">{day?.precipitation != null ? "mm/day" : "No estimate for this day"}</p></div>
+        <p className="mt-1 text-3xl font-semibold tabular-nums">{formatNumber(metrics.precipitationMm)}</p>
+        <p className="text-sm text-stone-600">mm/day</p></div>
     </div>
-    <p className="mt-4 text-sm">{day ? `${day.date} · ${formatNumber(day.temperatureMin)} to ${formatNumber(day.temperatureMax)} °C`
-      : "No current-day forecast. Select a field and request weather."}</p>
-    {state.weatherStatus.error && <p role="alert" className="notice mt-4">{state.locale === "mr" ? text.weatherError : state.weatherStatus.error}</p>}
-    <button className="button-secondary mt-5 w-full" disabled={!state.hydrated || !state.fieldGeometry || loading || state.sampleDataActive || state.connection === "offline"}
-      onClick={() => void update()}>{loading ? text.weatherLoading : state.weatherStatus.error ? text.weatherRetry : snapshot ? (state.locale === "mr" ? "हवामान अद्ययावत करा" : "Refresh weather") : (state.locale === "mr" ? "हवामान मिळवा" : "Get weather")}</button>
+    <p className="mt-4 text-sm">{metrics.date} · {formatNumber(metrics.temperatureMinC)} to {formatNumber(metrics.temperatureMaxC)} °C</p>
+    <p className="mt-1 text-xs text-stone-600">{metrics.et0Provenance === "hargreaves-fallback"
+      ? (state.locale === "mr" ? "किमान व कमाल तापमानावरून हर्ग्रीव्ह्ज पद्धतीने ET₀ गणना." : "ET₀ calculated from minimum and maximum temperatures using Hargreaves.")
+      : metrics.et0Provenance === "maharashtra-baseline" || snapshot?.source.includes("seasonal baseline")
+        ? (state.locale === "mr" ? "महाराष्ट्राच्या हंगामी सरासरीवर आधारित नियोजन अंदाज." : "Planning reference from Maharashtra seasonal norms.")
+        : snapshot?.provenance === "sample"
+          ? (state.locale === "mr" ? "नमुना हवामान माहिती · केवळ उदाहरण." : "Sample weather values · illustrative only.")
+          : (state.locale === "mr" ? "प्रादेशिक हवामान अंदाज." : "Regional weather forecast.")}</p>
+    {state.weatherStatus.error && <p role="status" className="notice mt-4">{state.weatherSnapshot
+      ? (state.locale === "mr" ? `ताजा अंदाज मिळाला नाही; जतन केलेला अंदाज वापरत आहोत. ${state.weatherStatus.error}` : `Live refresh failed; continuing with the saved weather snapshot. ${state.weatherStatus.error}`)
+      : (state.locale === "mr" ? text.weatherError : state.weatherStatus.error)}</p>}
+    <button className="button-secondary mt-5 min-h-12 w-full" disabled={!state.hydrated || !state.fieldGeometry || loading || state.sampleDataActive}
+      onClick={() => void update()}>{loading ? text.weatherLoading : (state.locale === "mr" ? "ताजा हवामान अंदाज घ्या" : "Refresh live weather")}</button>
     <p className="mt-2 text-xs leading-5 text-stone-600">This sends your field&apos;s approximate center to Open-Meteo when you request an update.</p>
     {snapshot && <details className="mt-3"><summary>Forecast details</summary>
-      <ul className="divide-y divide-forest/10 text-sm">{snapshot.daily.map((item) => <li key={item.date} className="py-3">
-        <strong>{item.date}</strong><p>ET₀: {formatNumber(item.referenceEvapotranspiration)}{item.referenceEvapotranspiration != null && " mm/day"}
-          {" · "}Rain: {formatNumber(item.precipitation)}{item.precipitation != null && " mm"}</p>
-      </li>)}</ul><p className="text-xs leading-5">Regional weather model, not a field sensor. Missing values remain unavailable. Model-run time is not supplied by this provider.</p>
+      <ul className="divide-y divide-forest/10 text-sm">{snapshot.daily.map((item) => {const itemEt0=resolveDailyEt0(item,state.fieldGeometry?.center[1]??18.5204,snapshot.source)?.et0MmPerDay??4.5;return <li key={item.date} className="py-3">
+        <strong>{item.date}</strong><p>ET₀: {formatNumber(itemEt0)} mm/day
+          {" · "}Rain: {formatNumber(item.precipitation??0)} mm</p>
+      </li>})}</ul><p className="text-xs leading-5">Regional weather model, not a field sensor. Missing daily ET₀ uses Hargreaves when temperatures are present; remaining gaps use the Maharashtra planning reference. Model-run time is not supplied by this provider.</p>
     </details>}
     <DataCaption source={snapshot?.source ?? "Open-Meteo · not yet fetched"} validAt={day ? `${day.date}T00:00:00+05:30` : snapshot?.validFrom ?? null}
       fetchedAt={snapshot?.fetchedAt ?? null} modeled={snapshot?.provenance === "modelled"} sample={state.sampleDataActive}
