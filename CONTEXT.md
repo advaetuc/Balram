@@ -1,83 +1,74 @@
-# CONTEXT.md — Ground-Truth Codebase Snapshot & Audit State for Balram (v0.2.0)
+# CONTEXT.md — Ground-Truth Codebase, Visual UI Anatomy & UX Audit for Balram (v0.3.1)
 
-This file provides a complete, file-by-file and formula-by-formula snapshot of the live **Balram `v0.2.0`** repository (`/Users/advaet/Projects/Balram`) so an external AI Overseer (such as Claude) can audit architecture, validate chemistry-to-software logic, catch edge cases, and guide future iterations without needing all 42 source files uploaded into the context window.
+This document gives an external AI Overseer (Claude) complete visibility into the live **Balram `v0.3.1`** codebase (`/Users/advaet/Projects/Balram`), including its exact system architecture, implemented features, **screen-by-screen visual layout anatomy**, and the current UX friction points targeted for the next iteration (`v0.3.2` / `v0.4.0`).
 
-## 1. Project Identity, Academic Context & Core Mission
+---
 
-* **Project Name:** Balram (`v0.2.0`, `PERSISTENCE_VERSION = 3`)
-* **Origin & Context:** Built as an interdisciplinary college Project-Based Learning (PBL) and real-world precision agritech platform for smallholder farmers (typically 2 to 10 acres) in Maharashtra, India.
-* **Core Thesis ("Chemistry Generates the Results; Software Makes Them Actionable"):**
-  1. **Physical Analytical Chemistry Module:** Rather than relying on slow laboratory turnaround or coarse 250 m satellite soil models ([ISRIC SoilGrids](https://soilgrids.org/)), the team designed an **In-House Modular Soil Testing Kit** around three core wet-chemistry / instrumental assays:
-     * **Soil pH:** Soil-water suspension method (`1:2.5` soil-to-distilled-water ratio) measured via calibrated digital pH meter or colorimetric strip (`3.5` to `10.5`).
-     * **Available Nitrogen (N):** Alkaline potassium permanganate ($\text{KMnO}_4$) oxidative distillation assay releasing ammonia to quantify plant-available nitrogen (`Low < 280 kg/ha`, `Medium 280–560 kg/ha`, `High > 560 kg/ha`).
-     * **Available Phosphorus (P):** Olsen extraction ($0.5\text{ M }\text{NaHCO}_3$ at pH $8.5$, suited for alkaline Deccan Vertisols) reacted with ammonium molybdate to form a blue phosphomolybdate complex quantified via colorimeter / UV-Vis spectrophotometer (`Low < 10 kg/ha`, `Medium 10–25 kg/ha`, `High > 25 kg/ha`).
-     * **Commercial Rapid Kit Extension:** Optional support for Potassium (`K`), Organic Carbon (`OC`), and Salinity (`EC`).
-  2. **Local-First Software Translation Layer:** Smallholder farmers should never have to interpret raw chemical numbers, abstract percentage sliders, or raw evapotranspiration ($ET_0$) equations. Balram stores all farm data locally in the browser's IndexedDB (`idb`), manages land in Maharashtra's native **Acres and Gunthas** ($1\text{ Acre} = 40\text{ Gunthas}$), tracks plots via 4 plain-language **Lifecycle Status Tags**, and translates weather + soil chemistry + crop stage into **Balram's Field Voice**, **Seasonal Crop Recommendations**, and **Phase-Wise Weekly Water & Drought Plans** in **English (`en`)** and **Marathi (`mr` — मराठी)**.
+## 1. Current System Architecture & Shipped Status (`v0.3.1`)
 
-## 2. Complete File Tree & Exact Implementation State (42 Source Files)
+* **Stack & Runtime:** Next.js 15.5 App Router, React 19, TypeScript 5.9, Tailwind CSS 3.4, Zustand 5 (`useSyncExternalStore` SSR-safe vanilla store), IndexedDB (`idb` 8.0 with 4s timeout + in-memory tab fallback), Leaflet 1.9 (`L.canvas()` hardware-accelerated renderer + `react-leaflet-draw`), Turf.js 7.4, Zod 3.25.
+* **Persistence & Migration:** `PERSISTENCE_VERSION = 4` in `src/store/useBalramStore.ts` (auto-migrates `v0`–`v3` blobs). Stores `farmProfile`, `fieldGeometry`, `cropAllocations`, `irrigationSetup`, `weatherSnapshot`, `soilSnapshot`, `soilKitReading`, `soilSkipped`, `setupCompletedAt`, `checkIns`, and `locale` (`"en" | "mr"`).
+* **Single-Route State Shell (`/`):** Because `scripts/finalize-release.mjs` hashes inline script CSPs and `scripts/service-worker.js` caches a 40-file static allowlist anchored to `"/"` (rejecting RSC requests offline), all navigation happens inside `"/"` (`src/app/(app)/page.tsx` -> `src/components/app-shell/AppShell.tsx`) via client state (`view: "landing" | "journey" | "daily"`).
+* **Resilient Weather Pipeline (`v0.3.1`):**
+  * `/api/weather` (`src/lib/api/providers/openMeteo.ts`) validates `x-forwarded-host` for Vercel Edge compatibility, fetches 7-day daily forecasts from Open-Meteo, and computes missing `et0_fao_evapotranspiration` via `calculateHargreavesEt0()`.
+  * If Open-Meteo is unreachable or offline when a field is saved, `createRegionalBaselineWeatherSnapshot()` generates a valid 7-day Maharashtra seasonal baseline forecast so `resolvedWeatherMetrics()` always provides a finite positive $ET_0$ (`mm/day`).
+* **Test Suite:** 24 passing zero-dependency Node 22 tests (`npm test`) across `tests/release-a.test.ts`, `tests/release-b-domain.test.ts`, `tests/release-b-shell.test.ts`, and `tests/release-b-final.test.ts`.
 
-### 2.1 Root Configuration & Build Pipeline
-* `package.json`: Next.js `^15.5.0`, React `^19.0.0`, TypeScript `^5.9.0`, Tailwind CSS `^3.4.17`, Zustand `^5.0.0`, `idb` `^8.0.3`, `zod` `^3.25.0`, `leaflet` `^1.9.4`, `react-leaflet` `^5.0.0`, `react-leaflet-draw` `^0.21.0`, `@turf/area`, `@turf/center-of-mass`, `@turf/helpers` `^7.4.0`.
-* `next.config.ts`: Enforces strict security headers (`X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Permissions-Policy: camera=(), microphone=(), geolocation=(self)`), `Cache-Control: private, no-store, max-age=0` on `/api/:path*`, and a base Content Security Policy (`default-src 'none'`, `script-src-attr 'none'`, `img-src 'self' data: https://tile.openstreetmap.org`, `connect-src 'self'`).
-* `scripts/finalize-release.mjs` & `scripts/service-worker.js`: Runs automatically during `npm run build` (`next build && node scripts/finalize-release.mjs`). Parses every prerendered `.html` file in `.next/server/app`, computes `sha256-...` hashes of inline bootstrap scripts, injects a `<meta data-balram-csp="true" http-equiv="Content-Security-Policy">` tag, and generates `public/sw.js` with a content-addressed cache name (`balram-shell-<sha256>`) covering all 40 approved static shell assets.
+---
 
-### 2.2 Domain Types & Persistence Layer (`src/types/`, `src/store/`, `src/lib/storage/`)
-* `src/types/domain.ts`:
-  * `CoordinateSchema`: Tuple `[longitude, latitude]` (`[-180..180, -90..90]`).
-  * `ring`: Custom computational geometry superRefine validating GeoJSON polygon rings (`4..1001` points): checks ring closure, distinct vertices, non-zero signed area, antimeridian span `< 180°`, non-overlapping collinear segments (`onSegment`), and zero self-intersecting edges (`cross` & `intersects`).
-  * `LifecycleStageSchema`: `z.enum(["planned", "vegetative", "flowering_fruiting", "harvesting"])` mapped bidirectionally to FAO-56 `GrowthStageSchema` (`"initial" | "development" | "mid-season" | "late-season" | "unknown"`).
-  * `SoilKitReadingSchema`: `{ kitType: "balram_inhouse" | "commercial_rapid", ph: 3.5..10.5, nitrogenLevel: "low"|"medium"|"high", phosphorusLevel: "low"|"medium"|"high", potassiumLevel: "low"|"medium"|"high"|"untested", organicCarbon: "low"|"medium"|"high"|"untested", salinity: "normal"|"elevated"|"high"|"untested", testedAt: YYYY-MM-DD }`.
-  * `CropAllocationSchema`: `{ plotId?, plotName?, areaGunthas?, lifecycleStage?, cropId, percentage, season, growthStage, plantingDate }`.
-  * `CropAllocationsSchema`: Supports both legacy percentage mode (must sum to `10,000` basis points = `100%` with unique `cropId`) and `v0.2.0` plot mode (when `plotId` or `areaGunthas` is present, total basis points must be `<= 10,000` so unassigned/fallow land is permitted, and `plotId` values must be unique).
-  * `PersistedFarmSchema` (`v3`): Combines `farmProfile`, `fieldGeometry`, `cropAllocations`, `irrigationSetup`, `weatherSnapshot`, `soilSnapshot`, `planningUpdatedAt`, `sampleDataActive`, `soilKitReading`, and `locale` (`"en" | "mr"`). Cross-validates that `weatherSnapshot` and `soilSnapshot` match `fieldGeometry.fieldId` and `fieldGeometry.center`.
-* `src/store/useBalramStore.ts`:
-  * Uses vanilla `createStore` with `persist` (`PERSISTENCE_VERSION = 3`, `skipHydration: true`) and binds to React via `useSyncExternalStore(api.subscribe, api.store.getState, api.getServerSnapshot)` where `serverSnapshot` is `createEmptyFixture()`.
-  * `migrate(saved, version)` upgrades stored versions `0`, `1`, and `2` to `v3` by injecting `soilKitReading: null`, `locale: "en"`, and normalizing legacy `cropAllocations` with default `plotId`, `plotName`, and `lifecycleStage`.
-  * `invalidate()` increments `generation`, aborts active weather/soil `AbortController` instances, and clears `weatherSnapshot` and `soilSnapshot` whenever `fieldGeometry` changes, while keeping `soilKitReading`, `cropAllocations`, and `locale` intact.
-* `src/lib/storage/db.ts`:
-  * Opens IndexedDB (`balram` v1, store `state`) with a 4,000 ms timeout and serialized promise queue (`serialize`). Falls back to an in-memory `Map` (`mode: "memory"`) if IndexedDB is blocked or unavailable.
+## 2. Visual UI & Layout Anatomy (What the Farmer Actually Sees Today)
 
-### 2.3 Agronomic & Mathematical Engines (`src/config/` & `src/lib/domain/`)
-* `src/config/cropMatrix.ts`:
-  * Defines `MaharashtraCropMatrix` for 6 regional crops (`sugarcane`, `rabi_jowar`, `onion`, `bajra`, `pomegranate`, `groundnut`) with English and Marathi names, `supportedSeasons`, `baseKc`, `kcByStage` (`initial`, `development`, `mid-season`, `late-season`), `minSoilMoisture` (Vertisol volumetric threshold), `maxAirTemp`, `frostSensitive`, `dripEfficiency`, `optimalPhRange`, `npkDemand` (including `nitrogenFixing: true` on `groundnut`), `droughtTolerance`, `waterBudgetMmPerSeason`, `phaseWeeks`, and bilingual `plainSummary`.
-* `src/lib/domain/geometry.ts`:
-  * Constants: `SQUARE_METRES_PER_ACRE = 4046.8564224`, `GUNTHAS_PER_ACRE = 40`, `SQUARE_METRES_PER_GUNTHA = 101.17141056`.
-  * Functions: `squareMetresToGunthas`, `gunthasToSquareMetres`, `acresAndGunthasToGunthas`, `gunthasToAcresAndGunthas`, `squareMetresToAcresAndGunthas`, `createFieldId` (uses `crypto.getRandomValues` with timestamp/random fallback so non-HTTPS LAN contexts do not fail on `crypto.randomUUID`), `leafletToGeoJSON` (`[lat, lng] -> [lng, lat]`), `closeRing` (strips duplicate terminal points and closes ring once), and `calculateFieldGeometry` (strips consecutive duplicate clicks from Leaflet Draw, computes Turf geodesic `area` and `centerOfMass`).
-* `src/lib/domain/allocation.ts`:
-  * Contains legacy `validatePortfolio`, `rebalancePortfolio` (largest-remainder apportionment in integer basis points), and `allocateAcreage`, plus `v0.2.0` helpers `allocatePlotsByGunthas` and `upsertPlotAllocation`.
-* `src/lib/domain/soilKit.ts`:
-  * `interpretSoilKitReading(input)`: Classifies pH into 5 bands (`< 5.8` strongly acidic, `5.8–6.4` slightly acidic, `6.5–7.5` optimal neutral, `7.6–8.2` moderately alkaline Vertisol, `> 8.2` strongly alkaline), evaluates N (Alkaline $\text{KMnO}_4$) and P (Olsen + molybdenum-blue), plus optional K, Organic Carbon, and Salinity, returning `overallHealth` (`"optimal" | "needs_enrichment" | "critical_amendment"`) and `steps[]`.
-* `src/lib/domain/cropRecommendations.ts`:
-  * `detectMaharashtraSeason(monthZeroIndexed)`: Maps June–Sept (`5..8`) $\rightarrow$ `Kharif`, Oct–Feb (`9..11, 0..1`) $\rightarrow$ `Rabi`, Mar–May (`2..4`) $\rightarrow$ `Zaid`.
-  * `getSeasonalCropRecommendations`: Scores all 6 crops (`0–100`, sorted descending) starting from base `50`: `+25` if crop supports target season (`-25` and `risk = true` if outside season), `-12` and `amend = true` if `soilKitReading.ph` is outside `optimalPhRange`, `+15` for N-fixing (`groundnut`) or `+10` for low-N crops when soil N is `"low"`, and `+15` for high drought tolerance (`-15` and `risk = true` for low drought tolerance) when forecast mean max temp $\ge 35^\circ\text{C}$ and 7-day rain $< 5\text{ mm}$.
-* `src/lib/domain/fieldVoice.ts`:
-  * `generateFieldVoiceAdvisories`: Evaluates 7 plot-level rules (`heat_vertisol_cracking`, `vegetative_nitrogen_low`, `sowing_phosphorus_low`, `alkaline_lockup_warning`, `flowering_peak_water`, `rabi_cold_night_guard`, `harvest_rain_warning`) + fallback `general_seasonal_guidance`, sorted by priority (`urgent` $\rightarrow$ `action` $\rightarrow$ `tip`).
-* `src/lib/domain/irrigation.ts`:
-  * Preserves [FAO-56](https://www.fao.org/4/x0490e/x0490e00.htm) `calculateIrrigationDemand`, `calculateDailyDripEstimate`, and `calculateSystemRuntime`.
-  * Adds `calculateHargreavesEt0({ latitudeDeg, dateIso, tempMinC, tempMaxC })` using solar declination $\delta$, sunset hour angle $\omega_s$, and extraterrestrial radiation $R_a$, plus `resolveDailyEt0` (`"open-meteo"` vs. `"hargreaves-fallback"`).
-  * Adds `calculatePhaseWaterBreakdown` across 3 delivery presets (`drip`: 90% eff, `100 L/hr/guntha`; `sprinkler`: 75% eff, `150 L/hr/guntha`; `canal_flood`: 60% eff, `450 L/hr/guntha`) and `simulateDroughtReallocation`.
+### 2.1 Global Header & Footer (`src/app/layout.tsx`, `src/components/app-shell/Header.tsx`)
+* **Top Bar (`bg-white border-b border-forest/20`):**
+  * Left: Forest-green (`#1E5631`) rounded square sprout logo + **Balram** title + subtitle (*"Your field. Your plan."* / *"तुमचे शेत. तुमचे नियोजन."*).
+  * Right: `Home` button, `मराठी / English` toggle button (`min-h-12`), and `Explore sample / Exit sample` button.
+* **Status Ribbon (`bg-daylight`):** Live pill badges showing `Online` / `Offline · saved data only`, `Saved in this browser`, `Modelled estimate`, and when Sample Mode is active, a high-contrast amber (`#FFBF00`) banner with `Exit sample`.
+* **Footer (`print:hidden`):** Service worker offline readiness line + collapsible `<details>` privacy & data provenance notice (which currently adds visual clutter at the bottom of every screen).
 
-### 2.4 Edge API Proxy & Providers (`src/lib/api/` & `src/app/api/`)
-* `src/lib/api/http.ts` & `src/lib/api/server.ts`: Enforces `POST`-only same-origin requests, streaming byte-capped JSON reading (`readJson`), 4-decimal coordinate rounding (`queryCoordinate`), and SHA-256 in-flight/TTL request coalescing (`cachedRequest`).
-* `src/lib/api/providers/openMeteo.ts`: Queries `https://api.open-meteo.com/v1/forecast` (`7` days, `Asia/Kolkata`, `unixtime`) and validates strict hourly (`3600s`) and daily (`86400s` aligned to IST midnight) series alignment.
-* `src/lib/api/providers/{nominatim,soilGrids,agmarknet}.ts`: Guarded by `hasSingleProviderAuthority()`, `ENABLE_SOILGRIDS = false`, and `ENABLE_MARKET = false`.
+### 2.2 View 1: Landing Screen (`AppShell.tsx` when `view === "landing"`)
+Centered single-column stack (`max-w-3xl space-y-6`):
+1. **Hero Banner (`rounded-3xl bg-forest p-6 text-white`):** *"Your farm. A clearer growing path."*
+2. **Language Card (`bento-card`):** Two side-by-side buttons (`English` | `मराठी`).
+3. **My Farm Card (`bento-card`):** Shows progress (`X / 6 steps complete`) and a primary forest-green CTA (`Start Setup` or `Continue setup: Step X, <Station>`, or `Open Daily Home` once setup is finished).
+4. **Sample Farm (Pune) Card (`bento-card border-l-4 border-l-sky`):** Launches the non-destructive read-only sample overlay.
 
-## 3. Known Code-Level Flaws & Loose Ends Discovered in Live `v0.2.0` Audit
+### 2.3 View 2: The 6-Station Setup Journey (`src/components/journey/JourneyShell.tsx`)
+* **Layout Grid:** 2-column grid on desktop (`md:grid-cols-[280px_minmax(0,1fr)]`); single column on mobile with a top `ProgressStrip` (`Step X of 6`) and fixed bottom `Back / Next` bar.
+* **Left Sidebar (`280px` sticky card on desktop):** Vertical list of the 6 Growing Path stations with inline SVG icons (`Seed`, `Sprout`, `Leaf`, `Flower`, `Fruit`, `Grain`) and status subtitles (`Done`, `Current`, `Ready`, `Skipped`, `Locked`, `Needs update`).
+* **Main Content Area (Right column):**
+  * **Station 1 — My Land (`MapClient.tsx`):** Shows a summary strip (`Field area: X Acres Y Gunthas` | `Location: lat, lng`), a `"Load online map"` toggle above the `420px` Leaflet canvas, and two collapsible `<details>` forms below (*"Enter coordinates & acreage"* with Latitude, Longitude, Acres, Gunthas, `"Use my location"`, and `"Save location"*; plus *"Enter or edit boundary vertices"* raw textarea).
+  * **Station 2 — Weather (`WeatherCard.tsx`):** 2-column metric grid (`Reference ET₀` in `3xl` bold + `Forecast rainfall` in `3xl` bold), date/temp line, provenance note, `"Refresh live weather"` button, and collapsible 7-day list.
+  * **Station 3 — My Soil (`SoilCard.tsx`):** 4 large mode buttons (*Balram In-House Kit*, *Soil Health Card kg/ha*, *Full Rapid Kit*, *Skip for now*), a range slider for `Soil pH (3.5–10.5)`, pill rows (`low` / `medium` / `high`) for Nitrogen & Phosphorus, a `"Save soil test"` button, and the resulting **"What Your Soil Needs Before Planting"** card list.
+  * **Station 4 — My Crops (`PortfolioCard.tsx`):**
+    * Top 3-column summary (`Total farm land` | `Allocated to plots` | `Unassigned / fallow`).
+    * List of existing plot cards: each card has a header, `Remove plot` button, **two numeric inputs (`Acres` and `Gunthas`)**, **three quick-adjust buttons (`+5 Gunthas`, `−5 Gunthas`, `Use remaining land`)**, a **4-button Lifecycle Stage pill grid**, and a **Planting date `<input type="date">`**.
+    * Bottom `"Add new plot"` form (`bg-stone-50`): 4 quick-name chips (`Well Plot`, `Borewell Patch`, `Canal Plot`, `Roadside Field`), text input for `Plot name`, dropdown `<select>` for `Crop`, numeric inputs for `Acres` and `Gunthas`, dropdown `<select>` for `Initial lifecycle stage`, and `"Add plot"` button.
+  * **Station 5 — Balram's Advice (`AlertsCard.tsx` + `CropAdvisorCard.tsx`):**
+    * Stacked vertically: first `AlertsCard` (Field Voice cards with `"Why this advice?"` accordions + collapsible `"System & data status checks"`), then `CropAdvisorCard` below it (Season `<select>` dropdown + 6 stacked crop cards, each with an `"Add plot with this crop"` button).
+  * **Station 6 — My Roadmap (`RoadmapList.tsx` + `FarmReport.tsx`):**
+    * Grouped action cards (`This Week`, `Next Two Weeks`, `Later`), collapsible report preview, and `"Finish Setup"` button.
 
-When acting as Technical Overseer, keep these **7 verified code-level flaws in the current `v0.2.0` implementation** top of mind so they can be prioritized and fixed:
+### 2.4 View 3: Daily Home (`src/components/home/DailyHome.tsx`)
+4-tab bar (`Today / आज`, `My Farm / माझे शेत`, `Water / पाणी`, `Report / अहवाल`):
+* **Today Tab:** `CheckInCard` banner + 3-tap check-in form, top Field Voice card, Today's planned water card, and This Week's roadmap actions.
+* **My Farm Tab:** Stacks `MapClient`, `PortfolioCard`, `SoilCard`, and `Farm backup` (Export/Import JSON) vertically on one long page.
+* **Water Tab (`IrrigationPanel.tsx`):** Simple plot water plan (Plot dropdown, `Drip / Sprinkler / Canal` buttons, optional pump flow input, current-stage summary box, 4-phase weekly water table) + two collapsible `<details>` blocks (*Drought simulator* and *Advanced measured block flow override* + *Formula & assumptions*).
+* **Report Tab (`FarmReport.tsx`):** Share Summary button + Print Farm Report button + A4 summary table.
 
-1. **Hardcoded English in `AlertsCard.tsx` (`src/components/dashboard/AlertsCard.tsx` lines 8–10)**:
-   * Although `fieldVoice.ts` generates both `.en` and `.mr` strings for every advisory, `AlertsCard.tsx` renders `{a.headline.en}`, `{a.message.en}`, and `{a.actionLabel.en}` unconditionally instead of selecting `[state.locale]`, and hardcodes the card title `"Balram's Field Voice"` instead of `t(state.locale).voice`.
-2. **Plot Selector Keyed by `cropId` Instead of `plotId` in `IrrigationPanel.tsx` (`src/components/irrigation/IrrigationPanel.tsx` lines 25, 34, 66)**:
-   * `IrrigationPanel` stores `const [cropId, setCropId] = useState(...)` and looks up the selected plot via `state.cropAllocations.find(item => item.cropId === cropId)`. If a farmer creates two distinct plots with the same crop (e.g., `"Well Plot"` and `"Canal Plot"` both growing `onion` at different stages or sizes), the dropdown cannot distinguish them and always selects the first matching plot. It should select by `plotId`.
-3. **Quick `+5 Gunthas` / `−5 Gunthas` Buttons Do Not Recompute `percentage` (`src/components/dashboard/PortfolioCard.tsx` line 23)**:
-   * The Acres and Gunthas numeric `<input>` handlers recompute `percentage: total ? Math.round(n / total * 10000) / 100 : plot.percentage`, but the `+5 Gunthas` and `−5 Gunthas` buttons call `updatePlot(plot, { areaGunthas: size + 5 })` without updating `percentage` or checking if total gunthas exceed `totalFarmGunthas`.
-4. **Hardcoded `season: "kharif"` in `upsertPlotAllocation()` (`src/lib/domain/allocation.ts` line 72)**:
-   * When adding a new plot via `upsertPlotAllocation`, `season` is hardcoded to `"kharif" as const` instead of deriving `MaharashtraCropMatrix[input.cropId].season.toLowerCase()`.
-5. **Untranslated Marathi Strings in `soilKit.ts` & `fieldVoice.ts`**:
-   * In `src/lib/domain/soilKit.ts` line 15, `add("ph", p[0], p[1], p[2], p[2], p[3], p[3], p[4])` passes English `p[2]` and `p[3]` into both the English and Marathi explanation/action slots, and optional K/Carbon/Salinity steps also pass the English action string for Marathi.
-   * In `src/lib/domain/fieldVoice.ts` line 6, `headline.en` is `ruleId.replaceAll("_", " ")` (e.g., `"heat vertisol cracking"`) and `headline.mr` is a generic `"शेतासाठी सूचना"` for all 7 rules instead of distinct, descriptive headlines.
-6. **Simplified Drought Reallocation Math (`src/lib/domain/irrigation.ts` lines 91–97)**:
-   * `simulateDroughtReallocation` computes water demand using `baseKc` (ignoring the plot's current `lifecycleStage` $K_c$ and ignoring `effectiveRainfallMmPerDay`), and divides the water deficit by a hardcoded `1.05` $K_c$ factor rather than computing the actual water savings between the farmer's highest-$K_c$ crop and a drought-tolerant alternative (`rabi_jowar` / `bajra`).
-7. **Concave Polygon Centroid & Unbounded Leaflet Map (`src/lib/domain/geometry.ts` & `src/components/map/FarmMap.tsx`)**:
-   * `calculateFieldGeometry` uses `@turf/center-of-mass` without checking whether the centroid falls outside a concave/L-shaped polygon, and `FarmMap.tsx` does not lock `maxBounds` to Maharashtra (`[[15.60, 72.60], [22.00, 80.90]]`). Also, `package.json` still lists `"version": "0.1.0"`.
+---
+
+## 3. Code-Level Diagnosis of Current UX Friction (Why the User's Rough Idea Is Spot-On)
+
+Inspecting `CropAdvisorCard.tsx`, `PortfolioCard.tsx`, and `JourneyShell.tsx` reveals **four severe UX flaws** in how crop selection and plot creation currently work:
+
+1. **Broken Station Ordering (Station 4 vs. Station 5 Paradox):**
+   * In `JourneyShell.tsx`, **Station 4 is `My Crops` (`PortfolioCard`)** and **Station 5 is `Balram's Advice` (`AlertsCard` + `CropAdvisorCard`)**—and Station 5 is *locked* until Station 4 is completed!
+   * That means a farmer has to guess and add their crops in Station 4 *before* they are even allowed to see `CropAdvisorCard` (which recommends what crops to plant based on their Station 2 Weather and Station 3 Soil Test)!
+2. **Silent No-Op & Zero Visual Confirmation in `CropAdvisorCard.tsx`:**
+   * Look at `CropAdvisorCard.tsx` lines 9–10 (`function add(id: CropId)`):
+     * When the farmer clicks `"Add plot with this crop"`, it automatically dumps all `remaining` unassigned gunthas into a single plot behind the scenes with **zero toast, zero selected state, zero checkmark, and zero visual confirmation**!
+     * Worse: if `remaining <= 0` (meaning the farmer already allocated their land in Station 4), clicking `"Add plot with this crop"` **does not add the crop at all**—it just silently calls `document.getElementById("portfolio")?.scrollIntoView()`, which does *nothing* inside `JourneyShell` because `PortfolioCard` isn't even rendered on Station 5!
+3. **Cognitive Overload in `PortfolioCard.tsx` ("Form Inside a Form"):**
+   * Every saved plot card in `PortfolioCard.tsx` renders 2 number inputs (`Acres`, `Gunthas`), 3 resize buttons (`+5G`, `-5G`, `Use remaining`), 4 lifecycle buttons, a date picker, and a remove button—and then right below it sits *another* full form (`Add new plot`) with text inputs, dropdowns, and number boxes. For a smallholder farmer on a phone, this looks like a spreadsheet data-entry screen rather than a guided consumer app.
+4. **Prototype Clutter & Low-Impact Text Walls:**
+   * Across cards, secondary technical disclaimers (`DataCaption` footers on every card, `"Enter or edit boundary vertices"` raw coordinate textareas, `"Formula & assumptions"` accordions, `"Saved modeled SoilGrids context"`, `"System & data status checks"`) compete visually with the primary buttons and instant outputs farmers actually care about.
