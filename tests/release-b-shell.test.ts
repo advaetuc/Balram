@@ -49,4 +49,11 @@ test("journey shell navigation advances only when the next station is unlocked",
  assert.equal(adjacentJourneyStation(notStarted,"land",1),null);
  assert.equal(adjacentJourneyStation(empty,"weather",-1),"land");
  assert.equal(adjacentJourneyStation(empty,"roadmap",1),null);
+ const awaitingCropPlan=deriveJourney({...createSampleFixture(),cropAllocations:[]},null);
+ assert.equal(awaitingCropPlan[3]?.id,"crops");assert.equal(awaitingCropPlan[3]?.status,"current");
+ assert.equal(awaitingCropPlan[4]?.id,"advice");assert.equal(awaitingCropPlan[4]?.status,"locked");
+ assert.equal(adjacentJourneyStation(awaitingCropPlan,"crops",1),null);
+ const planned=deriveJourney(createSampleFixture(),null);
+ assert.equal(planned[3]?.status,"done");assert.equal(planned[4]?.status,"ready");
+ assert.equal(adjacentJourneyStation(planned,"crops",1),"advice");
 });

@@ -10,7 +10,6 @@ import { WeatherCard } from "@/components/dashboard/WeatherCard";
 import { SoilCard } from "@/components/dashboard/SoilCard";
 import { PortfolioCard } from "@/components/dashboard/PortfolioCard";
 import { AlertsCard } from "@/components/dashboard/AlertsCard";
-import { CropAdvisorCard } from "@/components/dashboard/CropAdvisorCard";
 import { FarmReport } from "@/components/report/FarmReport";
 import { StationIcon } from "@/components/ui/StationIcon";
 import { RoadmapList } from "./RoadmapList";
@@ -41,7 +40,7 @@ export function JourneyShell({ onFinish, onHome }: { onFinish: () => void; onHom
     :activeStation==="weather"?<><p className="mb-4 text-sm">{text.weatherAuto}</p>{state.weatherStatus.state==="loading"&&<p role="status" className="notice mb-3">{text.weatherLoading}</p>}{(state.weatherStatus.state==="error"||(state.connection==="offline"&&!state.weatherSnapshot))&&<p role="status" className="notice mb-3">{state.weatherSnapshot?(state.locale==="mr"?"ताजा अंदाज मिळाला नाही; जतन केलेला अंदाज उपलब्ध आहे.":"Live refresh failed; the saved weather snapshot remains available."):text.weatherError}</p>}{state.connection==="offline"&&state.weatherSnapshot&&<div className="mb-3 flex flex-wrap items-center gap-3 rounded-xl border border-sky/30 bg-sky/10 p-3 text-sm"><span>{state.locale==="mr"?"ऑफलाइन · जतन केलेला अंदाज":"Offline · saved forecast"}</span><ProvenanceBadge provenance="forecast" locale={state.locale}/><span>{state.locale==="mr"?"वय":"Age"}: {forecastAge===null?state.weatherSnapshot.fetchedAt:forecastAge<60?(state.locale==="mr"?`${forecastAge} मिनिटांपूर्वी`:`${forecastAge} min ago`):(state.locale==="mr"?`${Math.floor(forecastAge/60)} तासांपूर्वी`:`${Math.floor(forecastAge/60)} hr ago`)}</span></div>}<WeatherCard/></>
     :activeStation==="soil"?<><SoilCard/>{state.soilSkipped&&<p className="notice mt-4">{text.soilNotTested}</p>}</>
     :activeStation==="crops"?<PortfolioCard/>
-    :activeStation==="advice"?<><div className="mb-4 flex flex-wrap gap-2">{state.soilSkipped&&!state.soilKitReading&&<span className="data-badge bg-amber text-ink">{text.soilNotTested}</span>}{state.sampleDataActive&&<span className="data-badge bg-amber text-ink">{text.provenance.sample}</span>}</div><AlertsCard/><CropAdvisorCard/></>
+    :activeStation==="advice"?<><div className="mb-4 flex flex-wrap gap-2">{state.soilSkipped&&!state.soilKitReading&&<span className="data-badge bg-amber text-ink">{text.soilNotTested}</span>}{state.sampleDataActive&&<span className="data-badge bg-amber text-ink">{text.provenance.sample}</span>}</div><AlertsCard/></>
     :<><section className="bento-card"><h2 className="text-xl font-bold">{text.stationNames.roadmap}</h2><div className="mt-4"><RoadmapList items={items} locale={state.locale}/></div></section>
       <details className="bento-card mt-4"><summary>{text.reportPreview}</summary><FarmReport/></details>
       <button type="button" className="button-primary mt-4 w-full" disabled={!state.hydrated||state.sampleDataActive} onClick={()=>{state.setSetupCompletedAt(indiaDate(state.now)??"2026-11-16");onFinish()}}>{text.finishSetup}</button>

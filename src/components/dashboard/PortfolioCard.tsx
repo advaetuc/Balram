@@ -1,38 +1,123 @@
 "use client";
-import { useState } from "react";
+
+import { useEffect, useMemo, useRef, useState } from "react";
 import { MaharashtraCropMatrix, type CropId } from "@/config/cropMatrix";
-import { allocatePlotsByGunthas, upsertPlotAllocation, updatePlotGunthas } from "@/lib/domain/allocation";
-import { gunthasToAcresAndGunthas, acresAndGunthasToGunthas, gunthasToSquareMetres } from "@/lib/domain/geometry";
-import { lifecycleToGrowthStage, type CropAllocation, type LifecycleStage } from "@/types/domain";
-import { useBalramStore } from "@/store/useBalramStore";
-import { Card, DataCaption } from "./Card";
 import { t } from "@/config/i18n";
-const stages:[LifecycleStage,string,string][]=[["planned","Planned","Seed & soil prep"],["vegetative","Vegetative","Early leaf growth"],["flowering_fruiting","Flowering / Fruiting","Peak water need"],["harvesting","Harvesting","Ready for market"]];
-function areaLabel(value:number){const x=gunthasToAcresAndGunthas(value);return `${x.acres} ${x.acres===1?"Acre":"Acres"} ${x.gunthas} Gunthas`}
-export function PortfolioCard(){
- const state=useBalramStore(s=>s),text=t(state.locale),allocations=state.cropAllocations,totalArea=state.fieldGeometry?.areaSquareMetres??null;
- const derived=allocatePlotsByGunthas(allocations,totalArea), total=derived.totalFarmGunthas;
- const [name,setName]=useState("Well Plot"),[cropId,setCropId]=useState<CropId>("sugarcane"),[acres,setAcres]=useState("0"),[gunthas,setGunthas]=useState(total!==null?String(Math.max(0,Math.floor(derived.unassignedGunthas??0))):"20"),[stage,setStage]=useState<LifecycleStage>("planned"),[error,setError]=useState("");
- const allocated=derived.allocatedGunthas;
- function save(next:CropAllocation[]){try{state.setCropAllocations(next);setError("")}catch{setError("Check plot sizes and make sure their total does not exceed your farm land.")}}
- function add(){try{const size=acresAndGunthasToGunthas(Number(acres||0),Number(gunthas||0));const next=upsertPlotAllocation(allocations,{plotName:name,cropId,areaGunthas:size,lifecycleStage:stage},totalArea);save(next);setAcres("0");setGunthas(total===null?"20":String(Math.max(0,Math.floor(total-next.reduce((s,p)=>s+(p.areaGunthas??0),0)))))}catch(e){setError(e instanceof Error?e.message:"Enter a valid plot size.")}}
- function updatePlot(plot:CropAllocation,patch:Partial<CropAllocation>){save(allocations.map(p=>p.plotId===plot.plotId?{...p,...patch}:p))}
- function resizePlot(plot:CropAllocation,next:number){try{const index=allocations.indexOf(plot),id=plot.plotId??`${plot.cropId}-${index}`;state.setCropAllocations(updatePlotGunthas(allocations,id,next,totalArea));setError("")}catch(e){setError(e instanceof Error?e.message:"Plot area could not be updated.")}}
- return <Card id="portfolio" title={text.plots} eyebrow={text.allocated} className="md:col-span-2">
-  <p className="mt-2 text-sm">Create named plots and track their crop stage. Unassigned land can remain fallow.</p>
-  {total!==null&&<div className="my-4 grid gap-3 rounded-xl bg-forest/5 p-4 sm:grid-cols-3"><div><b>Total farm land</b><p>{areaLabel(total)} ({total.toFixed(1)} gunthas)</p></div><div><b>Allocated to plots</b><p>{areaLabel(allocated)} ({allocated.toFixed(1)} gunthas)</p></div><div><b>Unassigned / fallow</b><p>{areaLabel(Math.max(0,total-allocated))} ({Math.max(0,total-allocated).toFixed(1)} gunthas)</p></div></div>}
-  {total===null&&<p className="notice my-3">Add plots by Gunthas now. Enter total field land or draw a boundary to see exact unassigned area.</p>}
-  {state.sampleDataActive&&<p className="notice my-3">{state.locale==="mr"?"नमुना शेत फक्त पाहण्यासाठी आहे.":"Sample farm is view-only."}</p>}
-  <fieldset disabled={!state.hydrated||state.sampleDataActive} className="min-w-0 border-0 p-0"><div className="space-y-4">{allocations.map((plot,index)=>{const crop=MaharashtraCropMatrix[plot.cropId as CropId],size=plot.areaGunthas??(total?total*plot.percentage/100:0);return <article key={plot.plotId??`${plot.cropId}-${index}`} className="rounded-xl border border-forest/20 p-4">
-   <div className="flex flex-wrap items-center justify-between gap-2"><div><h3 className="font-bold">{plot.plotName??`Plot ${index+1}`} · {crop?.name??plot.cropId} ({crop?.marathiName??""})</h3><p>{areaLabel(size)} · {plot.percentage.toFixed(2)}% of farm</p></div><button className="button-quiet min-h-12 min-w-12" disabled={!state.hydrated} onClick={()=>save(allocations.filter(p=>p.plotId!==plot.plotId))}>Remove plot</button></div>
-   <div className="mt-3 grid gap-3 sm:grid-cols-2"><label className="text-sm">Acres<input className="form-input mt-1" type="number" min="0" step="1" value={Math.floor(size/40)} onChange={e=>resizePlot(plot,Number(e.target.value)*40+size%40)} /></label><label className="text-sm">Gunthas<input className="form-input mt-1" type="number" min="0" max="39" step="1" value={Math.floor(size%40)} onChange={e=>resizePlot(plot,Math.floor(size/40)*40+Number(e.target.value))} /></label></div>
-   <div className="mt-2 flex flex-wrap gap-2"><button className="button-secondary min-h-12" onClick={()=>resizePlot(plot,size+5)}>+5 Gunthas</button><button className="button-secondary min-h-12" onClick={()=>resizePlot(plot,Math.max(.1,size-5))}>−5 Gunthas</button>{total!==null&&<button className="button-secondary min-h-12" onClick={()=>resizePlot(plot,size+Math.max(0,total-allocated))}>Use remaining land</button>}</div>
-   <fieldset className="mt-3"><legend className="text-sm font-semibold">Lifecycle stage</legend><div className="grid grid-cols-2 gap-2 lg:grid-cols-4">{stages.map(([key,label,help])=><button key={key} type="button" aria-pressed={(plot.lifecycleStage??"planned")==key} className={`min-h-12 rounded-lg border px-3 text-sm ${(plot.lifecycleStage??"planned")==key?"border-forest bg-forest text-white":"border-forest/25"}`} onClick={()=>updatePlot(plot,{lifecycleStage:key,growthStage:lifecycleToGrowthStage(key)})}>{label}<span className="block text-xs">{help}</span></button>)}</div></fieldset>
-   <label className="mt-3 block text-sm">Planting date<input className="form-input mt-1" type="date" value={plot.plantingDate??""} onChange={e=>updatePlot(plot,{plantingDate:e.target.value||null})}/></label>
-  </article>})}</div>
-  <div className="mt-5 rounded-xl bg-stone-50 p-4"><h3 className="font-bold">{text.addPlot}</h3><div className="my-2 flex flex-wrap gap-2">{["Well Plot","Borewell Patch","Canal Plot","Roadside Field"].map(v=><button type="button" className="button-secondary min-h-12" key={v} onClick={()=>setName(v)}>{v}</button>)}</div>
-   <div className="grid gap-3 sm:grid-cols-2"><label>Plot name<input className="form-input mt-1" value={name} maxLength={60} onChange={e=>setName(e.target.value)}/></label><label>Crop<select className="form-input mt-1" value={cropId} onChange={e=>setCropId(e.target.value as CropId)}>{Object.values(MaharashtraCropMatrix).map(c=><option key={c.id} value={c.id}>{c.name} · {c.marathiName}</option>)}</select></label><label>Acres<input className="form-input mt-1" type="number" min="0" step="1" value={acres} onChange={e=>setAcres(e.target.value)}/></label><label>Gunthas<input className="form-input mt-1" type="number" min="0" max="39" step="1" value={gunthas} onChange={e=>setGunthas(e.target.value)}/></label></div>
-   <label className="mt-3 block">Initial lifecycle stage<select className="form-input mt-1" value={stage} onChange={e=>setStage(e.target.value as LifecycleStage)}>{stages.map(([s,l])=><option key={s} value={s}>{l}</option>)}</select></label><button className="button-primary mt-3 min-h-12 w-full" disabled={!state.hydrated} onClick={add}>Add plot</button>
-  </div></fieldset>{error&&<p role="alert" className="notice mt-3">{error}</p>}<DataCaption source="Farmer-entered crop and plot information" validAt={state.planningUpdatedAt} sample={state.sampleDataActive}/>
- </Card>
+import { CropAdvisorCard } from "@/components/dashboard/CropAdvisorCard";
+import { CropCheckoutSheet } from "@/components/crops/CropCheckoutSheet";
+import { allocatePlotsByGunthas } from "@/lib/domain/allocation";
+import { pickNextDefaultPlotName, resolvePresetGunthas, type CheckoutDraftLine } from "@/lib/domain/checkout";
+import { gunthasToAcresAndGunthas } from "@/lib/domain/geometry";
+import { createPlotRemovalSnapshot, restorePlotRemoval, type PlotRemovalSnapshot } from "@/lib/domain/plotUndo";
+import { useBalramStore } from "@/store/useBalramStore";
+import type { CropAllocation } from "@/types/domain";
+
+function formatArea(value: number, locale: "en" | "mr") {
+  const area = gunthasToAcresAndGunthas(value);
+  const acre = locale === "mr" ? "एकर" : area.acres === 1 ? "Acre" : "Acres";
+  const guntha = locale === "mr" ? "गुंठे" : "Gunthas";
+  return `${area.acres} ${acre} ${area.gunthas} ${guntha}`;
+}
+
+export function PortfolioCard() {
+  const state = useBalramStore((s) => s);
+  const text = t(state.locale);
+  const allocations = state.cropAllocations;
+  const totalArea = state.fieldGeometry?.areaSquareMetres ?? null;
+  const derived = useMemo(() => allocatePlotsByGunthas(allocations, totalArea), [allocations, totalArea]);
+  const [draftLines, setDraftLines] = useState<CheckoutDraftLine[]>([]);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [toast, setToast] = useState("");
+  const [undoSnapshot, setUndoSnapshot] = useState<PlotRemovalSnapshot | null>(null);
+  const undoTimer = useRef<number | null>(null);
+  const editedIds = new Set(draftLines.flatMap((line) => line.editingPlotId ? [line.editingPlotId] : []));
+  const retained = allocations.filter((plot) => !plot.plotId || !editedIds.has(plot.plotId));
+  const draftSum = draftLines.reduce((sum, line) => sum + line.areaGunthas, 0);
+  const retainedGunthas = retained.reduce((sum, plot) => sum + (plot.areaGunthas ?? (derived.totalFarmGunthas === null ? 0 : derived.totalFarmGunthas * plot.percentage / 100)), 0);
+  const freeGunthas = derived.totalFarmGunthas === null ? null : Math.max(0, derived.totalFarmGunthas - retainedGunthas - draftSum);
+
+  useEffect(() => () => { if (undoTimer.current !== null) clearTimeout(undoTimer.current); }, []);
+
+  function toggleCrop(cropId: CropId) {
+    const existingLine = draftLines.find((line) => line.cropId === cropId);
+    if (existingLine) {
+      setDraftLines((lines) => lines.filter((line) => line.draftId !== existingLine.draftId));
+      return;
+    }
+    if (freeGunthas !== null && freeGunthas < 0.1) return;
+    const name = pickNextDefaultPlotName([...allocations.flatMap((plot) => plot.plotName ? [plot.plotName] : []), ...draftLines.map((line) => line.plotName)]);
+    const id = `draft-${Math.random().toString(36).slice(2)}`;
+    setDraftLines((lines) => [...lines, { draftId: id, cropId, plotName: name, areaGunthas: resolvePresetGunthas("half_remaining", 0, freeGunthas), alreadyPlanted: false, lifecycleStage: "planned", plantingDate: null }]);
+    setCheckoutOpen(true);
+  }
+
+  function removePlot(plotId: string) {
+    if (state.sampleDataActive || !state.hydrated) return;
+    const snapshot = createPlotRemovalSnapshot(allocations, plotId);
+    if (!snapshot) return;
+    if (undoTimer.current !== null) clearTimeout(undoTimer.current);
+    state.setCropAllocations([...snapshot.remainingAllocations]);
+    setDraftLines((lines) => lines.filter((line) => line.editingPlotId !== plotId));
+    setCheckoutOpen(false);
+    setUndoSnapshot(snapshot);
+    const namedPlot = snapshot.removedPlot.plotName ?? text.plotRemovedToast;
+    setToast(`${text.plotRemovedNamed} ${namedPlot}`);
+    undoTimer.current = window.setTimeout(() => { setUndoSnapshot(null); setToast(""); undoTimer.current = null; }, 10_000);
+  }
+
+  function undoRemoval() {
+    if (!undoSnapshot || state.sampleDataActive || !state.hydrated) return;
+    if (undoTimer.current !== null) clearTimeout(undoTimer.current);
+    state.setCropAllocations(restorePlotRemoval(undoSnapshot));
+    setUndoSnapshot(null);
+    setToast("");
+    undoTimer.current = null;
+  }
+
+  function editPlot(plot: CropAllocation, index: number) {
+    const id = plot.plotId;
+    const line: CheckoutDraftLine = {
+      draftId: `edit-${id ?? index}-${Math.random().toString(36).slice(2)}`,
+      ...(id ? { editingPlotId: id } : {}),
+      cropId: plot.cropId as CropId,
+      plotName: plot.plotName ?? `Plot ${index + 1}`,
+      areaGunthas: plot.areaGunthas ?? (derived.totalFarmGunthas === null ? 20 : derived.totalFarmGunthas * plot.percentage / 100),
+      alreadyPlanted: plot.lifecycleStage !== undefined && plot.lifecycleStage !== "planned" || plot.plantingDate !== null,
+      lifecycleStage: plot.lifecycleStage ?? "planned",
+      plantingDate: plot.plantingDate,
+    };
+    setDraftLines((lines) => [...lines.filter((item) => item.editingPlotId !== id && item.cropId !== plot.cropId), line]);
+    setCheckoutOpen(true);
+  }
+
+  return <div id="portfolio" className="space-y-5">
+    <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_370px]">
+      <div className="min-w-0 space-y-5">
+        <CropAdvisorCard selectedCropIds={draftLines.map((line) => line.cropId)} onToggleCrop={toggleCrop} remainingFreeGunthas={freeGunthas} />
+        <section id="your-plots" className="bento-card scroll-mt-4">
+          <p className="mb-2 text-xs font-bold uppercase tracking-widest text-forest">{text.allocated}</p>
+          <h2 className="text-xl font-bold">{text.yourPlots}</h2>
+          {derived.totalFarmGunthas !== null && <div className="my-4 grid gap-2 rounded-xl bg-forest/5 p-3 sm:grid-cols-3">
+            <div><b>{text.totalLand}</b><p>{formatArea(derived.totalFarmGunthas, state.locale)}</p></div>
+            <div><b>{text.allocated}</b><p>{formatArea(derived.allocatedGunthas, state.locale)}</p></div>
+            <div><b>{text.fallow}</b><p>{formatArea(Math.max(0, derived.unassignedGunthas ?? 0), state.locale)}</p></div>
+          </div>}
+          {derived.totalFarmGunthas === null && <p className="notice my-3">{state.locale === "mr" ? "आधी प्लॉट गुंठ्यांमध्ये नोंदवा. नकाशा काढल्यावर एकूण जमीन दिसेल." : "Add plot sizes in Gunthas. Draw your field boundary to see the total farm area."}</p>}
+          {state.sampleDataActive && <p className="notice my-3">{text.sampleReadOnly}</p>}
+          {allocations.length === 0 ? <p className="rounded-xl bg-daylight p-4 text-sm">{text.checkoutEmpty}</p> : <ul className="space-y-2">{allocations.map((plot, index) => {
+            const crop = MaharashtraCropMatrix[plot.cropId as CropId];
+            const size = plot.areaGunthas ?? (derived.totalFarmGunthas === null ? 0 : derived.totalFarmGunthas * plot.percentage / 100);
+            const stage = plot.lifecycleStage ?? "planned";
+            return <li key={plot.plotId ?? `${plot.cropId}-${index}`} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-forest/15 p-3">
+              <div className="min-w-0"><h3 className="font-bold">{plot.plotName ?? `Plot ${index + 1}`} · {state.locale === "mr" ? crop?.marathiName ?? plot.cropId : crop?.name ?? plot.cropId}</h3><p className="text-sm">{formatArea(size, state.locale)} · {plot.percentage.toFixed(2)}% · {text.stageNames[stage]}</p></div>
+              <div className="flex flex-wrap gap-2"><button type="button" className="button-secondary min-h-12" disabled={!state.hydrated || state.sampleDataActive} onClick={() => editPlot(plot, index)}>{text.editPlot}</button></div>
+            </li>;
+          })}</ul>}
+          <p className="mt-3 text-sm text-stone-600">{state.locale === "mr" ? "प्लॉट बदल Checkout मध्ये तात्पुरते राहतात; जतन केल्यावरच शेत नियोजन बदलते." : "Plot edits stay in checkout until you save them to your farm plan."}</p>
+        </section>
+        {toast && <div role="status" aria-live="polite" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-forest/20 bg-white p-3 shadow-sm"><span>{toast}</span>{undoSnapshot && <button type="button" className="button-secondary min-h-12" onClick={undoRemoval}>{text.undo}</button>}</div>}
+      </div>
+      <CropCheckoutSheet lines={draftLines} existingAllocations={allocations} totalAreaSquareMetres={totalArea} isOpen={checkoutOpen} onOpen={() => setCheckoutOpen(true)} onClose={() => setCheckoutOpen(false)} onLinesChange={setDraftLines} onRemovePlot={removePlot} onCommitted={() => { setDraftLines([]); setToast(text.plotAddedToast); window.setTimeout(() => setToast(""), 3500); }} />
+    </div>
+  </div>;
 }

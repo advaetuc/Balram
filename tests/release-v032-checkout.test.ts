@@ -9,6 +9,7 @@ import {
 } from "../src/lib/domain/checkout";
 import { gunthasToSquareMetres } from "../src/lib/domain/geometry";
 import { CropAllocationsSchema, type CropAllocation } from "../src/types/domain";
+import { createPlotRemovalSnapshot, restorePlotRemoval } from "../src/lib/domain/plotUndo";
 
 function draft(overrides: Partial<CheckoutDraftLine> = {}): CheckoutDraftLine {
   return {
@@ -132,4 +133,16 @@ test("editing replaces the target plot in place and preserves unrelated allocati
   assert.equal(parsed[1]?.plotId, "plot-other");
   assert.equal(parsed.reduce((sum, allocation) => sum + allocation.percentage * 100, 0), 6875);
   assert.ok(parsed.reduce((sum, allocation) => sum + allocation.percentage * 100, 0) <= 10000);
+});
+
+test("plot removal undo restores the entire previous allocation state", () => {
+  const first = plot();
+  const second = plot({ plotId: "plot-second", plotName: "Second Plot", cropId: "onion", areaGunthas: 20, percentage: 25, season: "rabi", lifecycleStage: "planned", growthStage: "initial", plantingDate: null });
+  const before = [first, second];
+  const removal = createPlotRemovalSnapshot(before, "plot-existing");
+  assert.ok(removal);
+  assert.deepEqual(removal.remainingAllocations, [second]);
+  assert.equal(removal.removedPlot.plotId, "plot-existing");
+  assert.deepEqual(restorePlotRemoval(removal), before);
+  assert.equal(createPlotRemovalSnapshot(before, "missing-plot"), null);
 });
