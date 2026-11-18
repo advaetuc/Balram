@@ -16,6 +16,15 @@ export function WeatherCard() {
   const day = selectedWeatherDay(state);
   const metrics = resolvedWeatherMetrics(state);
   const loading = state.weatherStatus.state === "loading";
+  const plainWeatherLead = state.locale === "mr"
+    ? `पिकांना दररोज सुमारे ${formatNumber(metrics.et0MmPerDay)} मिमी पाण्याची गरज आहे`
+    : `Crops lose about ${formatNumber(metrics.et0MmPerDay)} mm of water per day`;
+  const rainfallKnown = day?.precipitation != null;
+  const rainfallSummary = !rainfallKnown
+    ? (state.locale === "mr" ? "आजच्या पावसाचा अंदाज उपलब्ध नाही" : "Rainfall forecast unavailable today")
+    : metrics.precipitationMm === 0
+      ? (state.locale === "mr" ? "आज पावसाची शक्यता नाही" : "No rain expected today")
+      : (state.locale === "mr" ? `आज ${formatNumber(metrics.precipitationMm)} मिमी पाऊस अपेक्षित` : `${formatNumber(metrics.precipitationMm)} mm rain expected today`);
   async function update() {
     const field = state.fieldGeometry;
     if (!field) return;
@@ -35,12 +44,13 @@ export function WeatherCard() {
     }
   }
   return <Card id="weather" title={text.weather} eyebrow={text.conditions}>
+    <div className="mt-4 rounded-xl bg-sky/10 p-4"><h3 className="text-xl font-bold leading-snug text-forest">{plainWeatherLead}</h3><p className="mt-1 text-sm text-stone-600">{state.locale === "mr" ? "संदर्भ बाष्पोत्सर्जन (ET₀)" : "Reference ET₀"}</p><p className="mt-2 text-sm font-semibold">{rainfallSummary}</p></div>
     <div className="mt-5 grid grid-cols-2 gap-4" aria-busy={loading}>
       <div><p className="text-xs text-stone-600">Reference ET₀</p>
         <p className="mt-1 text-3xl font-semibold tabular-nums">{formatNumber(metrics.et0MmPerDay)}</p>
         <p className="text-sm text-stone-600">mm/day</p></div>
       <div><p className="text-xs text-stone-600">Forecast rainfall</p>
-        <p className="mt-1 text-3xl font-semibold tabular-nums">{formatNumber(metrics.precipitationMm)}</p>
+        <p className="mt-1 text-3xl font-semibold tabular-nums">{rainfallKnown ? formatNumber(metrics.precipitationMm) : "—"}</p>
         <p className="text-sm text-stone-600">mm/day</p></div>
     </div>
     <p className="mt-4 text-sm">{metrics.date} · {formatNumber(metrics.temperatureMinC)} to {formatNumber(metrics.temperatureMaxC)} °C</p>

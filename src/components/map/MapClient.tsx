@@ -25,10 +25,8 @@ export function MapClient() {
   return <Card id="field-map" title={text.field} eyebrow={text.location}>
     <p className="mt-3 text-sm leading-6">Draw a boundary or enter coordinates. Changes clear old weather and soil results; your crop choices stay saved.</p>
     <div className="my-5 flex flex-wrap gap-x-8 gap-y-3 rounded-xl bg-forest/5 p-4">
-      <div><p className="text-xs text-stone-600">{text.fieldArea}</p><p className="text-xl font-bold">{state.fieldGeometry?.areaSquareMetres == null ? "Not set" : (()=>{const a=squareMetresToAcresAndGunthas(state.fieldGeometry.areaSquareMetres);return `${a.acres} ${a.acres===1?"Acre":"Acres"} ${a.gunthas} Gunthas`})()}</p>
+      <div><p className="text-xs text-stone-600">{text.fieldArea}</p><p className="text-2xl font-bold text-forest">{state.fieldGeometry?.areaSquareMetres == null ? "Not set" : (()=>{const a=squareMetresToAcresAndGunthas(state.fieldGeometry.areaSquareMetres);return `${a.acres} ${a.acres===1?"Acre":"Acres"} ${a.gunthas} Gunthas`})()}</p>
         {state.fieldGeometry?.areaSquareMetres != null && <p className="text-sm">{formatNumber(squareMetresToAcresAndGunthas(state.fieldGeometry.areaSquareMetres).totalAcres,2)} acres · {formatNumber(squareMetresToAcresAndGunthas(state.fieldGeometry.areaSquareMetres).totalGunthas,1)} gunthas</p>}</div>
-      <div><p className="text-xs text-stone-600">Location</p><p className="mt-1 text-sm tabular-nums">{state.fieldGeometry
-        ? `${state.fieldGeometry.center[1].toFixed(5)}, ${state.fieldGeometry.center[0].toFixed(5)}` : "Not selected"}</p></div>
     </div>
     {state.sampleDataActive && <p className="notice mb-3">{state.locale === "mr" ? "नमुना शेत फक्त पाहण्यासाठी आहे." : "Sample farm is view-only."}</p>}
     {state.hydrated ? <MapBoundary key={String(state.sampleDataActive)}><FarmMap readOnly={state.sampleDataActive} /></MapBoundary>
@@ -96,7 +94,7 @@ function LocationForm() {
         <button className="button-primary" type="submit">Save location</button>
       </fieldset><p className="text-xs leading-5 text-stone-600">Saving manual coordinates replaces a drawn boundary. Geolocation only fills the form; save when ready.</p></form>
     </details>
-    <details><summary>Enter or edit boundary vertices</summary>
+    <details><summary>Advanced: Enter or edit boundary coordinates / प्रगत: सीमा निर्देशांक</summary>
       <form onSubmit={saveBoundary} className="mt-3 space-y-3"><label className="block text-sm">Latitude, longitude pairs (one pair per line)
         <textarea className="form-input mt-2 font-mono text-xs" rows={6} maxLength={50000} value={vertices} onChange={(event) => setVertices(event.target.value)} required disabled={!state.hydrated || state.sampleDataActive} /></label>
         <button className="button-secondary w-full" type="submit" disabled={!state.hydrated || state.sampleDataActive}>Save boundary</button></form>

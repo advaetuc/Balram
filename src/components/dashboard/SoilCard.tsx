@@ -46,10 +46,9 @@ export function SoilCard(){
   return <Card id="soil" title={text.soil} eyebrow={text.kit}>
     <p className="mt-2 text-sm">{mr?"चाचणीचे निकाल या ब्राउझरमध्ये राहतात; बाहेरील सेवेकडे पाठवले जात नाहीत.":"Test results stay in this browser and are not sent to a provider."}</p>
     {state.sampleDataActive&&<p className="notice mt-3">{text.sampleReadOnly}</p>}
-    <div className="mt-3 grid gap-2 sm:grid-cols-2">
-      {([ ["balram_inhouse",text.soilModeHouse], ["soil_health_card",text.soilModeCard], ["commercial_rapid",text.soilModeRapid] ] as const).map(([key,label])=><button type="button" key={key} disabled={disabled} aria-pressed={mode===key} className={`${pill} ${mode===key?"border-forest bg-forest text-white":"border-forest/25"}`} onClick={()=>setMode(key)}>{label}</button>)}
-      <button type="button" disabled={disabled} aria-pressed={mode==="skip"} className={`${pill} ${mode==="skip"?"border-amber bg-amber text-ink":"border-forest/25"}`} onClick={chooseSkip}>{text.soilSkip}</button>
-    </div>
+    <div className="mt-4 rounded-xl border border-forest/20 bg-forest/5 p-3"><p className="mb-2 text-xs font-bold uppercase tracking-wide text-forest">{mr?"मुख्य चाचणी पद्धत":"Main test method"}</p><button type="button" disabled={disabled} aria-pressed={mode==="balram_inhouse"} className={`min-h-14 w-full rounded-xl border px-4 text-left font-bold ${mode==="balram_inhouse"?"border-forest bg-forest text-white":"border-forest/25 bg-white"}`} onClick={()=>setMode("balram_inhouse")}>{text.soilModeHouse}</button></div>
+    <div className="mt-3"><p className="mb-2 text-sm font-semibold">{mr?"इतर चाचणी निकाल":"Other test results"}</p><div className="grid gap-2 sm:grid-cols-2">{([ ["soil_health_card",text.soilModeCard], ["commercial_rapid",text.soilModeRapid] ] as const).map(([key,label])=><button type="button" key={key} disabled={disabled} aria-pressed={mode===key} className={`${pill} ${mode===key?"border-forest bg-forest text-white":"border-forest/25 bg-white"}`} onClick={()=>setMode(key)}>{label}</button>)}</div></div>
+    <button type="button" disabled={disabled} aria-pressed={mode==="skip"} className="button-quiet mt-2 min-h-12 w-full justify-start text-left" onClick={chooseSkip}>{text.soilSkip}</button>
     {mode==="skip"&&<p className="notice mt-3">{text.soilSkipped}</p>}
     {mode!=="skip"&&<>
       <p className="mt-3 text-xs leading-5">{mr?"इन-हाऊस पद्धत: माती-पाणी सामू, अल्कलाइन KMnO₄ नत्र आणि ओल्सेन रंगमिती स्फुरद.":"In-house method: soil-water pH, alkaline KMnO₄ available nitrogen, and Olsen colorimetry available phosphorus."}</p>
@@ -60,7 +59,6 @@ export function SoilCard(){
     </>}
     {error&&<p role="alert" className="notice mt-2">{error}</p>}
     {interpretation&&<section className="mt-5 rounded-xl bg-forest/5 p-4"><h3 className="font-bold">{mr?"लागवडीपूर्वी मातीला काय हवे":"What Your Soil Needs Before Planting"}</h3><p className="mt-1">{mr?interpretation.headline.mr:interpretation.headline.en}</p><p className="data-badge mt-2 bg-sky/10">{mr?({optimal:"संतुलित",needs_enrichment:"सुधारणा आवश्यक",critical_amendment:"महत्त्वाची सुधारणा आवश्यक"} as const)[interpretation.overallHealth]:interpretation.overallHealth.replaceAll("_"," ")}</p><p className="mt-2 text-sm">{mr?interpretation.assayNotes.mr:interpretation.assayNotes.en}</p><ul className="mt-3 space-y-3">{interpretation.steps.map(step=><li key={step.id} className="rounded-lg border border-forest/15 bg-white p-3"><b>{mr?step.badgeLabel.mr:step.badgeLabel.en}</b><p className="text-sm">{mr?step.plainExplanation.mr:step.plainExplanation.en}</p><p className="mt-1 text-sm font-medium">{mr?step.actionStep.mr:step.actionStep.en}</p></li>)}</ul></section>}
-    {state.soilSnapshot&&<details className="mt-4"><summary>{mr?"प्रादेशिक माती मॉडेल":"Saved modeled regional soil context"}</summary><p className="text-sm">{mr?"प्रादेशिक मॉडेल; प्रत्यक्ष चाचणी नाही.":"Regional model, not a physical test."} {state.soilSnapshot.fetchedAt}</p></details>}
     <DataCaption source={saved?(mr?"शेतकऱ्याने नोंदवलेली माती किट":"Farmer-entered physical soil kit"):(mr?"माती किटचा निकाल जतन नाही":"No physical kit reading saved")} validAt={saved?.testedAt??null} sample={state.sampleDataActive}/>
   </Card>;
 }

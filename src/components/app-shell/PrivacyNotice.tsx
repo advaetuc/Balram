@@ -1,6 +1,6 @@
 export function PrivacyNotice() {
   return <section aria-labelledby="privacy-title" className="mx-auto mt-4 max-w-7xl text-sm leading-6">
-    <details><summary id="privacy-title">Privacy, public data & planning limits</summary>
+    <details><summary id="privacy-title" className="inline-flex min-h-12 cursor-pointer items-center rounded-full border border-forest/20 bg-white px-4 font-semibold text-forest hover:bg-forest/5">Data &amp; privacy / माहिती व गोपनीयता</summary>
       <div className="max-w-3xl space-y-3 pb-3">
         <p>Your profile, boundary, crops, irrigation inputs and last-good results stay in this browser’s IndexedDB.
           Balram has no accounts or remote farm database. Clearing browser storage removes your plan; other people using this browser may access it.</p>

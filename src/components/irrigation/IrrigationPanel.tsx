@@ -121,7 +121,7 @@ function Editor() {
       <p className="mt-2 text-sm">Gross water: {formatNumber(estimate.grossVolumeLitres, 0)} L · ETc: {formatNumber(estimate.cropEtMm)} mm/day</p>
       <p className="mt-2 text-xs">For {crop?.percentage}% of the field, with the entered block flow. This is not an automatic irrigation command.</p>
     </div>}
-    </details><details className="mt-4"><summary>Formula & assumptions</summary>
+    </details><details className="mt-4"><summary>How is this calculated? / ही गणना कशी केली जाते?</summary>
       <div className="space-y-2 text-sm leading-6"><p>ETc = Kc × ET₀. Net depth = max(0, ETc − effective rainfall). One mm over one m² equals one litre. Gross volume = net volume ÷ efficiency; runtime = gross volume ÷ measured flow.</p>
         {blueprint && <p>The blueprint lists mid-season Kc = {blueprint.baseKc} for {blueprint.name}. It is a reference, not an automatic value for other growth stages.</p>}
         <p>Soil storage, leaching, runoff and water-stress corrections are excluded. Effective rainfall is not automatically copied from forecast precipitation.</p></div>

@@ -9,6 +9,8 @@ export function Header() {
   const stale = state.weatherStale;
   const text = t(state.locale);
   const badge = "inline-flex min-h-8 items-center gap-2 rounded-full border px-3 py-1 text-sm font-semibold";
+  const compactSavedStatus = !state.sampleDataActive && state.connection !== "offline" && !stale &&
+    state.storageStatus.mode !== "memory" && !state.weatherStatus.error && state.weatherStatus.state !== "loading";
 
   return (
     <header lang={state.locale} className="border-b border-forest/20 bg-white">
@@ -38,6 +40,7 @@ export function Header() {
         <div role="status" aria-live="polite" aria-atomic="true"
           className="mx-auto flex max-w-7xl flex-wrap items-center gap-2 px-4 py-3 sm:px-6">
           {!state.hydrated ? <span className="text-sm">{text.loading}</span> : <>
+            {compactSavedStatus ? <span className={`${badge} border-forest/30 text-forest`}><span className="size-2 rounded-full bg-forest" aria-hidden="true" />{text.saved}</span> : <>
             {state.sampleDataActive && <span className={`${badge} border-amber bg-amber text-ink`}>{text.provenance.sample}</span>}
             {state.connection === "offline" && <span className={`${badge} border-amber bg-amber/20`}>{text.offline}</span>}
             {state.connection === "online" && <span className={`${badge} border-forest/30 text-forest`}>
@@ -50,6 +53,7 @@ export function Header() {
             {state.storageStatus.mode === "memory" ? (
               <span className={`${badge} border-amber bg-amber/20`}>Not saved · this tab only</span>
             ) : <span className="text-sm">{state.storageStatus.pendingWrites > 0 ? text.saving : text.saved}</span>}
+            </>}
           </>}
         </div>
         {state.hydrated && state.storageStatus.message && <p className="mx-auto max-w-7xl px-4 pb-3 text-sm sm:px-6">
