@@ -9,7 +9,7 @@ import type { PersistedFarm } from "@/types/domain";
 export function BackupControls() {
   const state = useBalramStore(s => s), copy = t(state.locale), inputRef = useRef<HTMLInputElement>(null);
   const [message, setMessage] = useState("");
-  const persisted: PersistedFarm = { farmProfile:state.farmProfile, fieldGeometry:state.fieldGeometry, cropAllocations:state.cropAllocations, irrigationSetup:state.irrigationSetup, weatherSnapshot:state.weatherSnapshot, soilSnapshot:state.soilSnapshot, sampleDataActive:state.sampleDataActive, planningUpdatedAt:state.planningUpdatedAt, soilKitReading:state.soilKitReading, locale:state.locale, soilSkipped:state.soilSkipped, setupCompletedAt:state.setupCompletedAt, checkIns:state.checkIns };
+  const persisted: PersistedFarm = { farmProfile:state.farmProfile, fieldGeometry:state.fieldGeometry, cropAllocations:state.cropAllocations, irrigationSetup:state.irrigationSetup, weatherSnapshot:state.weatherSnapshot, soilSnapshot:state.soilSnapshot, sampleDataActive:state.sampleDataActive, planningUpdatedAt:state.planningUpdatedAt, soilKitReading:state.soilKitReading, locale:state.locale, landUnit:state.landUnit, soilSkipped:state.soilSkipped, setupCompletedAt:state.setupCompletedAt, checkIns:state.checkIns };
   function exportBackup() {
     try {
       const json = serializeFarmBackup(persisted, new Date().toISOString());

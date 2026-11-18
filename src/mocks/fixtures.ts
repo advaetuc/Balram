@@ -12,6 +12,7 @@ export function createEmptyFixture(): PersistedFarm {
     sampleDataActive: false,
     soilKitReading: null,
     locale: "en",
+    landUnit: "acres",
     soilSkipped: false,
     setupCompletedAt: null,
     checkIns: [],
@@ -56,5 +57,6 @@ export function createSampleFixture(): PersistedFarm {
       ],
     },
     sampleDataActive: true,
+    landUnit: "acres",
   });
 }

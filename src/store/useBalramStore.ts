@@ -7,13 +7,13 @@ import { createJSONStorage, persist } from "zustand/middleware";
 import { createIndexedDBStorage, type StorageStatus } from "@/lib/storage/db";
 import { createEmptyFixture, createSampleFixture } from "@/mocks/fixtures";
 import {
-  CropAllocationsSchema, FarmProfileSchema, FieldGeometrySchema, LocaleSchema, SoilKitReadingSchema, growthToLifecycleStage,
+  CropAllocationsSchema, FarmProfileSchema, FieldGeometrySchema, LandUnitSchema, LocaleSchema, SoilKitReadingSchema, growthToLifecycleStage,
   lifecycleToGrowthStage, CheckInSchema, IrrigationSetupSchema, PersistedFarmSchema, WeatherSnapshotSchema, SoilSnapshotSchema, type CheckIn, type SoilSnapshot,
   type CropAllocation, type DataSourceStatus, type FarmProfile,
-  type FieldGeometry, type IrrigationSetup, type PersistedFarm, type WeatherSnapshot, type SoilKitReading, type Locale,
+  type FieldGeometry, type IrrigationSetup, type PersistedFarm, type WeatherSnapshot, type SoilKitReading, type Locale, type LandUnit,
 } from "@/types/domain";
 
-export const PERSISTENCE_VERSION = 4;
+export const PERSISTENCE_VERSION = 5;
 export const STORAGE_KEY = "balram:farm";
 
 export interface WeatherRequest {
@@ -44,6 +44,7 @@ export interface BalramState extends PersistedFarm {
   addCheckIn(checkIn: CheckIn): void;
   replacePersistedState(next: PersistedFarm): void;
   setLocale(locale: Locale): void;
+  setLandUnit(unit: LandUnit): void;
   resetDerivedForFieldChange(): void;
   setSampleData(active: boolean): Promise<void>;
   beginWeatherRequest(): WeatherRequest;
@@ -79,7 +80,7 @@ function persistedSlice(state: BalramState): PersistedFarm {
     cropAllocations: state.cropAllocations, irrigationSetup: state.irrigationSetup,
     weatherSnapshot: state.weatherSnapshot, sampleDataActive: state.sampleDataActive,
     soilSnapshot: state.soilSnapshot, planningUpdatedAt: state.planningUpdatedAt,
-    soilKitReading: state.soilKitReading, locale: state.locale,
+    soilKitReading: state.soilKitReading, locale: state.locale, landUnit: state.landUnit,
     soilSkipped: state.soilSkipped, setupCompletedAt: state.setupCompletedAt, checkIns: state.checkIns,
   };
 }
@@ -90,7 +91,7 @@ export function migratePersistedFarm(saved: unknown, version: number): Persisted
     throw new Error("Unsupported saved data version.");
   }
   if (version === PERSISTENCE_VERSION) return PersistedFarmSchema.parse(saved);
-  if (![0, 1, 2, 3].includes(version)) throw new Error("Unsupported saved data version.");
+  if (![0, 1, 2, 3, 4].includes(version)) throw new Error("Unsupported saved data version.");
   const legacy = saved as Partial<PersistedFarm> & Record<string, unknown>;
   const cropAllocations = Array.isArray(legacy.cropAllocations) ? legacy.cropAllocations.map((item, index) => {
     if (!item || typeof item !== "object") return item;
@@ -116,6 +117,7 @@ export function migratePersistedFarm(saved: unknown, version: number): Persisted
     setupCompletedAt: null,
     checkIns: [],
     ...legacy,
+    landUnit: legacy.landUnit ?? "acres",
     soilKitReading,
     cropAllocations,
   });
@@ -231,6 +233,14 @@ export function createBalramStore() {
         previousSoil?.controller.abort();
       },
       setLocale: (locale) => { requireReady(); set({ locale: LocaleSchema.parse(locale) }); },
+      setLandUnit: (unit) => {
+        requireReady();
+        const landUnit = LandUnitSchema.parse(unit);
+        if (realFarmBackup && (get().sampleOverlayActive || get().sampleDataActive)) {
+          realFarmBackup = { ...realFarmBackup, landUnit };
+        }
+        set({ landUnit });
+      },
       resetDerivedForFieldChange: () => invalidate(),
       setSampleData: async (enabled) => {
         requireReady();

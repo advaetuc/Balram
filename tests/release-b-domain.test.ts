@@ -17,14 +17,15 @@ const allocation=(plotId:string,cropId:string,stage:CropAllocation["lifecycleSta
 });
 const validFarm=():PersistedFarm=>createSampleFixture();
 
-test("schema v4 migration accepts and normalizes v0 through v3 persisted blobs",()=>{
- assert.equal(PERSISTENCE_VERSION,4);
+test("schema v5 migration accepts and normalizes v0 through v4 persisted blobs",()=>{
+ assert.equal(PERSISTENCE_VERSION,5);
  const fixture=createEmptyFixture();
  const legacyCrop={cropId:"onion",percentage:100,season:"rabi",growthStage:"mid-season",plantingDate:null};
- for(const version of [0,1,2,3]){
-  const old={...fixture,locale:undefined,soilKitReading:null,soilSkipped:undefined,setupCompletedAt:undefined,checkIns:undefined,cropAllocations:[legacyCrop]};
+ for(const version of [0,1,2,3,4]){
+  const old={...fixture,locale:undefined,landUnit:undefined,soilKitReading:null,soilSkipped:undefined,setupCompletedAt:undefined,checkIns:undefined,cropAllocations:[legacyCrop]};
   const result=migratePersistedFarm(old,version);
   assert.equal(result.soilSkipped,false);assert.equal(result.setupCompletedAt,null);assert.deepEqual(result.checkIns,[]);
+  assert.equal(result.landUnit,"acres");
   assert.equal(result.cropAllocations[0].plotId,"plot-1");assert.equal(result.cropAllocations[0].lifecycleStage,"flowering_fruiting");
  }
  const soil=migratePersistedFarm({...fixture,soilKitReading:{kitType:"soil_health_card",ph:7,nitrogenLevel:"medium",phosphorusLevel:"medium",potassiumLevel:"untested",organicCarbon:"untested",salinity:"untested",testedAt:"2026-11-01"}},3);

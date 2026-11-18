@@ -14,6 +14,8 @@ export type Coordinate = z.infer<typeof CoordinateSchema>;
 
 export const LocaleSchema = z.enum(["en", "mr"]);
 export type Locale = z.infer<typeof LocaleSchema>;
+export const LandUnitSchema = z.enum(["acres", "gunthas"]);
+export type LandUnit = z.infer<typeof LandUnitSchema>;
 export const LifecycleStageSchema = z.enum(["planned", "vegetative", "flowering_fruiting", "harvesting"]);
 export type LifecycleStage = z.infer<typeof LifecycleStageSchema>;
 export const GrowthStageSchema = z.enum(["initial", "development", "mid-season", "late-season", "unknown"]);
@@ -242,6 +244,7 @@ export const PersistedFarmSchema = z.object({
   sampleDataActive: z.boolean(),
   soilKitReading: SoilKitReadingSchema.nullable().default(null),
   locale: LocaleSchema.default("en"),
+  landUnit: LandUnitSchema.default("acres"),
   soilSkipped: z.boolean().default(false),
   setupCompletedAt: z.string().date().nullable().default(null),
   checkIns: z.array(CheckInSchema).max(104).default([]),
