@@ -3,11 +3,13 @@
 import dynamic from "next/dynamic";
 import { Component, useState, type FormEvent, type ReactNode } from "react";
 import { useBalramStore } from "@/store/useBalramStore";
-import { calculateFieldGeometry, createFieldId, GUNTHAS_PER_ACRE, squareMetresToAcresAndGunthas, acresAndGunthasToGunthas, gunthasToSquareMetres } from "@/lib/domain/geometry";
+import { calculateFieldGeometry, createFieldId, squareMetresToGunthas, gunthasToSquareMetres } from "@/lib/domain/geometry";
 import { FieldGeometrySchema } from "@/types/domain";
-import { formatNumber, parseNumber } from "@/lib/ui/format";
+import { parseNumber } from "@/lib/ui/format";
 import { Card, DataCaption } from "@/components/dashboard/Card";
 import { t } from "@/config/i18n";
+import { formatArea } from "@/lib/domain/landUnits";
+import { AreaInput } from "@/components/ui/AreaInput";
 
 const FarmMap = dynamic(() => import("./FarmMap"), {
   ssr: false, loading: () => <div className="flex h-[420px] items-center justify-center rounded-xl bg-stone-100" role="status">Loading field map…</div>,
@@ -25,8 +27,7 @@ export function MapClient() {
   return <Card id="field-map" title={text.field} eyebrow={text.location}>
     <p className="mt-3 text-sm leading-6">Draw a boundary or enter coordinates. Changes clear old weather and soil results; your crop choices stay saved.</p>
     <div className="my-5 flex flex-wrap gap-x-8 gap-y-3 rounded-xl bg-forest/5 p-4">
-      <div><p className="text-xs text-stone-600">{text.fieldArea}</p><p className="text-2xl font-bold text-forest">{state.fieldGeometry?.areaSquareMetres == null ? "Not set" : (()=>{const a=squareMetresToAcresAndGunthas(state.fieldGeometry.areaSquareMetres);return `${a.acres} ${a.acres===1?"Acre":"Acres"} ${a.gunthas} Gunthas`})()}</p>
-        {state.fieldGeometry?.areaSquareMetres != null && <p className="text-sm">{formatNumber(squareMetresToAcresAndGunthas(state.fieldGeometry.areaSquareMetres).totalAcres,2)} acres · {formatNumber(squareMetresToAcresAndGunthas(state.fieldGeometry.areaSquareMetres).totalGunthas,1)} gunthas</p>}</div>
+      <div><p className="text-xs text-stone-600">{text.fieldArea}</p><p className="text-2xl font-bold text-forest">{state.fieldGeometry?.areaSquareMetres == null ? "Not set" : formatArea(squareMetresToGunthas(state.fieldGeometry.areaSquareMetres), state.landUnit, state.locale, { includeSecondary: true })}</p></div>
     </div>
     {state.sampleDataActive && <p className="notice mb-3">{state.locale === "mr" ? "नमुना शेत फक्त पाहण्यासाठी आहे." : "Sample farm is view-only."}</p>}
     {state.hydrated ? <MapBoundary key={String(state.sampleDataActive)}><FarmMap readOnly={state.sampleDataActive} /></MapBoundary>
@@ -42,21 +43,19 @@ function LocationForm() {
   const field = state.fieldGeometry;
   const [lat, setLat] = useState(field?.center[1].toString() ?? "");
   const [lng, setLng] = useState(field?.center[0].toString() ?? "");
-  const initialArea=field?.areaSquareMetres==null?null:squareMetresToAcresAndGunthas(field.areaSquareMetres);
-  const [acres, setAcres] = useState(initialArea == null ? "" : String(initialArea.acres));
-  const [gunthas, setGunthas] = useState(initialArea == null ? "0" : String(initialArea.gunthas));
+  const [areaGunthas, setAreaGunthas] = useState<number | null>(() => field?.areaSquareMetres == null ? null : squareMetresToGunthas(field.areaSquareMetres));
+  const [areaError, setAreaError] = useState<string | null>(null);
   const [vertices, setVertices] = useState(field?.boundary?.coordinates[0].slice(0, -1).map(([x, y]) => `${y}, ${x}`).join("\n") ?? "");
   const [error, setError] = useState<string | null>(null);
   const [locating, setLocating] = useState(false);
   const id = () => field?.fieldId ?? createFieldId();
   function save(event: FormEvent) {
     event.preventDefault();
-    const latitude = parseNumber(lat), longitude = parseNumber(lng), a = parseNumber(acres), g = parseNumber(gunthas);
+    const latitude = parseNumber(lat), longitude = parseNumber(lng);
     try {
-      if (latitude === null || longitude === null || (acres.trim() && (a === null || a < 0)) || g===null || g<0 || g>=GUNTHAS_PER_ACRE || ((a??0)*GUNTHAS_PER_ACRE+g>0 && a===null)) throw new Error();
-      const total=(a??0)*GUNTHAS_PER_ACRE+g;
+      if (latitude === null || longitude === null || areaError || (areaGunthas !== null && areaGunthas <= 0)) throw new Error();
       state.setFieldGeometry(FieldGeometrySchema.parse({ fieldId: id(), center: [longitude, latitude], boundary: null,
-        areaSquareMetres: total===0 ? null : gunthasToSquareMetres(total) }));
+        areaSquareMetres: areaGunthas === null ? null : gunthasToSquareMetres(areaGunthas) }));
       setError(null);
     } catch { setError("Enter latitude from −90 to 90, longitude from −180 to 180, and a positive acreage or leave acreage blank."); }
   }
@@ -88,8 +87,7 @@ function LocationForm() {
         <legend className="sr-only">Field location</legend>
         <label className="text-sm">Latitude<input className="form-input mt-1" type="number" inputMode="decimal" required min="-90" max="90" step="any" value={lat} onChange={(event) => setLat(event.target.value)} /></label>
         <label className="text-sm">Longitude<input className="form-input mt-1" type="number" inputMode="decimal" required min="-180" max="180" step="any" value={lng} onChange={(event) => setLng(event.target.value)} /></label>
-        <label className="text-sm">Acres<input className="form-input mt-1" type="number" inputMode="numeric" min="0" step="1" value={acres} onChange={(event) => setAcres(event.target.value)} /></label>
-        <label className="text-sm">Gunthas (0–39)<input className="form-input mt-1" type="number" inputMode="numeric" min="0" max="39" step="1" value={gunthas} onChange={(event) => setGunthas(event.target.value)} /></label>
+        <div className="sm:col-span-2"><AreaInput label={state.locale === "mr" ? "जमिनीचे क्षेत्र" : "Field area"} gunthas={areaGunthas} unit={state.landUnit} locale={state.locale} optional onChangeGunthas={setAreaGunthas} onValidityChange={setAreaError} /></div>
         <button className="button-secondary" type="button" disabled={locating} onClick={locate}>{locating ? "Finding location…" : "Use my location"}</button>
         <button className="button-primary" type="submit">Save location</button>
       </fieldset><p className="text-xs leading-5 text-stone-600">Saving manual coordinates replaces a drawn boundary. Geolocation only fills the form; save when ready.</p></form>

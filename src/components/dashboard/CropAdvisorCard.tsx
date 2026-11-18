@@ -6,6 +6,8 @@ import { getSeasonalCropRecommendations } from "@/lib/domain/cropRecommendations
 import { MaharashtraCropMatrix, type CropId, type Season } from "@/config/cropMatrix";
 import { Card } from "./Card";
 import { t } from "@/config/i18n";
+import { formatArea } from "@/lib/domain/landUnits";
+import { squareMetresToGunthas } from "@/lib/domain/geometry";
 
 interface CropAdvisorCardProps {
   readonly selectedCropIds?: readonly CropId[];
@@ -38,7 +40,7 @@ export function CropAdvisorCard({ selectedCropIds = [], onToggleCrop, remainingF
       {state.soilKitReading && <span className="data-badge bg-forest/10 text-forest">{state.locale === "mr" ? "माती किटशी जुळवले" : "Matched to soil kit"} · pH {state.soilKitReading.ph}, {state.soilKitReading.nitrogenLevel} N</span>}
       {state.weatherSnapshot && <span className="data-badge bg-sky/10">{state.locale === "mr" ? "हवामान अंदाजाशी जुळवले" : "Matched to forecast"}</span>}
     </div>
-    {remainingFreeGunthas !== null && <p className="mb-3 text-sm">{remainingFreeGunthas.toFixed(1)} {text.freeLandOf} {state.fieldGeometry?.areaSquareMetres === null || state.fieldGeometry?.areaSquareMetres === undefined ? "—" : (state.fieldGeometry.areaSquareMetres / 101.17141056).toFixed(1)} {text.gunthas}</p>}
+    {remainingFreeGunthas !== null && <p className="mb-3 text-sm">{formatArea(remainingFreeGunthas, state.landUnit, state.locale)} {text.freeLandOf} {state.fieldGeometry?.areaSquareMetres == null ? "—" : formatArea(squareMetresToGunthas(state.fieldGeometry.areaSquareMetres), state.landUnit, state.locale)}</p>}
     <div className="space-y-3">
       {visible.map((recommendation) => {
         const crop = MaharashtraCropMatrix[recommendation.cropId];

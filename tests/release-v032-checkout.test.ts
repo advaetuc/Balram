@@ -152,3 +152,8 @@ test("plot removal undo restores the entire previous allocation state", () => {
   assert.deepEqual(restorePlotRemoval(removal), before);
   assert.equal(createPlotRemovalSnapshot(before, "missing-plot"), null);
 });
+
+test("fixed Gunthas preset resolves exactly twenty Gunthas", () => {
+  assert.equal(resolvePresetGunthas("twenty_gunthas", 0, 80), 20);
+  assert.equal(resolvePresetGunthas("twenty_gunthas", 0, null), 20);
+});

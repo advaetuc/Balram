@@ -8,6 +8,7 @@ import { MaharashtraCropMatrix, getCropStageKc, type CropId } from "@/config/cro
 import { formatNumber, parseNumber, selectedWeatherDay } from "@/lib/ui/format";
 import { Card, DataCaption } from "@/components/dashboard/Card";
 import { t } from "@/config/i18n";
+import { formatArea, displayPlotName } from "@/lib/domain/landUnits";
 
 export function IrrigationPanel() {
   const state = useBalramStore((value) => value);
@@ -75,7 +76,7 @@ function Editor() {
     <p className="mt-2 text-sm">Planning estimates only. Check field moisture and local guidance before irrigating.</p>
     {state.connection==="offline"&&<p className="notice mt-2">Offline · using saved forecast where available.</p>}{state.weatherStale&&<p className="notice mt-2">Stale forecast — check dates before relying on it.</p>}{resolved?.provenance==="hargreaves-fallback"&&<p className="notice mt-2">Calculated via Hargreaves temperature fallback.</p>}{!day&&<p className="notice mt-2">No forecast saved. Using a 4.5 mm/day Maharashtra baseline planning reference.</p>}
     <section className="mt-4 rounded-xl bg-sky/10 p-4"><h3 className="font-bold">Simple plot water plan</h3>
-      <label className="mt-2 block text-sm">Plot<select className="form-input mt-1" value={crop?plotKey(crop,state.cropAllocations.indexOf(crop)):selectedPlotId} onChange={e=>setSelectedPlotId(e.target.value)}><option value="">Select plot</option>{state.cropAllocations.map((p,i)=><option key={plotKey(p,i)} value={plotKey(p,i)}>{p.plotName??"Plot"} · {MaharashtraCropMatrix[p.cropId as CropId]?.name} ({p.areaGunthas??"?"} gunthas)</option>)}</select></label>
+      <label className="mt-2 block text-sm">Plot<select className="form-input mt-1" value={crop?plotKey(crop,state.cropAllocations.indexOf(crop)):selectedPlotId} onChange={e=>setSelectedPlotId(e.target.value)}><option value="">Select plot</option>{state.cropAllocations.map((p,i)=>{const plotArea=p.areaGunthas??(area?area/SQUARE_METRES_PER_ACRE*40*p.percentage/100:null);return <option key={plotKey(p,i)} value={plotKey(p,i)}>{displayPlotName(p.plotName,state.locale,i+1)} · {MaharashtraCropMatrix[p.cropId as CropId]?.name} ({plotArea===null?"?":formatArea(plotArea,state.landUnit,state.locale)})</option>})}</select></label>
       <div className="mt-3 grid gap-2 sm:grid-cols-3">{(["drip","sprinkler","canal_flood"] as const).map(m=><button type="button" key={m} aria-pressed={deliveryMethod===m} className={`min-h-12 rounded-lg border p-2 ${deliveryMethod===m?"border-forest bg-forest text-white":"border-forest/20"}`} onClick={()=>setDeliveryMethod(m)}>{m==="drip"?`${text.drip} · 90%`:m==="sprinkler"?`${text.sprinkler} · 75%`:`${text.canal} · 60%`}</button>)}</div>
       <label className="mt-2 block text-sm">Optional pump flow override (L/hour)<input className="form-input mt-1" type="number" min="0.1" step="any" value={flowOverride} onChange={e=>setFlowOverride(e.target.value)} placeholder="Use delivery preset"/></label>
       {phase&&<div className="mt-3 rounded-xl bg-white p-3"><p className="font-bold">Current stage · {currentStage.replaceAll("_"," ")}</p><p>{formatNumber(phase.dailyGrossLitres,0)} L/day · {formatNumber(phase.dailyRuntimeMinutes/60,0)} h {formatNumber(phase.dailyRuntimeMinutes%60,0)} min/day</p><p>{formatNumber(phase.weeklyGrossLitres,0)} L/week · {formatNumber(phase.weeklyTankerCount,1)} tankers of 10,000 L</p></div>}
@@ -90,7 +91,7 @@ function Editor() {
         <label className="text-sm sm:col-span-2">Crop block
           <select className="form-input mt-1" value={crop?plotKey(crop,state.cropAllocations.indexOf(crop)):selectedPlotId} onChange={(event) => { setSelectedPlotId(event.target.value); setKc(""); reset(); }} required>
             <option value="">Select a plot</option>{state.cropAllocations.map((entry,idx) => <option key={plotKey(entry,idx)} value={plotKey(entry,idx)}>
-              {entry.plotName??"Plot"} · {MaharashtraCropMatrix[entry.cropId as CropId]?.name ?? entry.cropId} ({entry.areaGunthas??"?"} gunthas)</option>)}</select></label>
+              {displayPlotName(entry.plotName,state.locale,idx+1)} · {MaharashtraCropMatrix[entry.cropId as CropId]?.name ?? entry.cropId} ({entry.areaGunthas==null?"?":formatArea(entry.areaGunthas,state.landUnit,state.locale)})</option>)}</select></label>
         <label className="text-sm">System flow (L/hour)
           <input className="form-input mt-1" type="number" inputMode="decimal" min="0.01" step="any" required value={flow}
             onBlur={() => { if(!flow)setFlow(String(flowDefault)); }} onChange={(event) => { setFlow(event.target.value); reset(); }} /></label>

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useBalramStore } from "@/store/useBalramStore";
 import { t } from "@/config/i18n";
+import { LandUnitToggle } from "@/components/ui/LandUnitToggle";
 
 export function Header() {
   const state = useBalramStore((value) => value);
@@ -29,6 +30,7 @@ export function Header() {
           <button type="button" className="min-h-12 min-w-12 rounded-lg border border-forest px-3" disabled={!state.hydrated}
             aria-label={state.locale === "en" ? "Switch to Marathi" : "Switch to English"}
             onClick={() => state.setLocale(state.locale === "en" ? "mr" : "en")}>{state.locale === "en" ? "मराठी" : "English"}</button>
+          <LandUnitToggle />
         </nav>
       </div>
       {state.sampleDataActive && <div role="status" className="border-t border-amber bg-amber text-ink">

@@ -58,6 +58,19 @@ test("share summary includes farm planning but no map coordinates", () => {
   assert.doesNotMatch(summary,/18\.52|73\.85|longitude|latitude|coordinates/i);
 });
 
+test("share summary formats areas in the selected unit and localizes preset plot names", () => {
+  const fixture = createSampleFixture();
+  const roadmap: RoadmapItem[] = [];
+  const acres = buildShareSummary({ ...fixture, landUnit: "acres", sampleDataActive: false }, roadmap, "en");
+  const gunthas = buildShareSummary({ ...fixture, landUnit: "gunthas", sampleDataActive: false }, roadmap, "en");
+  const marathi = buildShareSummary({ ...fixture, landUnit: "gunthas", sampleDataActive: false }, roadmap, "mr");
+  assert.match(acres, /Sample farm/);
+  assert.match(acres, /2 Acres/);
+  assert.match(gunthas, /80 Gunthas/);
+  assert.match(marathi, /विहिरीचा प्लॉट/);
+  assert.match(marathi, /गुंठे/);
+});
+
 test("empty fixture check-ins and backup parsing stay compatible",()=>{
   assert.deepEqual(createEmptyFixture().checkIns,[]);
   assert.deepEqual(parseFarmBackup(serializeFarmBackup(createEmptyFixture(),"2026-11-16T12:00:00.000Z")),createEmptyFixture());

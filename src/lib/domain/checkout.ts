@@ -1,11 +1,13 @@
 import { MaharashtraCropMatrix, type CropId } from "@/config/cropMatrix";
 import { CropAllocationsSchema, lifecycleToGrowthStage, type CropAllocation, type LifecycleStage } from "@/types/domain";
 import { createFieldId, squareMetresToGunthas } from "./geometry";
+import { AREA_EPSILON_GUNTHAS } from "./landUnits";
 
 export type LandSharePreset =
   | "all_remaining"
   | "half_remaining"
   | "one_acre"
+  | "twenty_gunthas"
   | "plus_10_gunthas"
   | "plus_5_gunthas"
   | "minus_5_gunthas";
@@ -85,6 +87,9 @@ export function resolvePresetGunthas(
     case "one_acre":
       value = 40;
       break;
+    case "twenty_gunthas":
+      value = 20;
+      break;
     case "plus_10_gunthas":
       value = available === null ? current + 10 : Math.min(available, current + 10);
       break;
@@ -96,8 +101,8 @@ export function resolvePresetGunthas(
       break;
   }
   if (available === 0 && (preset === "all_remaining" || preset === "half_remaining" || preset === "plus_10_gunthas" || preset === "plus_5_gunthas")) return 0;
-  if (preset === "all_remaining") return roundedTenth(value);
-  if (available !== null && value > available && preset !== "one_acre" && preset !== "minus_5_gunthas") value = available;
+  if (preset === "all_remaining") return available !== null && available - value <= AREA_EPSILON_GUNTHAS ? available : roundedTenth(value);
+  if (available !== null && value > available + AREA_EPSILON_GUNTHAS && preset !== "one_acre" && preset !== "twenty_gunthas" && preset !== "minus_5_gunthas") value = available;
   return clampMinimum(value, available);
 }
 
@@ -148,7 +153,7 @@ export function validateCheckoutDraft(
   if (lines.some((line) => !Number.isFinite(line.areaGunthas) || line.areaGunthas <= 0)) {
     return result("INVALID_AREA", totalDraftGunthas, freeAfterDraft);
   }
-  if (availablePool !== null && totalDraftGunthas > availablePool + 0.05) {
+  if (availablePool !== null && totalDraftGunthas > availablePool + AREA_EPSILON_GUNTHAS) {
     return result("EXCEEDS_AVAILABLE_LAND", totalDraftGunthas, freeAfterDraft, totalDraftGunthas - availablePool);
   }
   return result(null, totalDraftGunthas, availablePool === null ? null : availablePool - totalDraftGunthas);

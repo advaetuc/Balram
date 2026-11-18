@@ -7,17 +7,10 @@ import { CropAdvisorCard } from "@/components/dashboard/CropAdvisorCard";
 import { CropCheckoutSheet } from "@/components/crops/CropCheckoutSheet";
 import { allocatePlotsByGunthas } from "@/lib/domain/allocation";
 import { pickNextDefaultPlotName, resolvePresetGunthas, type CheckoutDraftLine } from "@/lib/domain/checkout";
-import { gunthasToAcresAndGunthas } from "@/lib/domain/geometry";
+import { formatArea, displayPlotName } from "@/lib/domain/landUnits";
 import { createPlotRemovalSnapshot, restorePlotRemoval, type PlotRemovalSnapshot } from "@/lib/domain/plotUndo";
 import { useBalramStore } from "@/store/useBalramStore";
 import type { CropAllocation } from "@/types/domain";
-
-function formatArea(value: number, locale: "en" | "mr") {
-  const area = gunthasToAcresAndGunthas(value);
-  const acre = locale === "mr" ? "एकर" : area.acres === 1 ? "Acre" : "Acres";
-  const guntha = locale === "mr" ? "गुंठे" : "Gunthas";
-  return `${area.acres} ${acre} ${area.gunthas} ${guntha}`;
-}
 
 export function PortfolioCard() {
   const state = useBalramStore((s) => s);
@@ -98,9 +91,9 @@ export function PortfolioCard() {
           <p className="mb-2 text-xs font-bold uppercase tracking-widest text-forest">{text.allocated}</p>
           <h2 className="text-xl font-bold">{text.yourPlots}</h2>
           {derived.totalFarmGunthas !== null && <div className="my-4 grid gap-2 rounded-xl bg-forest/5 p-3 sm:grid-cols-3">
-            <div><b>{text.totalLand}</b><p>{formatArea(derived.totalFarmGunthas, state.locale)}</p></div>
-            <div><b>{text.allocated}</b><p>{formatArea(derived.allocatedGunthas, state.locale)}</p></div>
-            <div><b>{text.fallow}</b><p>{formatArea(Math.max(0, derived.unassignedGunthas ?? 0), state.locale)}</p></div>
+            <div><b>{text.totalLand}</b><p>{formatArea(derived.totalFarmGunthas, state.landUnit, state.locale)}</p></div>
+            <div><b>{text.allocated}</b><p>{formatArea(derived.allocatedGunthas, state.landUnit, state.locale)}</p></div>
+            <div><b>{text.fallow}</b><p>{formatArea(Math.max(0, derived.unassignedGunthas ?? 0), state.landUnit, state.locale)}</p></div>
           </div>}
           {derived.totalFarmGunthas === null && <p className="notice my-3">{state.locale === "mr" ? "आधी प्लॉट गुंठ्यांमध्ये नोंदवा. नकाशा काढल्यावर एकूण जमीन दिसेल." : "Add plot sizes in Gunthas. Draw your field boundary to see the total farm area."}</p>}
           {state.sampleDataActive && <p className="notice my-3">{text.sampleReadOnly}</p>}
@@ -109,7 +102,7 @@ export function PortfolioCard() {
             const size = plot.areaGunthas ?? (derived.totalFarmGunthas === null ? 0 : derived.totalFarmGunthas * plot.percentage / 100);
             const stage = plot.lifecycleStage ?? "planned";
             return <li key={plot.plotId ?? `${plot.cropId}-${index}`} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-forest/15 p-3">
-              <div className="min-w-0"><h3 className="font-bold">{plot.plotName ?? `Plot ${index + 1}`} · {state.locale === "mr" ? crop?.marathiName ?? plot.cropId : crop?.name ?? plot.cropId}</h3><p className="text-sm">{formatArea(size, state.locale)} · {plot.percentage.toFixed(2)}% · {text.stageNames[stage]}</p></div>
+              <div className="min-w-0"><h3 className="font-bold">{displayPlotName(plot.plotName, state.locale, index + 1)} · {state.locale === "mr" ? crop?.marathiName ?? plot.cropId : crop?.name ?? plot.cropId}</h3><p className="text-sm">{formatArea(size, state.landUnit, state.locale)} · {plot.percentage.toFixed(2)}% · {text.stageNames[stage]}</p></div>
               <div className="flex flex-wrap gap-2"><button type="button" className="button-secondary min-h-12" disabled={!state.hydrated || state.sampleDataActive} onClick={() => editPlot(plot, index)}>{text.editPlot}</button></div>
             </li>;
           })}</ul>}
