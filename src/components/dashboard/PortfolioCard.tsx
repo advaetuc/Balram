@@ -53,7 +53,7 @@ export function PortfolioCard() {
     setDraftLines((lines) => lines.filter((line) => line.editingPlotId !== plotId));
     setCheckoutOpen(false);
     setUndoSnapshot(snapshot);
-    const namedPlot = snapshot.removedPlot.plotName ?? text.plotRemovedToast;
+    const namedPlot = snapshot.removedPlot.plotName ? displayPlotName(snapshot.removedPlot.plotName, state.locale) : text.plotRemovedToast;
     setToast(`${text.plotRemovedNamed} ${namedPlot}`);
     undoTimer.current = window.setTimeout(() => { setUndoSnapshot(null); setToast(""); undoTimer.current = null; }, 10_000);
   }
@@ -106,7 +106,7 @@ export function PortfolioCard() {
               <div className="flex flex-wrap gap-2"><button type="button" className="button-secondary min-h-12" disabled={!state.hydrated || state.sampleDataActive} onClick={() => editPlot(plot, index)}>{text.editPlot}</button></div>
             </li>;
           })}</ul>}
-          <p className="mt-3 text-sm text-stone-600">{state.locale === "mr" ? "प्लॉट बदल Checkout मध्ये तात्पुरते राहतात; जतन केल्यावरच शेत नियोजन बदलते." : "Plot edits stay in checkout until you save them to your farm plan."}</p>
+          <p className="mt-3 text-sm text-stone-600">{state.locale === "mr" ? "प्लॉटमधील बदल तपासणी विभागात तात्पुरते राहतात; जतन केल्यावरच शेत नियोजन बदलते." : "Plot edits stay in checkout until you save them to your farm plan."}</p>
         </section>
         {toast && <div role="status" aria-live="polite" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-forest/20 bg-white p-3 shadow-sm"><span>{toast}</span>{undoSnapshot && <button type="button" className="button-secondary min-h-12" onClick={undoRemoval}>{text.undo}</button>}</div>}
       </div>

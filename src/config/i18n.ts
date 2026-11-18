@@ -1,5 +1,5 @@
-import type { Locale, LifecycleStage } from "@/types/domain";
-import type { CropId } from "@/config/cropMatrix";
+import type { Locale, LifecycleStage, CropAllocation } from "@/types/domain";
+import type { CropId, Season } from "@/config/cropMatrix";
 import type { JourneyStationId, JourneyStationStatus } from "@/lib/domain/journey";
 import type { ProvenanceTag } from "@/lib/domain/roadmap";
 
@@ -66,3 +66,15 @@ export function cropLabel(locale:Locale,id:CropId){return t(locale).cropNames[id
 export function stationLabel(locale:Locale,id:JourneyStationId){return t(locale).stationNames[id]}
 export function stationStatusLabel(locale:Locale,status:JourneyStationStatus){return t(locale).stationStatuses[status]}
 export function provenanceLabel(locale:Locale,provenance:ProvenanceTag|"sample"){return t(locale).provenance[provenance]}
+export function seasonLabel(locale: Locale, season: Season | CropAllocation["season"]): string {
+  const labels: Record<string, { en: string; mr: string }> = {
+    Kharif: { en: "Kharif", mr: "खरीप" }, kharif: { en: "Kharif", mr: "खरीप" },
+    Rabi: { en: "Rabi", mr: "रब्बी" }, rabi: { en: "Rabi", mr: "रब्बी" },
+    Zaid: { en: "Zaid", mr: "उन्हाळी" }, zaid: { en: "Zaid", mr: "उन्हाळी" },
+    Perennial: { en: "Perennial", mr: "बारमाही" }, perennial: { en: "Perennial", mr: "बारमाही" },
+  };
+  return labels[season][locale];
+}
+export function droughtToleranceLabel(locale: Locale, level: "high" | "moderate" | "low"): string {
+  return locale === "mr" ? ({ high: "जास्त", moderate: "मध्यम", low: "कमी" } as const)[level] : level;
+}

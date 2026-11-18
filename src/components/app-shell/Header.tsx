@@ -16,7 +16,7 @@ export function Header() {
   return (
     <header lang={state.locale} className="border-b border-forest/20 bg-white">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6">
-        <Link href="/" aria-label="Balram home" className="flex min-h-12 items-center gap-3 rounded-lg pr-3">
+        <Link href="/" aria-label={state.locale === "mr" ? "बलराम मुख्यपृष्ठ" : "Balram home"} className="flex min-h-12 items-center gap-3 rounded-lg pr-3">
           <span className="flex size-12 items-center justify-center rounded-xl bg-forest text-white" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-7">
               <path d="M12 21v-9M12 15C5 15 3 10 3 5c6 0 9 3 9 10ZM12 12c0-6 3-9 9-9 0 6-3 9-9 9Z" />
@@ -25,11 +25,11 @@ export function Header() {
           <span><span className="block text-2xl font-bold tracking-tight text-forest">Balram</span>
             <span className="block text-xs font-medium text-ink">{text.tagline}</span></span>
         </Link>
-        <nav aria-label="Primary" className="flex flex-wrap items-center gap-2 text-sm font-semibold">
+        <nav aria-label={state.locale === "mr" ? "मुख्य नेव्हिगेशन" : "Primary"} className="flex flex-wrap items-center gap-2 text-sm font-semibold">
           <button type="button" className="inline-flex min-h-12 items-center rounded-lg px-4 hover:bg-forest/5" onClick={() => window.dispatchEvent(new Event("balram:show-landing"))}>{text.home}</button>
           <button type="button" className="min-h-12 min-w-12 rounded-lg border border-forest px-3" disabled={!state.hydrated}
-            aria-label={state.locale === "en" ? "Switch to Marathi" : "Switch to English"}
-            onClick={() => state.setLocale(state.locale === "en" ? "mr" : "en")}>{state.locale === "en" ? "मराठी" : "English"}</button>
+            aria-label={state.locale === "en" ? "Switch to Marathi" : "इंग्रजीत बदला"}
+            onClick={() => state.setLocale(state.locale === "en" ? "mr" : "en")}>{state.locale === "en" ? "मराठी" : "इंग्रजी"}</button>
           <LandUnitToggle />
         </nav>
       </div>
@@ -53,13 +53,13 @@ export function Header() {
             {state.weatherStatus.state === "loading" && <span className="text-sm">{text.weatherLoading}</span>}
             {state.weatherStatus.state === "error" && <span className="text-sm">{state.locale === "mr" ? "हवामान उपलब्ध नाही" : "Weather unavailable"}</span>}
             {state.storageStatus.mode === "memory" ? (
-              <span className={`${badge} border-amber bg-amber/20`}>Not saved · this tab only</span>
+              <span className={`${badge} border-amber bg-amber/20`}>{state.locale === "mr" ? "जतन नाही · फक्त या टॅबमध्ये" : "Not saved · this tab only"}</span>
             ) : <span className="text-sm">{state.storageStatus.pendingWrites > 0 ? text.saving : text.saved}</span>}
             </>}
           </>}
         </div>
         {state.hydrated && state.storageStatus.message && <p className="mx-auto max-w-7xl px-4 pb-3 text-sm sm:px-6">
-          {state.storageStatus.message}
+          {state.locale === "mr" ? "ब्राउझर संचयन उपलब्ध नाही; बदल फक्त या टॅबमध्ये राहतील." : state.storageStatus.message}
         </p>}
       </div>
     </header>

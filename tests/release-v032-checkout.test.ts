@@ -12,9 +12,9 @@ import { gunthasToSquareMetres } from "../src/lib/domain/geometry";
 import { CropAllocationsSchema, type CropAllocation } from "../src/types/domain";
 import { createPlotRemovalSnapshot, restorePlotRemoval } from "../src/lib/domain/plotUndo";
 
-test("package manifest identifies release v0.3.2", () => {
+test("package manifest identifies release v0.3.3", () => {
   const manifest = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as { version: string };
-  assert.equal(manifest.version, "0.3.2");
+  assert.equal(manifest.version, "0.3.3");
 });
 
 function draft(overrides: Partial<CheckoutDraftLine> = {}): CheckoutDraftLine {

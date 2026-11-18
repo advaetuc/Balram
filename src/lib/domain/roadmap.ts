@@ -2,6 +2,7 @@ import { MaharashtraCropMatrix } from "@/config/cropMatrix";
 import type { CropAllocation, LifecycleStage } from "@/types/domain";
 import type { SoilKitInterpretation } from "./soilKit";
 import { calculatePhaseWaterBreakdown } from "./irrigation";
+import { displayPlotName } from "./landUnits";
 
 export type RoadmapBucket = "this_week" | "next_two_weeks" | "later";
 export type RoadmapKind = "sowing" | "soil_amendment" | "fertilizer" | "irrigation" | "harvest";
@@ -57,6 +58,7 @@ export function generateRoadmap(input: {
 
   for (const allocation of input.allocations) {
     const name = plotName(allocation);
+    const nameMr = displayPlotName(allocation.plotName, "mr");
     const crop = MaharashtraCropMatrix[allocation.cropId as keyof typeof MaharashtraCropMatrix];
     const cropNameEn = crop?.name ?? allocation.cropId;
     const cropNameMr = crop?.marathiName ?? allocation.cropId;
@@ -66,7 +68,7 @@ export function generateRoadmap(input: {
       add({
         id: `sowing:${allocation.plotId ?? allocation.cropId}`, bucket: timing.bucket, kind: "sowing", priority: 3,
         plotId: allocation.plotId ?? null,
-        title: { en: `Prepare ${name} for sowing`, mr: `${name} पेरणीसाठी तयार करा` },
+        title: { en: `Prepare ${name} for sowing`, mr: `${nameMr} पेरणीसाठी तयार करा` },
         detail: { en: `${cropNameEn} is marked as planned. Check the sowing date and local crop guidance.`, mr: `${cropNameMr} नियोजित आहे. पेरणीची तारीख आणि स्थानिक पीक सल्ला तपासा.` },
         provenance: timing.provenance,
       });
@@ -74,7 +76,7 @@ export function generateRoadmap(input: {
       add({
         id: `harvest:${allocation.plotId ?? allocation.cropId}`, bucket: "this_week", kind: "harvest", priority: 1,
         plotId: allocation.plotId ?? null,
-        title: { en: `Check harvest readiness in ${name}`, mr: `${name} मधील काढणीची तयारी तपासा` },
+        title: { en: `Check harvest readiness in ${name}`, mr: `${nameMr} मधील काढणीची तयारी तपासा` },
         detail: { en: `${cropNameEn} is marked as harvesting. Follow local maturity and safe-storage guidance.`, mr: `${cropNameMr} काढणीच्या अवस्थेत आहे. पक्वता आणि सुरक्षित साठवणुकीचा स्थानिक सल्ला पाळा.` },
         provenance: "you_entered",
       });
@@ -87,7 +89,7 @@ export function generateRoadmap(input: {
       add({
         id: `irrigation:${allocation.plotId ?? allocation.cropId}:${phase.stage}`, bucket: "this_week", kind: "irrigation", priority: 2,
         plotId: allocation.plotId ?? null,
-        title: { en: `Plan this week's water for ${name}`, mr: `${name} साठी या आठवड्याच्या पाण्याचे नियोजन करा` },
+        title: { en: `Plan this week's water for ${name}`, mr: `${nameMr} साठी या आठवड्याच्या पाण्याचे नियोजन करा` },
         detail: { en: `Estimated delivery need is ${weeklyLitres.toFixed(0)} L for the ${phaseName(phase.stage, "en")} phase. Confirm field moisture before irrigating.`, mr: `${phaseName(phase.stage, "mr")} अवस्थेसाठी अंदाजे ${weeklyLitres.toFixed(0)} लिटर पाणी लागेल. सिंचनापूर्वी शेतातील ओलावा तपासा.` },
         provenance: "estimated",
       });

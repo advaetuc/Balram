@@ -56,3 +56,7 @@
   #farm-report .overflow-x-auto { overflow: visible; }
   * { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
 }
+
+html[lang="mr"] body {
+  line-height: 1.65;
+}

@@ -8,7 +8,7 @@ import type { Locale, PersistedFarm } from "@/types/domain";
 /** Builds a shareable summary from farmer-entered details. Geometry is intentionally never read. */
 export function buildShareSummary(state: PersistedFarm, roadmap: readonly RoadmapItem[], locale: Locale): string {
   const copy = t(locale);
-  const lines = [state.farmProfile?.name ?? (locale === "mr" ? "माझे शेत" : "My Farm")];
+  const lines = [state.sampleDataActive && locale === "mr" ? "नमुना शेत · पुणे" : state.farmProfile?.name ?? (locale === "mr" ? "माझे शेत" : "My Farm")];
   const area = state.fieldGeometry?.areaSquareMetres;
   if (area != null) {
     lines.push(`${copy.shareLand}: ${formatArea(squareMetresToGunthas(area), state.landUnit, locale)}`);
@@ -23,7 +23,8 @@ export function buildShareSummary(state: PersistedFarm, roadmap: readonly Roadma
   }
   if (state.soilKitReading) {
     const reading = state.soilKitReading;
-    lines.push(`${copy.shareSoilTested} (${reading.testedAt}): pH ${reading.ph}, N ${reading.nitrogenLevel}, P ${reading.phosphorusLevel}${reading.potassiumLevel === "untested" ? "" : `, K ${reading.potassiumLevel}`}. ${locale === "mr" ? "किटद्वारे मोजलेले" : "Measured by kit"}.`);
+    const nutrient = (level: string) => locale === "mr" ? ({ low: "कमी", medium: "मध्यम", high: "जास्त", normal: "सामान्य", elevated: "वाढलेले", untested: "चाचणी नाही" } as Record<string, string>)[level] ?? level : level;
+    lines.push(`${copy.shareSoilTested} (${reading.testedAt}): pH ${reading.ph}, N ${nutrient(reading.nitrogenLevel)}, P ${nutrient(reading.phosphorusLevel)}${reading.potassiumLevel === "untested" ? "" : `, K ${nutrient(reading.potassiumLevel)}`}. ${locale === "mr" ? "किटद्वारे मोजलेले" : "Measured by kit"}.`);
   } else lines.push(`${copy.shareSoil}: ${copy.shareSoilUntested}`);
   lines.push(`${copy.shareActions}:`);
   for (const item of roadmap.slice(0, 3)) lines.push(`• ${item.title[locale]} — ${item.detail[locale]}`);

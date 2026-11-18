@@ -1,8 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { Header } from "@/components/app-shell/Header";
-import { PrivacyNotice } from "@/components/app-shell/PrivacyNotice";
-import { OfflineSupport } from "@/components/app-shell/OfflineSupport";
+import { Footer } from "@/components/app-shell/Footer";
+import { SkipLink } from "@/components/app-shell/SkipLink";
 import "./globals.css";
 import "leaflet/dist/leaflet.css";
 import "leaflet-draw/dist/leaflet.draw.css";
@@ -23,18 +23,12 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
   return (
     <html lang="en">
       <body className="flex min-h-dvh flex-col">
-        <a href="#main-content" className="sr-only z-50 items-center bg-forest px-5 py-3 text-white focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:flex">
-          Skip to content
-        </a>
+        <SkipLink />
         <Header />
         <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 sm:py-12">
           {children}
         </main>
-        <footer className="border-t border-forest/15 px-4 py-6 text-sm sm:px-6">
-          <p className="mx-auto max-w-7xl">Balram · Maharashtra farm planning. Saved data retains its original dates and sources.</p>
-          <OfflineSupport />
-          <PrivacyNotice />
-        </footer>
+        <Footer />
       </body>
     </html>
   );

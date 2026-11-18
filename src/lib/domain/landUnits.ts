@@ -89,7 +89,7 @@ const positiveError = {
 };
 const maximumError = {
   en: "Land area cannot exceed 10,000 Acres (400,000 Gunthas).",
-  mr: "जमिनीचे क्षेत्र 10,000 एकर (400,000 गुंठे) पेक्षा जास्त असू शकत नाही.",
+  mr: "जमिनीचे क्षेत्र १०,००० एकर (४,००,००० गुंठे) पेक्षा जास्त असू शकत नाही.",
 };
 
 export function parseAreaInput(rawInput: string, unit: LandUnit, _locale: Locale = "en"): AreaInputResult {

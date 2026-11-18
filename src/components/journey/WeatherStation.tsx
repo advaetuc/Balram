@@ -40,7 +40,7 @@ export function WeatherStation({ visible = true }: { visible?: boolean }) {
             const baseline=createRegionalBaselineWeatherSnapshot({fieldId:field.fieldId,coordinate:field.center,nowMs:state.now});
             if (state.commitWeatherRequest(request,baseline,false)) return;
           }
-          state.failWeatherRequest(request, providerErrorMessage(error, "Weather"));
+          state.failWeatherRequest(request, providerErrorMessage(error, "Weather", state.locale));
         }
       }
     };

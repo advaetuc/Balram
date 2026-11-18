@@ -4,6 +4,9 @@ export default {
   content: ["./src/**/*.{ts,tsx}"],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ["Noto Sans Devanagari", "Kohinoor Devanagari", "Nirmala UI", "Mangal", "ui-sans-serif", "system-ui", "sans-serif"],
+      },
       colors: {
         forest: "#1E5631",
         amber: "#FFBF00",
