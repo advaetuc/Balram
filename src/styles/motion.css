@@ -115,6 +115,95 @@
     transform: scale(var(--scale-press));
   }
 
+  .panel-tab {
+    --panel-from-x: 0px;
+    animation: panel-in var(--dur-base) var(--ease-enter) backwards;
+  }
+
+  .panel-tab[data-dir="fwd"] {
+    --panel-from-x: var(--dist-tab);
+  }
+
+  .panel-tab[data-dir="back"] {
+    --panel-from-x: calc(var(--dist-tab) * -1);
+  }
+
+  .seg {
+    --seg-n: 4;
+    --seg-i: 0;
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(var(--seg-n), minmax(0, 1fr));
+    padding: 4px;
+  }
+
+  .seg-2 {
+    --seg-n: 2;
+  }
+
+  .seg[data-active="1"] { --seg-i: 1; }
+  .seg[data-active="2"] { --seg-i: 2; }
+  .seg[data-active="3"] { --seg-i: 3; }
+
+  .seg::before {
+    position: absolute;
+    inset-block: 4px;
+    left: 4px;
+    width: calc((100% - 8px) / var(--seg-n));
+    border-radius: var(--radius-md);
+    background: var(--color-primary);
+    transform: translateX(calc(var(--seg-i) * 100%));
+    transition: transform var(--dur-base) var(--ease-standard);
+    pointer-events: none;
+    content: "";
+  }
+
+  .seg > * {
+    position: relative;
+    z-index: 1;
+    min-width: 0;
+  }
+
+  .seg > [role="tab"],
+  .seg label {
+    color: var(--color-foreground);
+    transition: color var(--dur-base) var(--ease-standard);
+  }
+
+  .seg > [role="tab"][aria-selected="true"],
+  .seg [role="radio"][aria-checked="true"] ~ label {
+    color: var(--color-on-primary);
+  }
+
+  .ph-readout {
+    display: inline-block;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .ph-readout[data-dir="up"] {
+    animation: tick-up var(--dur-fast) var(--ease-enter) backwards;
+  }
+
+  .ph-readout[data-dir="down"] {
+    animation: tick-down var(--dur-fast) var(--ease-enter) backwards;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    transition: transform var(--dur-fast) var(--ease-press);
+  }
+
+  input[type="range"]::-webkit-slider-thumb:active {
+    transform: scale(var(--scale-thumb));
+  }
+
+  input[type="range"]::-moz-range-thumb {
+    transition: transform var(--dur-fast) var(--ease-press);
+  }
+
+  input[type="range"]::-moz-range-thumb:active {
+    transform: scale(var(--scale-thumb));
+  }
+
   .stagger > * {
     animation: rise-in var(--dur-base) var(--ease-enter) backwards;
   }
@@ -220,6 +309,16 @@
 @keyframes ring {
   from { opacity: 0.6; transform: scale(1); }
   to { opacity: 0; transform: scale(var(--scale-ring)); }
+}
+
+@keyframes tick-up {
+  from { opacity: 0; transform: translateY(var(--dist-digit)); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes tick-down {
+  from { opacity: 0; transform: translateY(calc(var(--dist-digit) * -1)); }
+  to { opacity: 1; transform: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
