@@ -164,7 +164,7 @@ export function PortfolioCard() {
         const row = plotRows.current.get(plotId);
         if (!row?.isConnected) return;
         row.querySelector("summary")?.focus({ preventScroll: true });
-        row.scrollIntoView({ block: "start", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
+        row.scrollIntoView({ block: "start", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
       },
     });
   }

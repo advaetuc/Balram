@@ -33,5 +33,5 @@ export function OfflineSupport() {
     incomplete: "Offline setup is incomplete. Reconnect and reopen Balram to retry; saved inputs remain in browser storage.",
     ready: "Application ready to reopen offline. Map tiles are not saved.", failed: "Offline application setup could not finish. Reconnect and reopen Balram to retry.",
   };
-  return <p className="mx-auto mt-3 max-w-7xl text-xs leading-6" role="status">{messages[status as keyof typeof messages]}</p>;
+  return <p className="mx-auto mt-3 max-w-7xl text-sm leading-body" role="status">{messages[status as keyof typeof messages]}</p>;
 }

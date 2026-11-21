@@ -76,10 +76,76 @@ function EditableBoundary({ onError, readOnly }: { onError: (message: string | n
       handlers: { edit: { tooltip: { text: "Drag points to edit boundary.", subtext: "Save or cancel changes." } }, remove: { tooltip: { text: "Click boundaries to delete.", subtext: "Click cancel to undo deletion." } } },
     },
   };
-  (L as unknown as { drawLocal: typeof drawLocal }).drawLocal = drawLocal;
+  // The plugin also constructs disabled tool handlers. Keep their default locale data.
+  const leaflet = L as unknown as { drawLocal: typeof drawLocal & {
+    draw: { handlers: { polyline: { error: string } } };
+  } };
+  const defaults = leaflet.drawLocal;
+  leaflet.drawLocal = {
+    ...defaults,
+    draw: {
+      toolbar: { ...defaults.draw.toolbar, ...drawLocal.draw.toolbar },
+      handlers: {
+        ...defaults.draw.handlers,
+        ...drawLocal.draw.handlers,
+        polyline: {
+          ...defaults.draw.handlers.polyline,
+          error: mr ? "सीमेच्या कडा एकमेकांना ओलांडू देऊ नका." : "Boundary edges must not cross.",
+        },
+      },
+    },
+    edit: {
+      toolbar: { ...defaults.edit.toolbar, ...drawLocal.edit.toolbar },
+      handlers: { ...defaults.edit.handlers, ...drawLocal.edit.handlers },
+    },
+  };
 
   return <FeatureGroup ref={group}>{!readOnly && <EditControl key={state.locale} position="topleft" draw={drawing} edit={editing}
     onCreated={created} onEdited={edited} onDeleted={deleted} onEditStart={editStarted} />}</FeatureGroup>;
+}
+
+function MapControlLabels({ mr }: { mr: boolean }) {
+  const map = useMap();
+
+  useEffect(() => {
+    const controls = map.getContainer().querySelector(".leaflet-control-container");
+    if (!controls) return;
+    const drawButtons = ".leaflet-draw-toolbar a, .leaflet-draw-actions a";
+    const updateLabels = () => {
+      const zoomIn = controls.querySelector(".leaflet-control-zoom-in");
+      const zoomOut = controls.querySelector(".leaflet-control-zoom-out");
+      zoomIn?.setAttribute("aria-label", mr ? "नकाशा जवळ आणा" : "Zoom in");
+      zoomOut?.setAttribute("aria-label", mr ? "नकाशा दूर करा" : "Zoom out");
+      controls.querySelectorAll<HTMLAnchorElement>(drawButtons).forEach(link => {
+        const disabled = link.classList.contains("leaflet-disabled");
+        link.setAttribute("role", "button");
+        link.setAttribute("aria-label", link.title || link.textContent?.trim() || "");
+        link.setAttribute("aria-disabled", String(disabled));
+        link.tabIndex = disabled ? -1 : 0;
+      });
+    };
+    const activate = (event: Event) => {
+      if (!(event instanceof KeyboardEvent) || (event.key !== " " && event.key !== "Enter")) return;
+      const link = event.target;
+      if (!(link instanceof HTMLAnchorElement) || !link.matches(drawButtons)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      if (event.repeat || link.getAttribute("aria-disabled") === "true") return;
+      // Leaflet.Draw listens for touchstart on iOS and click elsewhere.
+      if (/iPad|iPhone|iPod/.test(navigator.userAgent)) link.dispatchEvent(new Event("touchstart", { bubbles: true }));
+      else link.click();
+    };
+    updateLabels();
+    const observer = new MutationObserver(updateLabels);
+    observer.observe(controls, { subtree: true, childList: true, attributes: true, attributeFilter: ["class", "title"] });
+    controls.addEventListener("keydown", activate);
+    return () => {
+      observer.disconnect();
+      controls.removeEventListener("keydown", activate);
+    };
+  }, [map, mr]);
+
+  return null;
 }
 
 export default function FarmMap({ readOnly = false }: { readOnly?: boolean }) {
@@ -92,18 +158,19 @@ export default function FarmMap({ readOnly = false }: { readOnly?: boolean }) {
   const tileEvents = useMemo(() => ({ tileerror: () => setTileError(true), load: () => undefined }), []);
   return <div>
     <div className="mb-3">
-      <button className="button-secondary" disabled={readOnly || (state.connection !== "online" && !tilesEnabled)}
+      <button className="button-secondary" aria-pressed={tilesEnabled} disabled={readOnly || (state.connection !== "online" && !tilesEnabled)}
         onClick={() => { setTilesEnabled((enabled) => !enabled); setTileError(false); }}>
         {tilesEnabled ? (mr ? "ऑनलाइन नकाशा लपवा" : "Hide online map") : (mr ? "ऑनलाइन नकाशा दाखवा" : "Load online map")}
       </button>
-      <p className="mt-2 text-xs leading-6">{mr ? "नकाशा उघडल्यावर दिसणाऱ्या टाइलची ठिकाणे OpenStreetMap कडे पाठवली जातात. टाइल नसतानाही सीमा काढता येते." : "Loading the map shares visible tile locations with OpenStreetMap. Drawing works without tiles."}</p>
+      <p className="mt-2 text-sm leading-body">{mr ? "नकाशा उघडल्यावर दिसणाऱ्या टाइलची ठिकाणे ओपनस्ट्रीटमॅपकडे पाठवली जातात. टाइल नसतानाही सीमा काढता येते." : "Loading the map shares visible tile locations with OpenStreetMap. Drawing works without tiles."}</p>
     </div>
     <div className="relative isolate overflow-hidden rounded-xl border border-forest/20">
       <MapContainer center={[18.5204, 73.8567]} zoom={11} renderer={renderer} preferCanvas
-        scrollWheelZoom={false} className="h-[420px] w-full bg-stone-100" aria-label={mr ? "शेताच्या सीमेचा नकाशा" : "Field boundary map"}>
+        scrollWheelZoom={false} zoomAnimation={false} fadeAnimation={false} markerZoomAnimation={false} className="h-[420px] w-full bg-stone-100" aria-label={mr ? "शेताच्या सीमेचा नकाशा" : "Field boundary map"}>
         {tilesEnabled && state.connection === "online" && <TileLayer url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution={`&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap ${mr ? "योगदानकर्ते" : "contributors"}</a>`}
+          attribution={`&copy; <a href="https://www.openstreetmap.org/copyright">${mr ? "ओपनस्ट्रीटमॅप योगदानकर्ते" : "OpenStreetMap contributors"}</a>`}
           keepBuffer={0} updateWhenIdle updateWhenZooming={false} maxZoom={19} eventHandlers={tileEvents} />}
+        <MapControlLabels mr={mr} />
         <EditableBoundary onError={setError} readOnly={readOnly} />
         {state.fieldGeometry && <CircleMarker center={[state.fieldGeometry.center[1], state.fieldGeometry.center[0]]}
           radius={6} pathOptions={{ color: "#212121", fillColor: "#FFBF00", fillOpacity: 1 }} interactive={false} />}
@@ -113,7 +180,7 @@ export default function FarmMap({ readOnly = false }: { readOnly?: boolean }) {
       {state.connection !== "online" ? (mr ? "ऑफलाइन: नकाशाचे टाइल न वापरता जतन केलेली सीमा दाखवत आहोत." : "Offline: showing your saved geometry without map tiles.") : (mr ? "काही नकाशा टाइल उघडली नाहीत. सीमा काढणे व निर्देशांक भरणे सुरू ठेवता येईल." : "Some map tiles could not load. Boundary drawing and coordinate inputs remain available.")}
     </p>}
     {error && <p role="alert" className="notice mt-3">{error}</p>}
-    <p className="mt-3 text-xs leading-6">{mr ? "एक बहुभुज सीमा काढा; बदलण्यासाठी संपादन साधन वापरा. क्षेत्रफळ पुन्हा मोजण्यासाठी बदल जतन करा. केशरी बिंदू सीमा क्षेत्राचे केंद्र दाखवतो." : "Draw one polygon, then use the edit control to adjust it. Save edits to recalculate area. The amber point is the polygon center of mass."}</p>
-    <a className="mt-1 inline-flex items-center text-sm text-forest underline" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">© OpenStreetMap {mr ? "योगदानकर्ते" : "contributors"}</a>
+    <p className="mt-3 text-sm leading-body">{mr ? "एक बहुभुज सीमा काढा; बदलण्यासाठी संपादन साधन वापरा. क्षेत्रफळ पुन्हा मोजण्यासाठी बदल जतन करा. केशरी बिंदू सीमा क्षेत्राचे केंद्र दाखवतो." : "Draw one polygon, then use the edit control to adjust it. Save edits to recalculate area. The amber point is the polygon center of mass."}</p>
+    <a className="mt-1 inline-flex items-center text-sm text-forest underline" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">© {mr ? "ओपनस्ट्रीटमॅप योगदानकर्ते" : "OpenStreetMap contributors"}</a>
   </div>;
 }

@@ -8,11 +8,11 @@ export function SectionDisclosure({ title, children, defaultOpen = false, classN
 }) {
   return (
     <details open={defaultOpen || undefined}
-      className={`min-w-0 rounded-xl border border-border-strong bg-white text-base leading-body ${className}`}>
-      <summary className="min-h-12 rounded-xl px-4 text-base leading-body focus-visible:outline-border-strong">
+      className={`section-disclosure min-w-0 rounded-xl border border-border-strong bg-white text-base leading-body ${className}`}>
+      <summary className="min-h-12 rounded-xl px-4 text-base leading-body">
         {title}
       </summary>
-      <div className="px-4 pb-4">{children}</div>
+      <div className="disclosure-body px-4 pb-4">{children}</div>
     </details>
   );
 }

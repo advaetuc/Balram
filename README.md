@@ -1,8 +1,12 @@
-# Balram v0.3.3 — Maharashtra farm planning
+# Balram v0.3.4 — Maharashtra farm planning
 
 Balram is a local-first, zero-database farm planning app for Maharashtra. It combines field mapping, Acres and Gunthas plot management, crop planning, on-site soil records, weather context, irrigation estimates, check-ins, and printable reports. English and Marathi (`मराठी`) are available.
 
-## v0.3.3 features
+## v0.3.4 — Daylight Field Notebook
+
+The Daylight Field Notebook design system brings shared color, typography, and motion tokens to Balram. It includes compact navigation, native mobile dialogs, accessible plot checkout and Undo, and readable English and Marathi layouts. The canonical tokens live in `src/styles/`.
+
+## Features
 
 - **Growing Path:** a six-station guided setup for land, weather, soil, crops, advice, and a prioritized roadmap.
 - **Crop checkout:** choose recommended crops, size named plots in Acres or Gunthas, and confirm plot edits before saving them.
@@ -40,6 +44,7 @@ npm run dev
 npm run typecheck
 npm test
 npm run build
+git diff --check
 npm start
 ```
 

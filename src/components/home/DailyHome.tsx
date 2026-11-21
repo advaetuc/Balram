@@ -53,7 +53,7 @@ function TabList<T extends string>({ id, label, tabs, labels, selected, onSelect
         <button type="button" role="tab" key={tab} id={`${id}-tab-${tab}`} aria-controls={`${id}-panel-${tab}`}
           aria-selected={selected === tab} tabIndex={selected === tab ? 0 : -1}
           onKeyDown={(event) => selectWithKeyboard(event, index)} onClick={() => onSelect(tab)}
-          className={`min-h-12 min-w-12 rounded-xl px-1 text-sm font-semibold focus-visible:outline-offset-0 sm:px-3 ${selected === tab ? "bg-forest text-white" : "text-ink hover:bg-daylight"}`}>
+          className={`min-h-12 min-w-12 rounded-xl px-1 text-sm font-semibold sm:px-3 ${selected === tab ? "bg-forest text-white" : "text-ink hover:bg-daylight"}`}>
           {labels[tab]}
         </button>
       ))}
@@ -68,7 +68,7 @@ export function DailyHome({ onSetup }: { onSetup: () => void }) {
   const advisory=generateFieldVoiceAdvisories({allocations:state.cropAllocations,soilKitReading:state.soilKitReading,weatherSnapshot:state.weatherSnapshot,nowMs:state.now})[0];
   const irrigationItems=items.filter(item=>item.kind==="irrigation");
   return <div className="pb-24 max-md:pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-6 print:pb-0">
-    <div className="mb-5 flex flex-wrap items-end justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-widest text-forest">{mr?"माझे शेत":"My Farm"}</p><h1 className="mt-1 text-3xl font-bold">{state.farmProfile?.name??(mr?"आजचे नियोजन":"Today’s plan")}</h1></div></div>
+    <div className="mb-5 flex flex-wrap items-end justify-between gap-3 print:hidden"><div><p className="text-sm leading-body font-bold uppercase tracking-widest text-forest">{mr?"माझे शेत":"My Farm"}</p><h1 className="mt-1 text-3xl leading-heading font-bold">{state.farmProfile?.name??(mr?"आजचे नियोजन":"Today’s plan")}</h1></div></div>
     <TabList id="home" label={text.dailyNavigation} tabs={homeTabs} labels={text.dailyTabs} selected={tab} onSelect={setTab} fixed />
     {homeTabs.map((key) => (
       <section key={key} id={`home-panel-${key}`} role="tabpanel" aria-labelledby={`home-tab-${key}`}

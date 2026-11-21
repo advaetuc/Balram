@@ -6,7 +6,7 @@ export function PrivacyNotice() {
   const locale = useBalramStore((state) => state.locale);
   const mr = locale === "mr";
   return <section aria-labelledby="privacy-title" className="mx-auto mt-4 max-w-7xl text-sm leading-6">
-    <details><summary id="privacy-title" className="inline-flex min-h-12 cursor-pointer items-center rounded-full border border-forest/20 bg-white px-4 font-semibold text-forest hover:bg-forest/5">{mr ? "माहितीचा वापर व गोपनीयता" : "Data & privacy"}</summary>
+    <details><summary id="privacy-title" className="inline-flex min-h-12 cursor-pointer items-center rounded-full border border-border-strong bg-white px-4 font-semibold text-forest hover:bg-forest/5">{mr ? "माहितीचा वापर व गोपनीयता" : "Data & privacy"}</summary>
       <div className="max-w-3xl space-y-3 pb-3">
         {mr ? <p>तुमची माहिती, शेताची सीमा, पिके, सिंचन नोंदी आणि शेवटचे उपलब्ध निकाल या ब्राउझरच्या स्थानिक साठ्यातच राहतात.
           बलराममध्ये खाते किंवा दूरस्थ शेत-माहितीचा साठा नाही. ब्राउझरची माहिती पुसल्यास तुमचे नियोजन हटेल; हा ब्राउझर वापरणाऱ्या इतरांना ते दिसू शकते.</p> : <p>Your profile, boundary, crops, irrigation inputs and last-good results stay in this browser’s IndexedDB.
@@ -36,7 +36,7 @@ export function PrivacyNotice() {
           SoilGrids is experimental and disabled for release. Agmarknet is disabled. Weather and soil values are modeled estimates,
           not field measurements; verify irrigation plans locally. Open-Meteo’s free endpoint requires non-commercial use.</p>
         }
-        <div className="flex flex-wrap gap-x-5">
+        <div className="flex flex-wrap gap-x-5 gap-y-2">
           <a className="inline-flex items-center underline" href="https://open-meteo.com/en/terms" target="_blank" rel="noreferrer">{mr ? "ओपन-मेटिओच्या अटी" : "Open-Meteo terms"}</a>
           <a className="inline-flex items-center underline" href="https://operations.osmfoundation.org/policies/nominatim/" target="_blank" rel="noreferrer">{mr ? "जागा शोध सेवेचे धोरण" : "Nominatim policy"}</a>
           <a className="inline-flex items-center underline" href="https://osmfoundation.org/wiki/Privacy_Policy" target="_blank" rel="noreferrer">{mr ? "ओपनस्ट्रीटमॅपचे गोपनीयता धोरण" : "OpenStreetMap privacy"}</a>

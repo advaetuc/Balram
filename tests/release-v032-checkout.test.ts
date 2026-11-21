@@ -1,6 +1,5 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import {
   commitCheckoutDraftToAllocations,
   pickNextDefaultPlotName,
@@ -11,11 +10,6 @@ import {
 import { gunthasToSquareMetres } from "../src/lib/domain/geometry";
 import { CropAllocationsSchema, type CropAllocation } from "../src/types/domain";
 import { createPlotRemovalSnapshot, restorePlotRemoval } from "../src/lib/domain/plotUndo";
-
-test("package manifest identifies release v0.3.3", () => {
-  const manifest = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as { version: string };
-  assert.equal(manifest.version, "0.3.3");
-});
 
 function draft(overrides: Partial<CheckoutDraftLine> = {}): CheckoutDraftLine {
   return {

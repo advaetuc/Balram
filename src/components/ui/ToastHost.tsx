@@ -50,7 +50,7 @@ export function ToastHost({ toast, locale, onDismiss }: {
 
   return (
     <div lang={locale} className="pointer-events-none fixed inset-x-4 bottom-[calc(6rem+env(safe-area-inset-bottom))] z-toast mx-auto max-w-md print:hidden md:bottom-4">
-      <div ref={container} className={toast ? "pointer-events-auto flex flex-wrap items-center justify-between gap-2 rounded-xl border border-forest/15 bg-white p-3 shadow-toast" : ""}
+      <div ref={container} className={toast ? "toast-enter pointer-events-auto flex flex-wrap items-center justify-between gap-2 rounded-xl border border-forest/15 bg-white p-3 shadow-toast" : ""}
         onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
         onFocus={() => setFocused(true)}
         onBlur={(event) => {

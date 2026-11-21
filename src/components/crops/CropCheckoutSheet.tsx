@@ -1,5 +1,7 @@
 "use client";
 
+import { RadioChoices } from "@/components/ui/RadioChoices";
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import { MaharashtraCropMatrix } from "@/config/cropMatrix";
 import { t } from "@/config/i18n";
@@ -115,16 +117,37 @@ export function CropCheckoutSheet(props: CropCheckoutSheetProps) {
       const customName = customNameIds.has(line.draftId) || !DEFAULT_PLOT_NAMES.includes(line.plotName as typeof DEFAULT_PLOT_NAMES[number]);
       return <article className="rounded-xl border border-forest/20 p-3" key={line.draftId}>
         <div className="flex items-start justify-between gap-2"><div><h3 className="font-bold">{state.locale === "mr" ? crop.marathiName : crop.name}</h3><p className="text-sm leading-body text-stone-600">{state.locale === "mr" ? why?.whyItFits.mr : why?.whyItFits.en}</p></div><button type="button" className="button-quiet min-h-12 min-w-12" aria-label={line.editingPlotId ? text.cancelEdit : text.removeFromDraft} onClick={() => removeLine(line)}>{line.editingPlotId ? text.cancelEdit : "×"}</button></div>
-        <fieldset className="mt-3 min-w-0"><legend className="text-sm font-semibold leading-body">{text.plotNameLabel}</legend><div className="mt-1 flex flex-wrap gap-2">{DEFAULT_PLOT_NAMES.map((name) => <button key={name} type="button" aria-pressed={!customName && line.plotName === name} className={`min-h-12 rounded-full border px-3 text-sm leading-body ${!customName && line.plotName === name ? "border-forest bg-forest text-white" : "border-forest/20"}`} onClick={() => { setCustomNameIds((previous) => { const next = new Set(previous); next.delete(line.draftId); return next; }); updateLine(line.draftId, { plotName: name }); }}>{displayPlotName(name, state.locale)}</button>)}<button type="button" className="button-secondary min-h-12" aria-pressed={customName} onClick={() => setCustomNameIds((previous) => new Set(previous).add(line.draftId))}>{text.customName}</button></div>
+        <fieldset className="mt-3 min-w-0"><legend className="text-sm font-semibold leading-body">{text.plotNameLabel}</legend><RadioChoices<string> label={text.plotNameLabel} value={customName ? "custom" : line.plotName}
+          options={[...DEFAULT_PLOT_NAMES.map(name => ({ value: name, label: displayPlotName(name, state.locale) })),
+            { value: "custom", label: text.customName }]}
+          onChange={value => {
+            setCustomNameIds(previous => {
+              const next = new Set(previous);
+              if (value === "custom") next.add(line.draftId);
+              else next.delete(line.draftId);
+              return next;
+            });
+            if (value !== "custom") updateLine(line.draftId, { plotName: value });
+          }} />
           {customName && <input aria-label={text.plotNameLabel} className="form-input mt-2 min-h-12" maxLength={60} value={line.plotName} onChange={(event) => updateLine(line.draftId, { plotName: event.target.value })} />}
         </fieldset>
-        <fieldset className="mt-3 min-w-0"><legend className="text-sm font-semibold leading-body">{text.landShareLabel} · {formatArea(line.areaGunthas, state.landUnit, state.locale)}</legend><div className="mt-1 grid grid-cols-2 gap-2 sm:grid-cols-3">{presets.map(([preset, label]) => <button key={preset} type="button" className="min-h-12 rounded-lg border border-forest/20 px-2 text-sm leading-body" onClick={() => applyPreset(line, preset)}>{text[label]}</button>)}</div>
+        <fieldset className="mt-3 min-w-0"><legend className="text-sm font-semibold leading-body">{text.landShareLabel} · {formatArea(line.areaGunthas, state.landUnit, state.locale)}</legend><div className="mt-1 grid grid-cols-2 gap-2 sm:grid-cols-3">{presets.map(([preset, label]) => <button key={preset} type="button" className="min-h-12 rounded-lg border border-border-strong px-2 text-sm leading-body" onClick={() => applyPreset(line, preset)}>{text[label]}</button>)}</div>
           <button type="button" aria-expanded={customSizeIds.has(line.draftId)} className="button-secondary mt-2 min-h-12" onClick={() => setCustomSizeIds((previous) => { const next = new Set(previous); if (next.has(line.draftId)) next.delete(line.draftId); else next.add(line.draftId); return next; })}>{text.customSize}</button>
           {customSizeIds.has(line.draftId) && <div className="mt-2"><AreaInput label={text.customSize} gunthas={line.areaGunthas} unit={state.landUnit} locale={state.locale} onChangeGunthas={(value) => { if (value !== null) updateLine(line.draftId, { areaGunthas: value }); }} /></div>}
           {availableThis !== null && <p className="mt-1 text-sm leading-body text-stone-600">{formatArea(Math.max(0, availableThis - line.areaGunthas), state.landUnit, state.locale)} {text.freeLandOf} {total === null ? "—" : formatArea(total, state.landUnit, state.locale)}</p>}
         </fieldset>
-        <fieldset className="mt-3 min-w-0"><legend className="text-sm font-semibold leading-body">{text.plantingStatusLabel}</legend><div className="mt-1 grid grid-cols-2 gap-2"><button type="button" aria-pressed={!line.alreadyPlanted} className={`min-h-12 rounded-lg border px-2 text-sm leading-body ${!line.alreadyPlanted ? "border-forest bg-forest text-white" : "border-forest/20"}`} onClick={() => updateLine(line.draftId, { alreadyPlanted: false, lifecycleStage: "planned", plantingDate: null })}>{text.notPlantedYet}</button><button type="button" aria-pressed={line.alreadyPlanted} className={`min-h-12 rounded-lg border px-2 text-sm leading-body ${line.alreadyPlanted ? "border-forest bg-forest text-white" : "border-forest/20"}`} onClick={() => { if (!line.alreadyPlanted) updateLine(line.draftId, { alreadyPlanted: true, lifecycleStage: null }); }}>{text.alreadyPlanted}</button></div></fieldset>
-        {line.alreadyPlanted && <div className="mt-2"><fieldset><legend className="text-sm font-semibold leading-body">{text.stage}</legend>{line.lifecycleStage === null && <p className="mt-1 text-sm leading-body">{text.pickPlantedStage}</p>}<div className="mt-1 grid grid-cols-2 gap-2">{(line.lifecycleStage === "planned" ? ["planned" as const, ...stages] : stages).map((stage) => <button key={stage} type="button" aria-pressed={line.lifecycleStage === stage} className={`min-h-12 rounded-lg border px-2 text-sm leading-body ${line.lifecycleStage === stage ? "border-forest bg-forest text-white" : "border-forest/20"}`} onClick={() => updateLine(line.draftId, { lifecycleStage: stage })}>{text.stageNames[stage]}</button>)}</div></fieldset><label className="mt-2 block text-sm leading-body">{text.plantingDateLabel}<input className="form-input mt-1 min-h-12" type="date" value={line.plantingDate ?? ""} onChange={(event) => updateLine(line.draftId, { plantingDate: event.target.value || null })} /></label></div>}
+        <fieldset className="mt-3 min-w-0"><legend className="text-sm font-semibold leading-body">{text.plantingStatusLabel}</legend><RadioChoices label={text.plantingStatusLabel} value={line.alreadyPlanted ? "planted" : "planned"}
+          className="mt-1 grid grid-cols-2 gap-2"
+          options={[{ value: "planned", label: text.notPlantedYet }, { value: "planted", label: text.alreadyPlanted }]}
+          onChange={value => updateLine(line.draftId, value === "planned"
+            ? { alreadyPlanted: false, lifecycleStage: "planned", plantingDate: null }
+            : { alreadyPlanted: true, lifecycleStage: null })} /></fieldset>
+        {line.alreadyPlanted && <div className="mt-2"><fieldset className="min-w-0"><legend className="text-sm font-semibold leading-body">{text.stage}</legend>
+          {line.lifecycleStage === null && <p className="mt-1 text-sm leading-body">{text.pickPlantedStage}</p>}
+          <RadioChoices<LifecycleStage> label={text.stage} value={line.lifecycleStage}
+            className="mt-1 grid grid-cols-2 gap-2"
+            options={(line.lifecycleStage === "planned" ? ["planned" as const, ...stages] : stages).map(stage => ({ value: stage, label: text.stageNames[stage] }))}
+            onChange={lifecycleStage => updateLine(line.draftId, { lifecycleStage })} /></fieldset><label className="mt-2 block text-sm leading-body">{text.plantingDateLabel}<input className="form-input mt-1 min-h-12" type="date" value={line.plantingDate ?? ""} onChange={(event) => updateLine(line.draftId, { plantingDate: event.target.value || null })} /></label></div>}
         {line.editingPlotId && <button type="button" className="button-quiet mt-2 min-h-12" onClick={() => props.onRemovePlot(line.editingPlotId!)}>{text.removePlot}</button>}
       </article>;
     })}
@@ -143,7 +166,7 @@ export function CropCheckoutSheet(props: CropCheckoutSheetProps) {
   );
 
   if (desktop) return (
-    <aside className="hidden min-w-0 lg:sticky lg:top-4 lg:block">
+    <aside className="hidden min-w-0 print:hidden lg:sticky lg:top-4 lg:block">
       <section className="bento-card flex max-h-[calc(100dvh-2rem)] flex-col">
         <div className="flex shrink-0 flex-wrap items-center gap-2 pb-2">
           <h2 ref={desktopHeading} tabIndex={-1} className="text-xl font-bold leading-heading">{text.checkoutTitle}</h2>
@@ -156,7 +179,7 @@ export function CropCheckoutSheet(props: CropCheckoutSheetProps) {
   );
 
   return <>
-    {lines.length > 0 && <button type="button" className="button-secondary w-full lg:hidden"
+    {lines.length > 0 && <button type="button" className="button-secondary w-full print:hidden lg:hidden"
       onClick={event => props.onOpen(event.currentTarget)}>{text.reviewSelection} · {lines.length}</button>}
     <dialog ref={dialogRef} aria-labelledby="checkout-title" onClose={props.onFocusReturn}
       onCancel={event => { event.preventDefault(); props.onClose(); }}

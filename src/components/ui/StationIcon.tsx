@@ -4,7 +4,7 @@ export function StationIcon({ station, status, className = "" }: {
   station: JourneyStationId; status: JourneyStationStatus; className?: string;
 }) {
   const done = status === "done";
-  const common = "size-10 shrink-0 rounded-full border-2 p-2 transition-all duration-300 motion-reduce:transition-none";
+  const common = "size-10 shrink-0 rounded-full border-2 p-2";
   const paths: Record<JourneyStationId, React.ReactNode> = {
     land: <><path d="M12 20v-5"/><path d="M12 15c-5 0-7-3-7-8 5 0 7 3 7 8Z"/><path d="M12 17c0-5 2-8 7-9 0 5-2 8-7 9Z"/></>,
     weather: <><path d="M12 21v-9"/><path d="M12 16c-4 0-6-2-6-6 4 0 6 2 6 6Z"/><path d="M12 13c0-4 2-6 6-7 0 4-2 6-6 7Z"/></>,

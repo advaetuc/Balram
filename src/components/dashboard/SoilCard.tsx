@@ -1,5 +1,7 @@
 "use client";
 
+import { RadioChoices } from "@/components/ui/RadioChoices";
+
 import { useId, useState } from "react";
 import { useBalramStore } from "@/store/useBalramStore";
 import { createSoilHealthCardReading, interpretSoilKitReading } from "@/lib/domain/soilKit";
@@ -9,7 +11,6 @@ import { Card, DataCaption } from "./Card";
 import { t } from "@/config/i18n";
 
 type SoilMode = SoilKitReading["kitType"] | "skip";
-const pill="min-h-12 min-w-12 rounded-lg border px-3";
 
 export function SoilCard(){
   const state=useBalramStore(s=>s),text=t(state.locale),mr=state.locale==="mr",saved=state.soilKitReading;
@@ -26,7 +27,13 @@ export function SoilCard(){
   const [error,setError]=useState("");
   const disabled=!state.hydrated||state.sampleDataActive;
   const choiceName=(value:string)=>({low:text.low,medium:text.medium,high:text.high,untested:mr?"तपासलेले नाही":"Untested",normal:mr?"सामान्य":"Normal",elevated:mr?"वाढलेली":"Elevated"} as Record<string,string>)[value]??value;
-  const choice=<T extends string,>(label:string,value:T,values:readonly T[],set:(v:T)=>void)=><fieldset disabled={disabled} className="mt-3"><legend className="text-sm font-semibold leading-body">{label}</legend><div className="flex flex-wrap gap-2">{values.map(v=><button key={v} type="button" className={`${pill} ${value===v?"border-forest bg-forest text-white":"border-forest/25"}`} aria-pressed={value===v} onClick={()=>set(v)}>{choiceName(v)}</button>)}</div></fieldset>;
+  const choice = <T extends string,>(label: string, value: T, values: readonly T[], set: (next: T) => void) => (
+    <fieldset className="mt-3 min-w-0">
+      <legend className="mb-1 text-sm font-semibold leading-body">{label}</legend>
+      <RadioChoices label={label} value={value} options={values.map(option => ({ value: option, label: choiceName(option) }))}
+        onChange={set} disabled={disabled} />
+    </fieldset>
+  );
   function chooseSkip(){if(disabled)return;setMode("skip");state.setSoilSkipped(true);setError("")}
   function save(){
     try{
@@ -50,9 +57,17 @@ export function SoilCard(){
   return <Card id="soil" title={text.soil} eyebrow={text.kit}>
     <p className="mt-2 text-sm leading-body">{mr?"चाचणीचे निकाल या ब्राउझरमध्ये राहतात; बाहेरील सेवेकडे पाठवले जात नाहीत.":"Test results stay in this browser and are not sent to a provider."}</p>
     {state.sampleDataActive&&<p className="notice mt-3">{text.sampleReadOnly}</p>}
-    <div className="mt-4 rounded-xl border border-forest/20 bg-forest/5 p-3"><p className="mb-2 text-sm font-bold leading-body uppercase tracking-wide text-forest">{mr?"मुख्य चाचणी पद्धत":"Main test method"}</p><button type="button" disabled={disabled} aria-pressed={mode==="balram_inhouse"} className={`min-h-14 w-full rounded-xl border px-4 text-left font-bold ${mode==="balram_inhouse"?"border-forest bg-forest text-white":"border-forest/25 bg-white"}`} onClick={()=>setMode("balram_inhouse")}>{text.soilModeHouse}</button></div>
-    <div className="mt-3"><p className="mb-2 text-sm font-semibold leading-body">{mr?"इतर चाचणी निकाल":"Other test results"}</p><div className="grid gap-2 sm:grid-cols-2">{([ ["soil_health_card",text.soilModeCard], ["commercial_rapid",text.soilModeRapid] ] as const).map(([key,label])=><button type="button" key={key} disabled={disabled} aria-pressed={mode===key} className={`${pill} ${mode===key?"border-forest bg-forest text-white":"border-forest/25 bg-white"}`} onClick={()=>setMode(key)}>{label}</button>)}</div></div>
-    <button type="button" disabled={disabled} aria-pressed={mode==="skip"} className="button-quiet mt-2 min-h-12 w-full justify-start text-left" onClick={chooseSkip}>{text.soilSkip}</button>
+    <fieldset className="mt-4 min-w-0">
+      <legend className="mb-2 text-sm font-bold leading-body">{mr ? "चाचणी पद्धत" : "Test method"}</legend>
+      <RadioChoices<SoilMode> label={mr ? "चाचणी पद्धत" : "Test method"} value={mode} disabled={disabled}
+        className="grid gap-2 sm:grid-cols-2"
+        options={[
+          { value: "balram_inhouse", label: text.soilModeHouse, className: "sm:col-span-2 [&>label]:min-h-14" },
+          { value: "soil_health_card", label: text.soilModeCard },
+          { value: "commercial_rapid", label: text.soilModeRapid },
+          { value: "skip", label: text.soilSkip, className: "sm:col-span-2" },
+        ]} onChange={next => next === "skip" ? chooseSkip() : setMode(next)} />
+    </fieldset>
     {mode==="skip"&&<p className="notice mt-3">{text.soilSkipped}</p>}
     {mode!=="skip"&&<>
       <p className="mt-3 text-sm leading-body">{mr?"इन-हाऊस पद्धत: माती-पाणी सामू, क्षारीय पोटॅशियम परमॅंगनेट नत्र आणि ओल्सेन रंगमिती स्फुरद.":"In-house method: soil-water pH, alkaline KMnO₄ available nitrogen, and Olsen colorimetry available phosphorus."}</p>
@@ -60,10 +75,10 @@ export function SoilCard(){
         <label htmlFor={phId} className="block text-sm font-semibold leading-body">{mr ? "मातीचा सामू (pH)" : "Soil pH"}</label>
         <div className="mt-1 flex items-center gap-3">
           <button type="button" className="button-secondary min-h-12" aria-label={text.phDecrease}
-            disabled={disabled || Number(ph) <= 3.5} onClick={() => stepPh(-1)}>−0.1</button>
+            disabled={disabled} aria-disabled={Number(ph) <= 3.5} onClick={() => stepPh(-1)}>−0.1</button>
           <output htmlFor={phId} className="text-3xl font-bold leading-heading tabular-nums">{Number(ph).toFixed(1)}</output>
           <button type="button" className="button-secondary min-h-12" aria-label={text.phIncrease}
-            disabled={disabled || Number(ph) >= 10.5} onClick={() => stepPh(1)}>+0.1</button>
+            disabled={disabled} aria-disabled={Number(ph) >= 10.5} onClick={() => stepPh(1)}>+0.1</button>
         </div>
         <input id={phId} disabled={disabled} className="form-input mt-2 accent-forest" type="range" min="3.5" max="10.5"
           step="0.1" value={ph} onChange={event => setPh(event.target.value)} />
