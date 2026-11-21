@@ -6,6 +6,9 @@ import type { Locale } from "@/types/domain";
 
 type ToastAction = { actionLabel: string; onAction: () => void };
 
+export const TOAST_INFO_MS = 4000;
+export const TOAST_UNDO_MS = 7000;
+
 export type Toast = { id: string | number; message: string } & (
   | ({ variant: "info" } & (ToastAction | { actionLabel?: never; onAction?: never }))
   | { variant: "undo"; onAction: () => void }
@@ -16,7 +19,7 @@ function ToastTimer({ toast, paused, onDismiss }: {
   paused: boolean;
   onDismiss: (id: Toast["id"]) => void;
 }) {
-  const remaining = useRef(toast.variant === "undo" ? 7000 : 4000);
+  const remaining = useRef(toast.variant === "undo" ? TOAST_UNDO_MS : TOAST_INFO_MS);
   useEffect(() => {
     if (paused) return;
 

@@ -1,0 +1,12 @@
+@tailwind components;
+
+@media print {
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+@layer components {
+  /* v0.3.5 motion primitives added in P1–P5 */
+}
