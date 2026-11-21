@@ -1,10 +1,12 @@
+@import "../styles/tokens.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  html { color-scheme: light; }
-  body { @apply m-0 bg-daylight font-sans text-ink antialiased; }
+  html { color-scheme: light; scroll-padding-bottom: 88px; }
+  body { @apply m-0 bg-surface-bg font-sans text-lg leading-body text-ink antialiased; }
   a, button, input, select, textarea, summary {
     @apply min-h-12 min-w-12;
   }
@@ -14,17 +16,19 @@
 }
 
 @layer components {
-  .bento-card { @apply min-w-0 rounded-2xl border border-forest/15 bg-white p-5 shadow-sm sm:p-6; }
+  .bento-card { @apply min-w-0 rounded-2xl border border-forest/15 bg-white p-5 shadow-card sm:p-6; }
   .button-primary { @apply inline-flex min-h-12 min-w-12 items-center justify-center rounded-xl bg-forest px-5 py-3 text-sm font-semibold text-white hover:bg-forest/90 disabled:cursor-not-allowed disabled:opacity-50; }
   .button-secondary { @apply inline-flex min-h-12 min-w-12 items-center justify-center rounded-xl border border-forest/30 bg-white px-4 py-3 text-sm font-semibold text-forest hover:bg-forest/5 disabled:cursor-not-allowed disabled:opacity-50; }
   .button-quiet { @apply inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg px-3 py-3 text-forest hover:bg-forest/5; }
-  .form-input { @apply block min-h-12 w-full min-w-0 rounded-lg border border-stone-300 bg-white px-3 py-2 text-base text-ink; }
+  .form-input { @apply block min-h-12 w-full min-w-0 rounded-lg border border-border-strong bg-white px-3 py-2 text-base text-ink; }
   .notice { @apply rounded-lg border-l-4 border-amber bg-amber/15 p-3 text-sm leading-6 text-ink; }
   .data-badge { @apply inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold; }
   summary { @apply flex min-h-12 cursor-pointer items-center rounded-lg py-3 text-sm font-semibold text-forest; }
   summary::before { content: "+"; @apply mr-3 text-lg; }
   details[open] > summary::before { content: "−"; }
 }
+
+dialog::backdrop { background: var(--color-scrim); }
 
 /* Leaflet controls use their own CSS; enforce touch sizing after its styles. */
 .leaflet-container .leaflet-control-zoom a,
@@ -55,8 +59,4 @@
   #farm-report thead { display: table-header-group; }
   #farm-report .overflow-x-auto { overflow: visible; }
   * { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-}
-
-html[lang="mr"] body {
-  line-height: 1.65;
 }
