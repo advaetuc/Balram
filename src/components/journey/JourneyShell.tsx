@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { JourneyStationId, JourneyStationStatus } from "@/lib/domain/journey";
 import { adjacentJourneyStation, deriveJourney } from "@/lib/domain/journey";
 import { useBalramStore } from "@/store/useBalramStore";
+import { useCssVar } from "@/lib/ui/useCssVar";
 import { t, stationLabel, stationStatusLabel } from "@/config/i18n";
 import { MapClient } from "@/components/map/MapClient";
 import { WeatherCard } from "@/components/dashboard/WeatherCard";
@@ -29,10 +30,11 @@ export function JourneyShell({ onFinish, onHome }: { onFinish: () => void; onHom
   const state=useBalramStore(s=>s),text=t(state.locale);
   const nowIso=state.now===null?null:new Date(state.now).toISOString();
   const stations=useMemo(()=>deriveJourney(state,nowIso),[state,nowIso]);
-  const [activeStation,setActiveStation]=useState<JourneyStationId>(()=>nextStep(stations));
+  const [nav,setNav]=useState<{ station: JourneyStationId; dir: "fwd" | "back" | "none" }>(()=>({station:nextStep(stations),dir:"none"}));
   const sheetRef = useRef<HTMLDialogElement>(null);
   const sheetTrigger = useRef<HTMLButtonElement>(null);
   const desktopStations = useRef<HTMLElement>(null);
+  const progressRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const desktop = window.matchMedia("(min-width: 768px)");
     const closeMobileSheet = () => {
@@ -41,7 +43,9 @@ export function JourneyShell({ onFinish, onHome }: { onFinish: () => void; onHom
     desktop.addEventListener("change", closeMobileSheet);
     return () => desktop.removeEventListener("change", closeMobileSheet);
   }, []);
+  const activeStation=nav.station;
   const activeIndex=order.indexOf(activeStation),activeRecord=stations.find(item=>item.id===activeStation)!;
+  useCssVar(progressRef,"--p",(activeIndex+1)/order.length);
   const forecastAge=state.weatherSnapshot&&state.now!==null?Math.max(0,Math.floor((state.now-Date.parse(state.weatherSnapshot.fetchedAt))/60_000)):null;
   const items=farmRoadmap(state);
   const previous = adjacentJourneyStation(stations, activeStation, -1);
@@ -53,8 +57,16 @@ export function JourneyShell({ onFinish, onHome }: { onFinish: () => void; onHom
     : text.reviewPlotsToContinue;
 
   const select = (id: JourneyStationId) => {
-    setActiveStation(id);
+    const previousIndex = order.indexOf(nav.station);
+    const nextIndex = order.indexOf(id);
+    const dir = nextIndex > previousIndex ? "fwd" : nextIndex < previousIndex ? "back" : "none";
+    setNav({ station: id, dir });
     if (sheetRef.current?.open) sheetRef.current.close();
+  };
+
+  const change = (direction: -1 | 1) => {
+    const target = adjacentJourneyStation(stations, nav.station, direction);
+    if (target) select(target);
   };
 
   const restoreStationFocus = () => {
@@ -77,7 +89,7 @@ export function JourneyShell({ onFinish, onHome }: { onFinish: () => void; onHom
   return <div className="pb-[calc(7rem+env(safe-area-inset-bottom))] md:pb-0">
     <div className="mb-5 flex flex-wrap items-center justify-between gap-3 print:hidden"><div><p className="text-sm leading-body font-bold uppercase tracking-widest text-forest">{text.setupJourney}</p><h1 className="mt-1 text-2xl leading-heading font-bold">{stationLabel(state.locale,activeStation)}</h1></div><button type="button" onClick={onHome} className="button-secondary">{text.home}</button></div>
     <div className="grid items-start gap-6 md:grid-cols-[280px_minmax(0,1fr)]">
-      <aside className="hidden print:hidden md:block"><nav ref={desktopStations} aria-label={text.setupJourney} className="sticky top-4 rounded-2xl border border-forest/15 bg-white p-3"><ol className="space-y-2">{stations.map((station,index)=><li key={station.id}><button type="button" className={`flex min-h-12 w-full items-center gap-3 rounded-xl p-2 text-left ${activeStation===station.id?"bg-forest/10 ring-2 ring-forest":"hover:bg-daylight"}`} disabled={!stationAllowed(station.status)} aria-current={activeStation===station.id?"step":undefined} onClick={()=>select(station.id)}><StationIcon station={station.id} status={station.status}/><span className="min-w-0 flex-1"><span className="block font-semibold">{stationLabel(state.locale,station.id)}</span><span className="block text-sm leading-body text-stone-600">{index+1}. {stationStatusLabel(state.locale,station.status)}</span></span></button></li>)}</ol></nav></aside>
+      <aside className="hidden print:hidden md:block"><nav ref={desktopStations} aria-label={text.setupJourney} className="sticky top-4 rounded-2xl border border-forest/15 bg-white p-3"><ol className="space-y-2">{stations.map((station,index)=><li key={station.id}><button type="button" className={`flex min-h-12 w-full items-center gap-3 rounded-xl p-2 text-left transition-colors duration-fast ease-standard ${activeStation===station.id?"bg-forest/10 ring-2 ring-forest":"hover:bg-daylight"}`} disabled={!stationAllowed(station.status)} aria-current={activeStation===station.id?"step":undefined} onClick={()=>select(station.id)}><StationIcon station={station.id} status={station.status}/><span className="min-w-0 flex-1"><span className="block font-semibold">{stationLabel(state.locale,station.id)}</span><span className="block text-sm leading-body text-stone-600">{index+1}. {stationStatusLabel(state.locale,station.status)}</span></span></button></li>)}</ol></nav></aside>
       <div className="min-w-0">
         <div className="mb-4 flex items-center gap-3 print:hidden md:hidden">
           <StationIcon station={activeStation} status={activeRecord.status} />
@@ -88,6 +100,9 @@ export function JourneyShell({ onFinish, onHome }: { onFinish: () => void; onHom
             <span aria-hidden="true">+</span>
           </button>
         </div>
+        <div className="mb-4 h-1.5 overflow-hidden rounded-full bg-surface-muted md:hidden" aria-hidden="true">
+          <div ref={progressRef} className="fill-x h-full w-full rounded-full bg-forest" />
+        </div>
         <dialog ref={sheetRef} id="station-sheet" aria-labelledby="station-sheet-title" onClose={restoreStationFocus}
           className="sheet fixed inset-x-0 bottom-0 top-auto m-0 mx-auto max-h-[85dvh] w-full max-w-[560px] overflow-y-auto rounded-t-2xl bg-white p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] text-ink shadow-sheet print:hidden">
           <div className="flex items-center justify-between gap-3">
@@ -97,7 +112,7 @@ export function JourneyShell({ onFinish, onHome }: { onFinish: () => void; onHom
           <ol className="mt-3 space-y-2">
             {stations.map((station, index) => (
               <li key={station.id}>
-                <button type="button" className="flex min-h-12 w-full items-center gap-3 rounded-xl p-2 text-left hover:bg-daylight"
+                <button type="button" className="flex min-h-12 w-full items-center gap-3 rounded-xl p-2 text-left transition-colors duration-fast ease-standard hover:bg-daylight"
                   disabled={!stationAllowed(station.status)} aria-current={activeStation === station.id ? "step" : undefined}
                   onClick={() => select(station.id)}>
                   <StationIcon station={station.id} status={station.status} />
@@ -107,17 +122,19 @@ export function JourneyShell({ onFinish, onHome }: { onFinish: () => void; onHom
             ))}
           </ol>
         </dialog>
-        <section aria-live="polite" className="min-w-0 max-md:[&_:focus]:scroll-mb-[calc(2rem+env(safe-area-inset-bottom))]">{content}</section>
+        <section key={activeStation} aria-live="polite"
+          className={`min-w-0 max-md:[&_:focus]:scroll-mb-[calc(2rem+env(safe-area-inset-bottom))] ${activeStation === "land" ? "panel-fade" : "panel"}`}
+          data-dir={activeStation === "land" ? undefined : nav.dir}>{content}</section>
       </div>
     </div>
     <div data-mobile-nav className="fixed inset-x-0 bottom-0 z-bottom-bar border-t border-forest/15 bg-white p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-lg print:hidden md:static md:mt-6 md:border-0 md:bg-transparent md:p-0 md:shadow-none">
       {nextHint && <p id="journey-next-hint" className="mb-2 text-center text-sm text-muted-foreground md:text-right">{nextHint}</p>}
       <div className="flex justify-between gap-3">
         <button type="button" className="button-secondary flex-1 md:flex-none" disabled={!previous}
-          onClick={() => previous && select(previous)}>{text.back}</button>
+          onClick={() => change(-1)}>{text.back}</button>
         <button type="button" className="button-primary flex-1 md:flex-none" disabled={!next}
           aria-describedby={nextHint ? "journey-next-hint" : undefined}
-          onClick={() => next && select(next)}>{text.next}</button>
+          onClick={() => change(1)}>{text.next}</button>
       </div>
     </div>
   </div>;

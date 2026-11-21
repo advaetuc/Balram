@@ -9,6 +9,7 @@ import { deriveJourney, type JourneyStationId } from "@/lib/domain/journey";
 import { JourneyShell } from "@/components/journey/JourneyShell";
 import { DailyHome } from "@/components/home/DailyHome";
 import { WeatherStation } from "@/components/journey/WeatherStation";
+import { useCssVar } from "@/lib/ui/useCssVar";
 
 type View="landing"|"journey"|"daily";
 function nextStation(stations:ReturnType<typeof deriveJourney>):JourneyStationId {
@@ -20,9 +21,11 @@ export function AppShell(){
   const [view,setView]=useState<View>("landing");
   const [samplePending,setSamplePending]=useState(false);
   const persistenceRequested=useRef(false);
+  const progressRef=useRef<HTMLDivElement>(null);
   const nowIso=state.now===null?null:new Date(state.now).toISOString();
   const journey=deriveJourney(state,nowIso);
   const completedSteps = journey.filter(({ status }) => status === "done" || status === "skipped").length;
+  useCssVar(progressRef,"--p",journey.length===0?0:completedSteps/journey.length);
   useEffect(() => {
     if (!state.hydrated) return;
     document.documentElement.lang = state.locale;
@@ -52,14 +55,17 @@ export function AppShell(){
   };
   return <>
     <WeatherStation visible={false}/>
+    <div key={view} className="view-enter">
     {view==="landing"&&<div id="balram-home" className="mx-auto max-w-3xl space-y-6">
       <section className="rounded-3xl bg-forest p-6 text-white sm:p-10"><div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-sm font-bold uppercase tracking-widest">Balram · {state.locale==="mr"?"महाराष्ट्र":"Maharashtra"}</p><h1 className="mt-3 text-3xl leading-heading font-bold sm:text-4xl">{state.locale==="mr"?"तुमचे शेत. तुमचा वाढीचा मार्ग.":"Your farm. A clearer growing path."}</h1><p className="mt-3 max-w-2xl leading-7">{state.locale==="mr"?"जमीन, माती, पिके आणि पाणी यांचे स्थानिक नियोजन—तुमच्या ब्राउझरमध्ये सुरक्षित.":"Plan land, soil, crops and water locally, with your information kept in this browser."}</p></div><RadioChoices label={text.languageSelector} value={state.locale} onChange={state.setLocale}
         className="light-focus flex flex-wrap gap-2 rounded-xl bg-white/10 p-2"
         options={[{ value: "en", label: state.locale === "mr" ? "इंग्रजी" : "English" }, { value: "mr", label: "मराठी" }]} /></div></section>
       <section className="bento-card"><p className="text-sm leading-body font-bold uppercase tracking-widest text-forest">{text.myFarm}</p><h2 className="mt-1 text-2xl leading-heading font-bold">{state.farmProfile?.name??text.myFarm}</h2>
         <div className="mt-3 flex items-center gap-3">
-          <progress role="progressbar" aria-label={text.stepsComplete} max={journey.length} value={completedSteps}
-            className="h-2 min-w-0 flex-1 appearance-none overflow-hidden rounded-full bg-surface-muted [&::-moz-progress-bar]:bg-forest [&::-webkit-progress-bar]:bg-surface-muted [&::-webkit-progress-value]:bg-forest" />
+          <div role="progressbar" aria-label={text.stepsComplete} aria-valuemin={0} aria-valuemax={journey.length}
+            aria-valuenow={completedSteps} className="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-surface-muted">
+            <div ref={progressRef} aria-hidden="true" className="fill-x h-full w-full rounded-full bg-forest" />
+          </div>
           <span className="shrink-0 text-sm text-muted-foreground">{completedSteps} / {journey.length}</span>
         </div>
         {state.setupCompletedAt?<><p className="mt-2 text-sm">{state.locale==="mr"?"तुमचे शेत नियोजन तयार आहे.":"Your farm setup is complete."}</p><div className="mt-4 flex flex-wrap gap-3"><button type="button" className="button-primary min-h-14" onClick={()=>setView("daily")}>{text.openDailyHome}</button><button type="button" className="button-secondary" onClick={launchJourney}>{text.editSetup}</button></div></>
@@ -70,5 +76,6 @@ export function AppShell(){
     </div>}
     {view==="journey"&&<JourneyShell onFinish={()=>setView("daily")} onHome={()=>setView("landing")}/>}
     {view==="daily"&&<DailyHome onSetup={launchJourney}/>}
+    </div>
   </>;
 }

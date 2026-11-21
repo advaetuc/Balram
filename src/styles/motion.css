@@ -78,6 +78,34 @@
   .toast[data-paused="true"] .toast-bar {
     animation-play-state: paused;
   }
+
+  .panel {
+    --panel-from-x: 0px;
+    animation: panel-in var(--dur-base) var(--ease-enter) backwards;
+  }
+
+  .panel[data-dir="fwd"] {
+    --panel-from-x: var(--dist-panel);
+  }
+
+  .panel[data-dir="back"] {
+    --panel-from-x: calc(var(--dist-panel) * -1);
+  }
+
+  .panel-fade {
+    --panel-from-x: 0px;
+    animation: panel-fade var(--dur-base) var(--ease-enter) backwards;
+  }
+
+  .view-enter {
+    animation: rise-in var(--dur-base) var(--ease-enter) backwards;
+  }
+
+  .fill-x {
+    transform-origin: left center;
+    transform: scaleX(var(--p, 0));
+    transition: transform var(--dur-fill) var(--ease-standard);
+  }
 }
 
 .sheet[open],
@@ -123,6 +151,21 @@
 @keyframes toast-countdown {
   from { transform: scaleX(1); }
   to { transform: scaleX(0); }
+}
+
+@keyframes panel-in {
+  from { opacity: 0; transform: translateX(var(--panel-from-x)); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes panel-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(var(--dist-rise)); }
+  to { opacity: 1; transform: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
