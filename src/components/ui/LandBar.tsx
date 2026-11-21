@@ -1,5 +1,7 @@
+import { useRef } from "react";
 import { t } from "@/config/i18n";
 import { formatArea } from "@/lib/domain/landUnits";
+import { useCssVar } from "@/lib/ui/useCssVar";
 import type { LandUnit, Locale } from "@/types/domain";
 
 export function LandBar({ totalGunthas, allocatedGunthas, unit, locale }: {
@@ -15,6 +17,9 @@ export function LandBar({ totalGunthas, allocatedGunthas, unit, locale }: {
     ? text.unknown
     : formatArea(Math.max(0, totalGunthas - allocatedGunthas), unit, locale);
   const progress = totalGunthas === null ? 0 : Math.max(0, Math.min(allocatedGunthas, totalGunthas));
+  const ratio = totalGunthas === null || totalGunthas <= 0 ? 0 : progress / totalGunthas;
+  const fillRef = useRef<HTMLDivElement>(null);
+  useCssVar(fillRef, "--p", ratio);
   const stats = [
     { label: text.total, value: total },
     { label: text.planned, value: planned },
@@ -32,11 +37,12 @@ export function LandBar({ totalGunthas, allocatedGunthas, unit, locale }: {
         ))}
       </dl>
       {totalGunthas !== null && totalGunthas > 0 && (
-        <progress role="progressbar" aria-label={text.allocation} aria-valuemin={0}
+        <div role="progressbar" aria-label={text.allocation} aria-valuemin={0}
           aria-valuenow={progress} aria-valuemax={totalGunthas}
           aria-valuetext={`${text.planned} ${planned}, ${text.total} ${total}, ${text.free} ${free}`}
-          value={progress} max={totalGunthas}
-          className="block h-2 w-full appearance-none overflow-hidden rounded-full bg-surface-muted [&::-moz-progress-bar]:bg-forest [&::-webkit-progress-bar]:bg-surface-muted [&::-webkit-progress-value]:bg-forest" />
+          className="h-2 w-full overflow-hidden rounded-full bg-surface-muted">
+          <div ref={fillRef} className="fill-x h-full w-full bg-forest" />
+        </div>
       )}
     </div>
   );

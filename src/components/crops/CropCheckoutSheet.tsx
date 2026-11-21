@@ -138,7 +138,7 @@ export function CropCheckoutSheet(props: CropCheckoutSheetProps) {
         </fieldset>
         <fieldset className="mt-3 min-w-0"><legend className="text-sm font-semibold leading-body">{text.plantingStatusLabel}</legend><RadioChoices label={text.plantingStatusLabel} value={line.alreadyPlanted ? "planted" : "planned"}
           className="mt-1 grid grid-cols-2 gap-2"
-          options={[{ value: "planned", label: text.notPlantedYet }, { value: "planted", label: text.alreadyPlanted }]}
+          options={[{ value: "planned", label: text.notPlantedYet, className: "press" }, { value: "planted", label: text.alreadyPlanted, className: "press" }]}
           onChange={value => updateLine(line.draftId, value === "planned"
             ? { alreadyPlanted: false, lifecycleStage: "planned", plantingDate: null }
             : { alreadyPlanted: true, lifecycleStage: null })} /></fieldset>
@@ -158,7 +158,7 @@ export function CropCheckoutSheet(props: CropCheckoutSheetProps) {
       {error && <p role="alert" className="notice mb-2 text-sm leading-body">{error}</p>}
       {missingStage ? <p className="mb-2 text-sm leading-body" id="checkout-stage-hint">{text.pickPlantedStage}</p>
         : !validation.ok && validation.message && <p className="notice mb-2 text-sm leading-body">{validation.message[state.locale]}</p>}
-      <button type="button" className="button-primary min-h-14 w-full" aria-describedby={missingStage ? "checkout-stage-hint" : undefined}
+      <button type="button" className="button-primary press min-h-14 w-full" aria-describedby={missingStage ? "checkout-stage-hint" : undefined}
         disabled={!state.hydrated || state.sampleDataActive || missingStage || !validation.ok} onClick={commit}>
         {lines.some(line => line.editingPlotId) ? text.savePlotChanges : text.confirmCheckout}
       </button>
