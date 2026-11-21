@@ -1,30 +1,67 @@
+@import "../styles/tokens.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  html { color-scheme: light; }
-  body { @apply m-0 bg-daylight font-sans text-ink antialiased; }
+  html { color-scheme: light; scroll-padding-bottom: 88px; }
+  body { @apply m-0 bg-surface-bg font-sans text-lg leading-body text-ink antialiased; }
   a, button, input, select, textarea, summary {
     @apply min-h-12 min-w-12;
   }
-  :focus-visible { @apply outline outline-2 outline-offset-4 outline-forest; }
-  button:disabled { @apply cursor-not-allowed opacity-60; }
+  :focus-visible, .peer:focus-visible + .choice-target {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+  }
+  .light-focus .peer:focus-visible + .choice-target { box-shadow: 0 0 0 6px white; }
+  button:disabled, button[aria-disabled="true"] { @apply cursor-not-allowed opacity-60; }
   ::selection { @apply bg-amber text-ink; }
 }
 
 @layer components {
-  .bento-card { @apply min-w-0 rounded-2xl border border-forest/15 bg-white p-5 shadow-sm sm:p-6; }
-  .button-primary { @apply inline-flex min-h-12 min-w-12 items-center justify-center rounded-xl bg-forest px-5 py-3 text-sm font-semibold text-white hover:bg-forest/90 disabled:cursor-not-allowed disabled:opacity-50; }
-  .button-secondary { @apply inline-flex min-h-12 min-w-12 items-center justify-center rounded-xl border border-forest/30 bg-white px-4 py-3 text-sm font-semibold text-forest hover:bg-forest/5 disabled:cursor-not-allowed disabled:opacity-50; }
+  .bento-card { @apply min-w-0 rounded-2xl border border-forest/15 bg-white p-5 shadow-card sm:p-6; }
+  .button-primary { @apply inline-flex min-h-12 min-w-12 items-center justify-center rounded-xl bg-forest px-5 py-3 text-sm font-semibold leading-body text-white hover:bg-forest/90 disabled:cursor-not-allowed disabled:opacity-50; }
+  .button-secondary { @apply inline-flex min-h-12 min-w-12 items-center justify-center rounded-xl border border-border-strong bg-white px-4 py-3 text-sm font-semibold leading-body text-forest hover:bg-forest/5 disabled:cursor-not-allowed disabled:opacity-50; }
   .button-quiet { @apply inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg px-3 py-3 text-forest hover:bg-forest/5; }
-  .form-input { @apply block min-h-12 w-full min-w-0 rounded-lg border border-stone-300 bg-white px-3 py-2 text-base text-ink; }
+  .form-input { @apply block min-h-12 w-full min-w-0 rounded-lg border border-border-strong bg-white px-3 py-2 text-base text-ink; }
   .notice { @apply rounded-lg border-l-4 border-amber bg-amber/15 p-3 text-sm leading-6 text-ink; }
-  .data-badge { @apply inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold; }
-  summary { @apply flex min-h-12 cursor-pointer items-center rounded-lg py-3 text-sm font-semibold text-forest; }
-  summary::before { content: "+"; @apply mr-3 text-lg; }
+  .data-badge { @apply inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold leading-body; }
+  summary { @apply flex min-h-12 cursor-pointer items-center rounded-lg py-3 text-sm font-semibold leading-body text-forest; }
+  summary::before { content: "+"; @apply mr-3 shrink-0 text-lg; }
   details[open] > summary::before { content: "−"; }
 }
+
+@media (prefers-reduced-motion: no-preference) {
+  :where(button, summary, .choice-target) {
+    transition: transform var(--duration-fast) var(--ease-standard), opacity var(--duration-base) var(--ease-standard);
+  }
+  :where(button:not(:disabled):not([aria-disabled="true"]), summary, .choice-target):active {
+    transform: scale(.98);
+  }
+  button:is(:disabled, [aria-disabled="true"]) {
+    transition: opacity var(--duration-exit) var(--ease-exit);
+  }
+  dialog[open] { animation: panel-enter var(--duration-slow) var(--ease-enter) both; }
+  .toast-enter { animation: panel-enter var(--duration-base) var(--ease-enter) both; }
+  .section-disclosure[open] > .disclosure-body {
+    animation: panel-enter var(--duration-base) var(--ease-enter) both;
+  }
+  .animate-growing-path-in { animation: growing-path-in var(--duration-slow) var(--ease-enter) both; }
+}
+
+@keyframes panel-enter {
+  from { opacity: 0; transform: translateY(.375rem); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes growing-path-in {
+  from { opacity: 0; transform: scale(.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+dialog { scroll-padding: 8px; }
+dialog::backdrop { background: var(--color-scrim); }
 
 /* Leaflet controls use their own CSS; enforce touch sizing after its styles. */
 .leaflet-container .leaflet-control-zoom a,
@@ -34,29 +71,57 @@
 .leaflet-container .leaflet-draw-toolbar a.leaflet-draw-edit-remove { background-position: -171px 9px; }
 .leaflet-container .leaflet-draw-toolbar a.leaflet-disabled { opacity: 0.45; }
 .leaflet-container .leaflet-draw-actions a { display: inline-flex; align-items: center; height: 48px; min-width: 48px; }
-.leaflet-container .leaflet-draw-actions { left: 50px; }
+.leaflet-container .leaflet-draw-actions {
+  left: 56px;
+  width: max-content;
+  max-width: calc(100cqw - 80px);
+  white-space: normal;
+}
 .leaflet-container .leaflet-control-attribution a { display: inline-flex; align-items: center; min-height: 48px; min-width: 48px; }
-.leaflet-container a:focus-visible { outline: 3px solid #1E5631; outline-offset: 2px; }
+.leaflet-container a:focus-visible { outline: 2px solid var(--color-ring); outline-offset: 2px; }
+.leaflet-container .leaflet-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 0;
+  box-shadow: none;
+}
+.leaflet-container .leaflet-bar a {
+  box-sizing: border-box;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 4px;
+}
+.leaflet-container .leaflet-draw-actions li { margin: 0 8px 8px 0; }
+.leaflet-container .leaflet-draw-actions a {
+  padding-inline: 8px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 4px;
+  background-color: var(--color-card);
+  color: var(--color-primary);
+  font-family: inherit;
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-body);
+  white-space: normal;
+}
+.leaflet-container .leaflet-draw-actions a:hover { background-color: var(--color-muted); }
 .leaflet-container .leaflet-div-icon.leaflet-editing-icon { width: 48px !important; height: 48px !important; margin-left: -24px !important; margin-top: -24px !important; border: 0; background: radial-gradient(circle, #fff 0 5px, #1E5631 6px 8px, transparent 9px); }
-.leaflet-container { font-family: inherit; }
-
-@keyframes growing-path-in { from { opacity: 0; transform: scale(.75); } to { opacity: 1; transform: scale(1); } }
-.animate-growing-path-in { animation: growing-path-in 300ms ease-out both; }
+.leaflet-container { font-family: inherit; container-type: inline-size; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
 @media print {
   @page { size: A4; margin: 16mm; }
-  body > header, body > footer, body > a { display: none !important; }
+  body > header, body > footer, body > a, dialog { display: none !important; }
+  /* Keep just the active report and its ancestors when printing from either view. */
+  main:has(#farm-report) :not(#farm-report, #farm-report *, :has(#farm-report)) { display: none !important; }
+  main :has(#farm-report) { display: block !important; padding: 0 !important; margin: 0 !important; }
+  main details:has(#farm-report)::details-content { content-visibility: visible; }
   body, main { display: block !important; background: white !important; padding: 0 !important; margin: 0 !important; max-width: none !important; }
   #farm-report { border: 0; box-shadow: none; padding: 0; margin: 0; }
   #farm-report tr, #farm-report dl { break-inside: avoid; }
   #farm-report thead { display: table-header-group; }
   #farm-report .overflow-x-auto { overflow: visible; }
+  #farm-report table { table-layout: fixed; overflow-wrap: anywhere; }
   * { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-}
-
-html[lang="mr"] body {
-  line-height: 1.65;
 }
