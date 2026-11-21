@@ -9,4 +9,125 @@
 
 @layer components {
   /* v0.3.5 motion primitives added in P1–P5 */
+
+  .sheet,
+  .sheet-dialog {
+    opacity: 0;
+    transition: opacity var(--dur-exit-slow) var(--ease-exit),
+      transform var(--dur-exit-slow) var(--ease-exit);
+  }
+
+  .sheet {
+    transform: translateY(100%);
+  }
+
+  .sheet-dialog {
+    transform: translateY(var(--dist-dialog));
+  }
+
+  .sheet[open] {
+    opacity: 1;
+    transform: none;
+    transition-duration: var(--dur-slow);
+    transition-timing-function: var(--ease-sheet);
+  }
+
+  .sheet-dialog[open] {
+    opacity: 1;
+    transform: none;
+    transition-duration: var(--dur-slow);
+    transition-timing-function: var(--ease-enter);
+  }
+
+  .sheet::backdrop,
+  .sheet-dialog::backdrop {
+    background-color: rgb(33 33 33 / 0);
+    transition: background-color var(--dur-exit-slow) var(--ease-exit);
+  }
+
+  .sheet[open]::backdrop,
+  .sheet-dialog[open]::backdrop {
+    background-color: var(--color-scrim);
+    transition-duration: var(--dur-slow);
+    transition-timing-function: var(--ease-enter);
+  }
+
+  .dock-in {
+    animation: dock-in var(--dur-slow) var(--ease-sheet) backwards;
+  }
+
+  .toast {
+    opacity: 1;
+    transform: none;
+    transition: opacity var(--dur-base) var(--ease-enter),
+      transform var(--dur-base) var(--ease-enter);
+  }
+
+  .toast[data-state="leaving"] {
+    opacity: 0;
+    transform: translateY(var(--dist-toast));
+    transition-duration: var(--dur-exit);
+    transition-timing-function: var(--ease-exit);
+  }
+
+  .toast-bar {
+    animation: toast-countdown var(--dur-toast-undo) linear both;
+    transform-origin: left center;
+  }
+
+  .toast[data-paused="true"] .toast-bar {
+    animation-play-state: paused;
+  }
+}
+
+.sheet[open],
+.sheet-dialog[open] {
+  transition-property: opacity, transform;
+}
+
+@starting-style {
+  .sheet[open] {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+
+  .sheet-dialog[open] {
+    opacity: 0;
+    transform: translateY(var(--dist-dialog));
+  }
+
+  .sheet[open]::backdrop,
+  .sheet-dialog[open]::backdrop {
+    background-color: rgb(33 33 33 / 0);
+  }
+
+  .toast:not([data-state="leaving"]) {
+    opacity: 0;
+    transform: translateY(var(--dist-toast));
+  }
+}
+
+@supports (transition-behavior: allow-discrete) {
+  .sheet,
+  .sheet-dialog {
+    transition-property: opacity, transform, overlay, display;
+    transition-behavior: allow-discrete;
+  }
+}
+
+@keyframes dock-in {
+  from { opacity: 0; transform: translateX(var(--dist-dock)); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes toast-countdown {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast[data-state="leaving"],
+  .toast-bar {
+    display: none;
+  }
 }

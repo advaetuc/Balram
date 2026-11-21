@@ -89,7 +89,7 @@ export function JourneyShell({ onFinish, onHome }: { onFinish: () => void; onHom
           </button>
         </div>
         <dialog ref={sheetRef} id="station-sheet" aria-labelledby="station-sheet-title" onClose={restoreStationFocus}
-          className="fixed inset-x-0 bottom-0 top-auto m-0 mx-auto max-h-[85dvh] w-full max-w-[560px] overflow-y-auto rounded-t-2xl bg-white p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] text-ink shadow-sheet print:hidden">
+          className="sheet fixed inset-x-0 bottom-0 top-auto m-0 mx-auto max-h-[85dvh] w-full max-w-[560px] overflow-y-auto rounded-t-2xl bg-white p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] text-ink shadow-sheet print:hidden">
           <div className="flex items-center justify-between gap-3">
             <h2 id="station-sheet-title" className="text-lg font-bold">{text.setupJourney}</h2>
             <button type="button" autoFocus className="button-secondary" onClick={() => sheetRef.current?.close()}>{text.close}</button>

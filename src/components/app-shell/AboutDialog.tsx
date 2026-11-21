@@ -17,7 +17,7 @@ export function AboutDialog({ dialogRef, onClose }: {
 
   return (
     <dialog ref={dialogRef} aria-labelledby="about-data-title" onClose={onClose}
-      className="max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-[560px] overflow-y-auto rounded-2xl bg-white p-4 text-ink shadow-sheet print:hidden sm:p-6">
+      className="sheet-dialog max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-[560px] overflow-y-auto rounded-2xl bg-white p-4 text-ink shadow-sheet print:hidden sm:p-6">
       <div className="flex items-center justify-between gap-3">
         <h2 id="about-data-title" className="text-xl font-bold leading-heading">{text.aboutData}</h2>
         <button type="button" autoFocus aria-label={text.close} className="button-secondary"

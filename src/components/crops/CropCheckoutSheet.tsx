@@ -167,7 +167,7 @@ export function CropCheckoutSheet(props: CropCheckoutSheetProps) {
 
   if (desktop) return (
     <aside className="hidden min-w-0 print:hidden lg:sticky lg:top-4 lg:block">
-      <section className="bento-card flex max-h-[calc(100dvh-2rem)] flex-col">
+      <section className={`bento-card flex max-h-[calc(100dvh-2rem)] flex-col ${lines.length > 0 ? "dock-in" : ""}`}>
         <div className="flex shrink-0 flex-wrap items-center gap-2 pb-2">
           <h2 ref={desktopHeading} tabIndex={-1} className="text-xl font-bold leading-heading">{text.checkoutTitle}</h2>
           <LandUnitToggle />
@@ -183,7 +183,7 @@ export function CropCheckoutSheet(props: CropCheckoutSheetProps) {
       onClick={event => props.onOpen(event.currentTarget)}>{text.reviewSelection} · {lines.length}</button>}
     <dialog ref={dialogRef} aria-labelledby="checkout-title" onClose={props.onFocusReturn}
       onCancel={event => { event.preventDefault(); props.onClose(); }}
-      className="fixed inset-x-0 bottom-0 top-auto mx-auto mb-0 mt-auto max-h-[90dvh] w-full max-w-[560px] flex-col overflow-hidden rounded-t-2xl bg-white text-ink shadow-sheet open:flex print:hidden">
+      className="sheet fixed inset-x-0 bottom-0 top-auto mx-auto mb-0 mt-auto max-h-[90dvh] w-full max-w-[560px] flex-col overflow-hidden rounded-t-2xl bg-white text-ink shadow-sheet open:flex print:hidden">
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-forest/15 p-3">
         <h2 id="checkout-title" className="text-lg font-bold leading-heading">{text.checkoutTitle}</h2>
         <button type="button" autoFocus className="button-secondary" onClick={props.onClose}>{text.keepBrowsing}</button>
