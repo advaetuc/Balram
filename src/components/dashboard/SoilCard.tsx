@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useBalramStore } from "@/store/useBalramStore";
 import { createSoilHealthCardReading, interpretSoilKitReading } from "@/lib/domain/soilKit";
 import { indiaDate, parseNumber } from "@/lib/ui/format";
@@ -14,6 +14,7 @@ const pill="min-h-12 min-w-12 rounded-lg border px-3";
 export function SoilCard(){
   const state=useBalramStore(s=>s),text=t(state.locale),mr=state.locale==="mr",saved=state.soilKitReading;
   const [mode,setMode]=useState<SoilMode>(state.soilSkipped?"skip":saved?.kitType??"balram_inhouse");
+  const phId = useId();
   const [ph,setPh]=useState(String(saved?.ph??7));
   const [n,setN]=useState<SoilKitReading["nitrogenLevel"]>(saved?.nitrogenLevel??"medium");
   const [p,setP]=useState<SoilKitReading["phosphorusLevel"]>(saved?.phosphorusLevel??"medium");
@@ -25,7 +26,7 @@ export function SoilCard(){
   const [error,setError]=useState("");
   const disabled=!state.hydrated||state.sampleDataActive;
   const choiceName=(value:string)=>({low:text.low,medium:text.medium,high:text.high,untested:mr?"तपासलेले नाही":"Untested",normal:mr?"सामान्य":"Normal",elevated:mr?"वाढलेली":"Elevated"} as Record<string,string>)[value]??value;
-  const choice=<T extends string,>(label:string,value:T,values:readonly T[],set:(v:T)=>void)=><fieldset disabled={disabled} className="mt-3"><legend className="text-sm font-semibold">{label}</legend><div className="flex flex-wrap gap-2">{values.map(v=><button key={v} type="button" className={`${pill} ${value===v?"border-forest bg-forest text-white":"border-forest/25"}`} aria-pressed={value===v} onClick={()=>set(v)}>{choiceName(v)}</button>)}</div></fieldset>;
+  const choice=<T extends string,>(label:string,value:T,values:readonly T[],set:(v:T)=>void)=><fieldset disabled={disabled} className="mt-3"><legend className="text-sm font-semibold leading-body">{label}</legend><div className="flex flex-wrap gap-2">{values.map(v=><button key={v} type="button" className={`${pill} ${value===v?"border-forest bg-forest text-white":"border-forest/25"}`} aria-pressed={value===v} onClick={()=>set(v)}>{choiceName(v)}</button>)}</div></fieldset>;
   function chooseSkip(){if(disabled)return;setMode("skip");state.setSoilSkipped(true);setError("")}
   function save(){
     try{
@@ -42,23 +43,42 @@ export function SoilCard(){
       state.setSoilKitReading(value);setMode(mode);setError("");
     }catch{setError(mr?"pH 3.5 ते 10.5 दरम्यान आणि kg/ha मधील आकडे मर्यादेत नोंदवा.":"Enter pH from 3.5 to 10.5 and valid Soil Health Card values (N ≤ 2000, P ≤ 500 kg/ha).")}
   }
+  function stepPh(delta: number) {
+    setPh(value => (Math.min(105, Math.max(35, Math.round(Number(value) * 10) + delta)) / 10).toFixed(1));
+  }
   const interpretation=saved?interpretSoilKitReading(saved):null;
   return <Card id="soil" title={text.soil} eyebrow={text.kit}>
-    <p className="mt-2 text-sm">{mr?"चाचणीचे निकाल या ब्राउझरमध्ये राहतात; बाहेरील सेवेकडे पाठवले जात नाहीत.":"Test results stay in this browser and are not sent to a provider."}</p>
+    <p className="mt-2 text-sm leading-body">{mr?"चाचणीचे निकाल या ब्राउझरमध्ये राहतात; बाहेरील सेवेकडे पाठवले जात नाहीत.":"Test results stay in this browser and are not sent to a provider."}</p>
     {state.sampleDataActive&&<p className="notice mt-3">{text.sampleReadOnly}</p>}
-    <div className="mt-4 rounded-xl border border-forest/20 bg-forest/5 p-3"><p className="mb-2 text-xs font-bold uppercase tracking-wide text-forest">{mr?"मुख्य चाचणी पद्धत":"Main test method"}</p><button type="button" disabled={disabled} aria-pressed={mode==="balram_inhouse"} className={`min-h-14 w-full rounded-xl border px-4 text-left font-bold ${mode==="balram_inhouse"?"border-forest bg-forest text-white":"border-forest/25 bg-white"}`} onClick={()=>setMode("balram_inhouse")}>{text.soilModeHouse}</button></div>
-    <div className="mt-3"><p className="mb-2 text-sm font-semibold">{mr?"इतर चाचणी निकाल":"Other test results"}</p><div className="grid gap-2 sm:grid-cols-2">{([ ["soil_health_card",text.soilModeCard], ["commercial_rapid",text.soilModeRapid] ] as const).map(([key,label])=><button type="button" key={key} disabled={disabled} aria-pressed={mode===key} className={`${pill} ${mode===key?"border-forest bg-forest text-white":"border-forest/25 bg-white"}`} onClick={()=>setMode(key)}>{label}</button>)}</div></div>
+    <div className="mt-4 rounded-xl border border-forest/20 bg-forest/5 p-3"><p className="mb-2 text-sm font-bold leading-body uppercase tracking-wide text-forest">{mr?"मुख्य चाचणी पद्धत":"Main test method"}</p><button type="button" disabled={disabled} aria-pressed={mode==="balram_inhouse"} className={`min-h-14 w-full rounded-xl border px-4 text-left font-bold ${mode==="balram_inhouse"?"border-forest bg-forest text-white":"border-forest/25 bg-white"}`} onClick={()=>setMode("balram_inhouse")}>{text.soilModeHouse}</button></div>
+    <div className="mt-3"><p className="mb-2 text-sm font-semibold leading-body">{mr?"इतर चाचणी निकाल":"Other test results"}</p><div className="grid gap-2 sm:grid-cols-2">{([ ["soil_health_card",text.soilModeCard], ["commercial_rapid",text.soilModeRapid] ] as const).map(([key,label])=><button type="button" key={key} disabled={disabled} aria-pressed={mode===key} className={`${pill} ${mode===key?"border-forest bg-forest text-white":"border-forest/25 bg-white"}`} onClick={()=>setMode(key)}>{label}</button>)}</div></div>
     <button type="button" disabled={disabled} aria-pressed={mode==="skip"} className="button-quiet mt-2 min-h-12 w-full justify-start text-left" onClick={chooseSkip}>{text.soilSkip}</button>
     {mode==="skip"&&<p className="notice mt-3">{text.soilSkipped}</p>}
     {mode!=="skip"&&<>
-      <p className="mt-3 text-xs leading-5">{mr?"इन-हाऊस पद्धत: माती-पाणी सामू, अल्कलाइन KMnO₄ नत्र आणि ओल्सेन रंगमिती स्फुरद.":"In-house method: soil-water pH, alkaline KMnO₄ available nitrogen, and Olsen colorimetry available phosphorus."}</p>
-      <label className="mt-3 block text-sm">{mr?"मातीचा सामू (pH)":"Soil pH"} · {Number(ph).toFixed(1)}<input disabled={disabled} className="form-input mt-1" type="range" min="3.5" max="10.5" step="0.1" value={ph} onChange={e=>setPh(e.target.value)}/><span className="data-badge bg-amber/20 text-ink">{mr?"आम्लीय":"Acidic"} &lt; 6.5</span> <span className="data-badge bg-forest/10 text-forest">{mr?"तटस्थ":"Neutral"} 6.5–7.5</span> <span className="data-badge bg-sky/10 text-ink">{mr?"विम्ल":"Alkaline"} &gt; 7.5</span></label>
-      {mode==="soil_health_card"?<div className="mt-3 grid gap-3 sm:grid-cols-2"><label className="text-sm">{text.soilNitrogenKg}<input disabled={disabled} className="form-input mt-1" type="number" min="0.01" max="2000" step="any" value={nitrogenKg} onChange={e=>setNitrogenKg(e.target.value)}/></label><label className="text-sm">{text.soilPhosphorusKg}<input disabled={disabled} className="form-input mt-1" type="number" min="0.01" max="500" step="any" value={phosphorusKg} onChange={e=>setPhosphorusKg(e.target.value)}/></label></div>:<>{choice(mr?"उपलब्ध नत्र · अल्कलाइन KMnO₄":"Available nitrogen · alkaline KMnO₄",n,["low","medium","high"],setN)}{choice(mr?"उपलब्ध स्फुरद · ओल्सेन चाचणी":"Available phosphorus · Olsen test",p,["low","medium","high"],setP)}</>}
+      <p className="mt-3 text-sm leading-body">{mr?"इन-हाऊस पद्धत: माती-पाणी सामू, क्षारीय पोटॅशियम परमॅंगनेट नत्र आणि ओल्सेन रंगमिती स्फुरद.":"In-house method: soil-water pH, alkaline KMnO₄ available nitrogen, and Olsen colorimetry available phosphorus."}</p>
+      <div className="mt-3">
+        <label htmlFor={phId} className="block text-sm font-semibold leading-body">{mr ? "मातीचा सामू (pH)" : "Soil pH"}</label>
+        <div className="mt-1 flex items-center gap-3">
+          <button type="button" className="button-secondary min-h-12" aria-label={text.phDecrease}
+            disabled={disabled || Number(ph) <= 3.5} onClick={() => stepPh(-1)}>−0.1</button>
+          <output htmlFor={phId} className="text-3xl font-bold leading-heading tabular-nums">{Number(ph).toFixed(1)}</output>
+          <button type="button" className="button-secondary min-h-12" aria-label={text.phIncrease}
+            disabled={disabled || Number(ph) >= 10.5} onClick={() => stepPh(1)}>+0.1</button>
+        </div>
+        <input id={phId} disabled={disabled} className="form-input mt-2 accent-forest" type="range" min="3.5" max="10.5"
+          step="0.1" value={ph} onChange={event => setPh(event.target.value)} />
+        <div className="mt-2 flex flex-wrap gap-2 text-sm leading-body">
+          <span className="rounded-full bg-warning-subtle px-3 py-1 text-on-warning-subtle">{mr ? "आम्लीय" : "Acidic"} &lt; 6.5</span>
+          <span className="rounded-full bg-success-subtle px-3 py-1 text-on-success-subtle">{mr ? "तटस्थ" : "Neutral"} 6.5–7.5</span>
+          <span className="rounded-full bg-info-subtle px-3 py-1 text-on-info-subtle">{mr ? "विम्ल" : "Alkaline"} &gt; 7.5</span>
+        </div>
+      </div>
+      {mode==="soil_health_card"?<div className="mt-3 grid gap-3 sm:grid-cols-2"><label className="text-sm leading-body">{text.soilNitrogenKg}<input disabled={disabled} className="form-input mt-1" type="number" min="0.01" max="2000" step="any" value={nitrogenKg} onChange={e=>setNitrogenKg(e.target.value)}/></label><label className="text-sm leading-body">{text.soilPhosphorusKg}<input disabled={disabled} className="form-input mt-1" type="number" min="0.01" max="500" step="any" value={phosphorusKg} onChange={e=>setPhosphorusKg(e.target.value)}/></label></div>:<>{choice(mr?"उपलब्ध नत्र · क्षारीय पोटॅशियम परमॅंगनेट":"Available nitrogen · alkaline KMnO₄",n,["low","medium","high"],setN)}{choice(mr?"उपलब्ध स्फुरद · ओल्सेन चाचणी":"Available phosphorus · Olsen test",p,["low","medium","high"],setP)}</>}
       {mode==="commercial_rapid"&&<>{choice(mr?"पालाश":"Potassium",k,["low","medium","high","untested"],setK)}{choice(mr?"सेंद्रिय कर्ब":"Organic carbon",carbon,["low","medium","high","untested"],setCarbon)}{choice(mr?"क्षारता":"Salinity",salinity,["normal","elevated","high","untested"],setSalinity)}</>}
       <div className="mt-4 flex flex-wrap gap-2"><button className="button-primary min-h-12 flex-1" disabled={disabled} onClick={save}>{text.soilSave}</button><button className="button-secondary min-h-12" disabled={disabled||!saved} onClick={()=>state.setSoilKitReading(null)}>{mr?"चाचणी काढा":"Clear kit reading"}</button></div>
     </>}
     {error&&<p role="alert" className="notice mt-2">{error}</p>}
-    {interpretation&&<section className="mt-5 rounded-xl bg-forest/5 p-4"><h3 className="font-bold">{mr?"लागवडीपूर्वी मातीला काय हवे":"What Your Soil Needs Before Planting"}</h3><p className="mt-1">{mr?interpretation.headline.mr:interpretation.headline.en}</p><p className="data-badge mt-2 bg-sky/10">{mr?({optimal:"संतुलित",needs_enrichment:"सुधारणा आवश्यक",critical_amendment:"महत्त्वाची सुधारणा आवश्यक"} as const)[interpretation.overallHealth]:interpretation.overallHealth.replaceAll("_"," ")}</p><p className="mt-2 text-sm">{mr?interpretation.assayNotes.mr:interpretation.assayNotes.en}</p><ul className="mt-3 space-y-3">{interpretation.steps.map(step=><li key={step.id} className="rounded-lg border border-forest/15 bg-white p-3"><b>{mr?step.badgeLabel.mr:step.badgeLabel.en}</b><p className="text-sm">{mr?step.plainExplanation.mr:step.plainExplanation.en}</p><p className="mt-1 text-sm font-medium">{mr?step.actionStep.mr:step.actionStep.en}</p></li>)}</ul></section>}
+    {interpretation&&<section className="mt-5 rounded-xl bg-forest/5 p-4"><h3 className="font-bold">{mr?"लागवडीपूर्वी मातीला काय हवे":"What Your Soil Needs Before Planting"}</h3><p className="mt-1">{mr?interpretation.headline.mr:interpretation.headline.en}</p><p className="inline-flex rounded-full px-3 py-1 text-sm leading-body mt-2 bg-sky/10">{mr?({optimal:"संतुलित",needs_enrichment:"सुधारणा आवश्यक",critical_amendment:"महत्त्वाची सुधारणा आवश्यक"} as const)[interpretation.overallHealth]:interpretation.overallHealth.replaceAll("_"," ")}</p><p className="mt-2 text-sm leading-body">{mr?interpretation.assayNotes.mr:interpretation.assayNotes.en}</p><ul className="mt-3 space-y-3">{interpretation.steps.map(step=><li key={step.id} className="rounded-lg border border-forest/15 bg-white p-3"><b>{mr?step.badgeLabel.mr:step.badgeLabel.en}</b><p className="text-sm leading-body">{mr?step.plainExplanation.mr:step.plainExplanation.en}</p><p className="mt-1 text-sm font-medium">{mr?step.actionStep.mr:step.actionStep.en}</p></li>)}</ul></section>}
     <DataCaption source={saved?(mr?"शेतकऱ्याने नोंदवलेली माती किट":"Farmer-entered physical soil kit"):(mr?"माती किटचा निकाल जतन नाही":"No physical kit reading saved")} validAt={saved?.testedAt??null} sample={state.sampleDataActive}/>
   </Card>;
 }

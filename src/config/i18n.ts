@@ -5,11 +5,16 @@ import type { ProvenanceTag } from "@/lib/domain/roadmap";
 
 const dictionary = {
   en: {
+    advanced:"Advanced", alreadyPlantedQuestion:"Already planted?", pickPlantedStage:"Choose the current growth stage to continue.",
+    cropAdded:"added", cropAddedBadge:"Added", plotsAdded:"plots added", viewPlot:"View", plotChangesSaved:"Plot changes saved.",
+    noPlotsYet:"Choose a crop below to add your first plot.", noUrgentAdvice:"No urgent advice this week",
+    phDecrease:"Decrease pH by 0.1", phIncrease:"Increase pH by 0.1",
     aboutData:"About & data", close:"Close", systemStatus:"System & data status checks",
     statusClear:"No data issues to review.", memoryOnly:"Changes stay in this tab only.",
     stepsComplete:"Setup steps complete", addFieldToContinue:"Add your field to continue",
     addPlotToContinue:"Add at least one plot to continue", reviewPlotsToContinue:"Check your plot areas to continue",
     finishToContinue:"Select Finish Setup to continue", dailyNavigation:"Daily Home",
+    landBar:{total:"Total",planned:"Planned",free:"Free",unknown:"Not yet known",allocation:"Land planned out of total area"},
     farmTabs:{land:"Land",crops:"Crops",soil:"Soil",data:"Data"},
     tagline:"Your field. Your plan.", overview:"Farm overview", exploreSample:"Explore sample", exitSample:"Exit sample",
     online:"Online", offline:"Offline · saved data only", stale:"Stale data · check dates", saved:"Saved in this browser", saving:"Saving in this browser…", loading:"Loading saved farm…",
@@ -38,11 +43,16 @@ const dictionary = {
     yourPlots:"Your plots",editPlot:"Edit",removePlot:"Remove plot",undo:"Undo",plotAddedToast:"Added to your farm plan",plotRemovedToast:"Plot removed",plotRemovedNamed:"Plot removed:",cancelEdit:"Cancel edit",
   },
   mr: {
+    advanced:"प्रगत", alreadyPlantedQuestion:"आधीच लागवड केली आहे का?", pickPlantedStage:"पुढे जाण्यासाठी पिकाची सध्याची वाढीची अवस्था निवडा.",
+    cropAdded:"जोडले", cropAddedBadge:"जोडले", plotsAdded:"प्लॉट जोडले", viewPlot:"पहा", plotChangesSaved:"प्लॉटमधील बदल जतन झाले.",
+    noPlotsYet:"पहिला प्लॉट जोडण्यासाठी खालील पीक निवडा.", noUrgentAdvice:"या आठवड्यात कोणताही तातडीचा सल्ला नाही",
+    phDecrease:"pH ०.१ ने कमी करा", phIncrease:"pH ०.१ ने वाढवा",
     aboutData:"माहिती व गोपनीयता", close:"बंद करा", systemStatus:"प्रणाली आणि माहितीची स्थिती",
     statusClear:"माहितीत तपासण्यासारखी कोणतीही समस्या नाही.", memoryOnly:"बदल फक्त या टॅबमध्ये राहतील.",
     stepsComplete:"तयारीचे टप्पे पूर्ण", addFieldToContinue:"पुढे जाण्यासाठी तुमचे शेत नोंदवा",
     addPlotToContinue:"पुढे जाण्यासाठी किमान एक प्लॉट जोडा", reviewPlotsToContinue:"पुढे जाण्यासाठी प्लॉटचे क्षेत्र तपासा",
     finishToContinue:"पुढे जाण्यासाठी सेटअप पूर्ण करा हे बटण दाबा", dailyNavigation:"दैनंदिन विभाग",
+    landBar:{total:"एकूण",planned:"नियोजित",free:"उपलब्ध",unknown:"अजून माहीत नाही",allocation:"एकूण जमिनीपैकी नियोजित क्षेत्र"},
     farmTabs:{land:"जमीन",crops:"पिके",soil:"माती",data:"बॅकअप"},
     tagline:"तुमचे शेत. तुमचे नियोजन.", overview:"शेताचा आढावा", exploreSample:"नमुना पहा", exitSample:"नमुना बंद करा",
     online:"ऑनलाइन", offline:"ऑफलाइन · जतन केलेली माहिती", stale:"जुनी माहिती · तारीख तपासा", saved:"या ब्राउझरमध्ये जतन", saving:"या ब्राउझरमध्ये जतन होत आहे…", loading:"जतन केलेले शेत उघडत आहे…",
