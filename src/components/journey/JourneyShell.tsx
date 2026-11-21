@@ -31,6 +31,14 @@ export function JourneyShell({ onFinish, onHome }: { onFinish: () => void; onHom
   const nowIso=state.now===null?null:new Date(state.now).toISOString();
   const stations=useMemo(()=>deriveJourney(state,nowIso),[state,nowIso]);
   const [nav,setNav]=useState<{ station: JourneyStationId; dir: "fwd" | "back" | "none" }>(()=>({station:nextStep(stations),dir:"none"}));
+  const [bloomStationId,setBloomStationId]=useState<JourneyStationId|null>(null);
+  const previousJourney=useRef({
+    statuses:new Map(stations.map(station=>[station.id,station.status] as const)),
+    locale:state.locale,
+    sampleDataActive:state.sampleDataActive,
+    hydrated:state.hydrated,
+  });
+  const bloomTimer=useRef<number|null>(null);
   const sheetRef = useRef<HTMLDialogElement>(null);
   const sheetTrigger = useRef<HTMLButtonElement>(null);
   const desktopStations = useRef<HTMLElement>(null);
@@ -43,6 +51,34 @@ export function JourneyShell({ onFinish, onHome }: { onFinish: () => void; onHom
     desktop.addEventListener("change", closeMobileSheet);
     return () => desktop.removeEventListener("change", closeMobileSheet);
   }, []);
+  useEffect(() => {
+    const previous=previousJourney.current;
+    const contextChanged=previous.locale!==state.locale
+      ||previous.sampleDataActive!==state.sampleDataActive
+      ||previous.hydrated!==state.hydrated;
+    const statuses=new Map(stations.map(station=>[station.id,station.status] as const));
+    previousJourney.current={statuses,locale:state.locale,sampleDataActive:state.sampleDataActive,hydrated:state.hydrated};
+
+    if(contextChanged||!state.hydrated||state.sampleDataActive){
+      if(bloomTimer.current!==null)window.clearTimeout(bloomTimer.current);
+      bloomTimer.current=null;
+      setBloomStationId(null);
+      return;
+    }
+
+    const completed=stations.filter(station=>previous.statuses.get(station.id)!=="done"&&station.status==="done");
+    const latest=completed[completed.length-1];
+    if(!latest)return;
+    if(bloomTimer.current!==null)window.clearTimeout(bloomTimer.current);
+    setBloomStationId(latest.id);
+    bloomTimer.current=window.setTimeout(()=>{
+      setBloomStationId(current=>current===latest.id?null:current);
+      bloomTimer.current=null;
+    },900);
+  },[stations,state.hydrated,state.sampleDataActive,state.locale]);
+  useEffect(()=>()=>{
+    if(bloomTimer.current!==null)window.clearTimeout(bloomTimer.current);
+  },[]);
   const activeStation=nav.station;
   const activeIndex=order.indexOf(activeStation),activeRecord=stations.find(item=>item.id===activeStation)!;
   useCssVar(progressRef,"--p",(activeIndex+1)/order.length);
@@ -89,10 +125,10 @@ export function JourneyShell({ onFinish, onHome }: { onFinish: () => void; onHom
   return <div className="pb-[calc(7rem+env(safe-area-inset-bottom))] md:pb-0">
     <div className="mb-5 flex flex-wrap items-center justify-between gap-3 print:hidden"><div><p className="text-sm leading-body font-bold uppercase tracking-widest text-forest">{text.setupJourney}</p><h1 className="mt-1 text-2xl leading-heading font-bold">{stationLabel(state.locale,activeStation)}</h1></div><button type="button" onClick={onHome} className="button-secondary">{text.home}</button></div>
     <div className="grid items-start gap-6 md:grid-cols-[280px_minmax(0,1fr)]">
-      <aside className="hidden print:hidden md:block"><nav ref={desktopStations} aria-label={text.setupJourney} className="sticky top-4 rounded-2xl border border-forest/15 bg-white p-3"><ol className="space-y-2">{stations.map((station,index)=><li key={station.id}><button type="button" className={`flex min-h-12 w-full items-center gap-3 rounded-xl p-2 text-left transition-colors duration-fast ease-standard ${activeStation===station.id?"bg-forest/10 ring-2 ring-forest":"hover:bg-daylight"}`} disabled={!stationAllowed(station.status)} aria-current={activeStation===station.id?"step":undefined} onClick={()=>select(station.id)}><StationIcon station={station.id} status={station.status}/><span className="min-w-0 flex-1"><span className="block font-semibold">{stationLabel(state.locale,station.id)}</span><span className="block text-sm leading-body text-stone-600">{index+1}. {stationStatusLabel(state.locale,station.status)}</span></span></button></li>)}</ol></nav></aside>
+      <aside className="hidden print:hidden md:block"><nav ref={desktopStations} aria-label={text.setupJourney} className="sticky top-4 rounded-2xl border border-forest/15 bg-white p-3"><ol className="space-y-2">{stations.map((station,index)=><li key={station.id}><button type="button" className={`flex min-h-12 w-full items-center gap-3 rounded-xl p-2 text-left transition-colors duration-fast ease-standard ${activeStation===station.id?"bg-forest/10 ring-2 ring-forest":"hover:bg-daylight"}`} disabled={!stationAllowed(station.status)} aria-current={activeStation===station.id?"step":undefined} onClick={()=>select(station.id)}><StationIcon station={station.id} status={station.status} bloom={bloomStationId===station.id}/><span className="min-w-0 flex-1"><span className="block font-semibold">{stationLabel(state.locale,station.id)}</span><span className="block text-sm leading-body text-stone-600">{index+1}. {stationStatusLabel(state.locale,station.status)}</span></span></button></li>)}</ol></nav></aside>
       <div className="min-w-0">
         <div className="mb-4 flex items-center gap-3 print:hidden md:hidden">
-          <StationIcon station={activeStation} status={activeRecord.status} />
+          <StationIcon station={activeStation} status={activeRecord.status} bloom={bloomStationId===activeStation} />
           <button ref={sheetTrigger} type="button" aria-haspopup="dialog" aria-controls="station-sheet"
             className="flex min-h-12 flex-1 items-center justify-between gap-2 rounded-xl border border-border-strong bg-white px-4 text-left font-semibold"
             onClick={() => sheetRef.current?.showModal()}>
@@ -115,7 +151,7 @@ export function JourneyShell({ onFinish, onHome }: { onFinish: () => void; onHom
                 <button type="button" className="flex min-h-12 w-full items-center gap-3 rounded-xl p-2 text-left transition-colors duration-fast ease-standard hover:bg-daylight"
                   disabled={!stationAllowed(station.status)} aria-current={activeStation === station.id ? "step" : undefined}
                   onClick={() => select(station.id)}>
-                  <StationIcon station={station.id} status={station.status} />
+                  <StationIcon station={station.id} status={station.status} bloom={bloomStationId===station.id} />
                   <span>{index + 1}. {stationLabel(state.locale, station.id)} · {stationStatusLabel(state.locale, station.status)}</span>
                 </button>
               </li>

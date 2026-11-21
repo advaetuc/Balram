@@ -21,7 +21,7 @@ export function AlertsCard() {
 
   return (
     <Card id="alerts" title={text.voice} eyebrow={text.voiceEyebrow} className="md:col-span-2">
-      <div className="mt-3 space-y-3" aria-live="polite">
+      <div className="mt-3 space-y-3 stagger" aria-live="polite">
         {fallback ? (
           <section className="rounded-xl bg-surface-muted p-4">
             <h3 className="font-bold">{text.noUrgentAdvice}</h3>

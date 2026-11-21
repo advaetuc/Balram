@@ -239,6 +239,39 @@
     animation: ring var(--dur-pulse) var(--ease-enter) var(--dur-exit) both;
     content: "";
   }
+
+  .station-icon[data-bloom] [data-draw] {
+    stroke-dasharray: 1;
+    animation: draw var(--dur-bloom) var(--ease-enter) both;
+  }
+
+  .station-icon[data-bloom] .fill {
+    transform-box: fill-box;
+    transform-origin: 50% 85%;
+    animation: pop var(--dur-slow) var(--ease-spring) calc(var(--dur-bloom) * 0.6) backwards;
+  }
+
+  .disclosure[open] > .disclosure-body {
+    animation: reveal var(--dur-base) var(--ease-enter) backwards;
+  }
+
+  .skeleton {
+    animation: skeleton-pulse var(--dur-skeleton) ease-in-out 8;
+  }
+
+  .skeleton[data-state="leaving"] {
+    animation: none;
+    opacity: 0;
+    transition: opacity var(--dur-exit) var(--ease-exit);
+  }
+
+  .crossfade-stack {
+    display: grid;
+  }
+
+  .crossfade-stack > * {
+    grid-area: 1 / 1;
+  }
 }
 
 .sheet[open],
@@ -321,9 +354,33 @@
   to { opacity: 1; transform: none; }
 }
 
+@keyframes draw {
+  from { stroke-dashoffset: 1.01; }
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes reveal {
+  from { opacity: 0; transform: translateY(calc(var(--dist-rise) * -1)); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .toast[data-state="leaving"],
   .toast-bar {
+    display: none;
+  }
+
+  .skeleton {
+    animation: none;
+    opacity: 0.7;
+  }
+
+  .skeleton[data-state="leaving"] {
     display: none;
   }
 }

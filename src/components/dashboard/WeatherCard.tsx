@@ -1,6 +1,7 @@
 "use client";
 
 import { z } from "zod";
+import { useLayoutEffect, useRef, useState } from "react";
 import { useBalramStore } from "@/store/useBalramStore";
 import { WeatherSnapshotSchema } from "@/types/domain";
 import { submitProvider, providerErrorMessage } from "@/lib/api/client";
@@ -17,6 +18,31 @@ export function WeatherCard() {
   const day = selectedWeatherDay(state);
   const metrics = resolvedWeatherMetrics(state);
   const loading = state.weatherStatus.state === "loading";
+  const weatherState = state.weatherStatus.state;
+  const previousWeatherState = useRef(weatherState);
+  const sawInSessionLoading = useRef(loading);
+  const [crossfadeActive, setCrossfadeActive] = useState(false);
+  const [skeletonLeaving, setSkeletonLeaving] = useState(false);
+  useLayoutEffect(() => {
+    const previous = previousWeatherState.current;
+    previousWeatherState.current = weatherState;
+    if (weatherState === "loading") {
+      sawInSessionLoading.current = true;
+      setCrossfadeActive(false);
+      setSkeletonLeaving(false);
+      return;
+    }
+    if (previous !== "loading" || !sawInSessionLoading.current || !["success", "stale"].includes(weatherState)) return;
+    sawInSessionLoading.current = false;
+    setCrossfadeActive(true);
+    setSkeletonLeaving(true);
+    const delay = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 200;
+    const timeout = window.setTimeout(() => {
+      setSkeletonLeaving(false);
+      setCrossfadeActive(false);
+    }, delay);
+    return () => window.clearTimeout(timeout);
+  }, [weatherState]);
   const mr = state.locale === "mr";
   const baseline = snapshot?.source.includes("seasonal baseline");
   const precipitation = baseline ? null : day?.precipitation ?? null;
@@ -31,6 +57,23 @@ export function WeatherCard() {
   const sourceLabel = state.locale === "mr"
     ? source.includes("seasonal baseline") ? "बलराम · महाराष्ट्राचा हंगामी आधार" : source.includes("Open-Meteo") ? "ओपन-मेटिओ" : "हवामान सेवा"
     : source;
+  const metricsContent = <div className="space-y-3 rounded-xl bg-surface-muted p-4">
+    <ProvenanceBadge locale={state.locale} provenance={provenance} />
+    <dl className="grid gap-4 sm:grid-cols-2">
+      <div>
+        <dt className="text-sm font-semibold leading-body">{mr ? "संदर्भ बाष्पोत्सर्जन (ET₀)" : "Reference ET₀"}</dt>
+        <dd className="mt-1 text-3xl font-semibold leading-heading tabular-nums">{formatNumber(metrics.et0MmPerDay, 1, state.locale)}
+          <span className="ml-2 text-sm leading-body">{mr ? "मिमी/दिवस" : "mm/day"}</span></dd>
+        <dd className="mt-1 text-sm leading-body">{mr ? "हवेमुळे दररोज किती पाणी कमी होऊ शकते याचा हा संदर्भ आहे." : "This is a reference for how much water the weather can draw from soil and plants each day."}</dd>
+      </div>
+      <div>
+        <dt className="text-sm font-semibold leading-body">{mr ? "अंदाजित पाऊस" : "Forecast rainfall"}</dt>
+        <dd className="mt-1 text-3xl font-semibold leading-heading tabular-nums">{precipitation === null ? "—" : formatNumber(precipitation, 1, state.locale)}
+          {precipitation !== null && <span className="ml-2 text-sm leading-body">{mr ? "मिमी" : "mm"}</span>}</dd>
+        <dd className="mt-1 text-sm leading-body">{rainfallSummary}</dd>
+      </div>
+    </dl>
+  </div>;
   async function update() {
     const field = state.fieldGeometry;
     if (!field) return;
@@ -50,22 +93,14 @@ export function WeatherCard() {
     }
   }
   return <Card id="weather" title={text.weather} eyebrow={text.conditions}>
-    <div className="mt-4 space-y-3 rounded-xl bg-surface-muted p-4" aria-busy={loading}>
-      <ProvenanceBadge locale={state.locale} provenance={provenance} />
-      <dl className="grid gap-4 sm:grid-cols-2">
-        <div>
-          <dt className="text-sm font-semibold leading-body">{mr ? "संदर्भ बाष्पोत्सर्जन (ET₀)" : "Reference ET₀"}</dt>
-          <dd className="mt-1 text-3xl font-semibold leading-heading tabular-nums">{formatNumber(metrics.et0MmPerDay, 1, state.locale)}
-            <span className="ml-2 text-sm leading-body">{mr ? "मिमी/दिवस" : "mm/day"}</span></dd>
-          <dd className="mt-1 text-sm leading-body">{mr ? "हवेमुळे दररोज किती पाणी कमी होऊ शकते याचा हा संदर्भ आहे." : "This is a reference for how much water the weather can draw from soil and plants each day."}</dd>
+    <div aria-busy={loading} className={`mt-4 ${crossfadeActive && !loading ? "crossfade-stack" : ""}`}>
+      {!loading && <div key="weather-metrics" className={crossfadeActive ? "rise-in" : ""}>{metricsContent}</div>}
+      {(loading || skeletonLeaving) && <div key="weather-skeleton" aria-hidden="true" data-state={loading ? undefined : "leaving"} className="skeleton rounded-xl bg-surface-muted p-4">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="h-20 rounded-lg bg-forest/5" />
+          <div className="h-20 rounded-lg bg-forest/5" />
         </div>
-        <div>
-          <dt className="text-sm font-semibold leading-body">{mr ? "अंदाजित पाऊस" : "Forecast rainfall"}</dt>
-          <dd className="mt-1 text-3xl font-semibold leading-heading tabular-nums">{precipitation === null ? "—" : formatNumber(precipitation, 1, state.locale)}
-            {precipitation !== null && <span className="ml-2 text-sm leading-body">{mr ? "मिमी" : "mm"}</span>}</dd>
-          <dd className="mt-1 text-sm leading-body">{rainfallSummary}</dd>
-        </div>
-      </dl>
+      </div>}
     </div>
     {day && <p className="mt-4 text-sm leading-body">{day.date} · {day.temperatureMin === null ? "—" : formatNumber(day.temperatureMin, 1, state.locale)} {mr ? "ते" : "to"} {day.temperatureMax === null ? "—" : formatNumber(day.temperatureMax, 1, state.locale)} °C</p>}
     <p className="mt-1 text-sm leading-body text-stone-600">{snapshot?.provenance === "sample"

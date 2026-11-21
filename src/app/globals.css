@@ -45,20 +45,11 @@
   }
   dialog[open] { animation: panel-enter var(--duration-slow) var(--ease-enter) both; }
   .toast-enter { animation: panel-enter var(--duration-base) var(--ease-enter) both; }
-  .section-disclosure[open] > .disclosure-body {
-    animation: panel-enter var(--duration-base) var(--ease-enter) both;
-  }
-  .animate-growing-path-in { animation: growing-path-in var(--duration-slow) var(--ease-enter) both; }
 }
 
 @keyframes panel-enter {
   from { opacity: 0; transform: translateY(.375rem); }
   to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes growing-path-in {
-  from { opacity: 0; transform: scale(.9); }
-  to { opacity: 1; transform: scale(1); }
 }
 
 dialog { scroll-padding: 8px; }
