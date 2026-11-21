@@ -90,6 +90,38 @@
   --shadow-toast: 0px 4px 16px 0px #1420192E;
 
   /* Motion */
+  --dur-instant: 90ms;
+  --dur-fast: 150ms;
+  --dur-base: 240ms;
+  --dur-slow: 340ms;
+  --dur-exit: 160ms;
+  --dur-exit-slow: 220ms;
+  --dur-stagger: 40ms;
+  --dur-bloom: 520ms;
+  --dur-fill: 420ms;
+  --dur-pulse: 900ms;
+  --dur-skeleton: 1200ms;
+  --dur-toast-info: 4000ms;
+  --dur-toast-undo: 7000ms;
+  --ease-enter: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-exit: cubic-bezier(0.32, 0, 0.67, 0);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+  --ease-press: cubic-bezier(0.2, 0, 0, 1);
+  --ease-sheet: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --dist-panel: 16px;
+  --dist-tab: 8px;
+  --dist-rise: 8px;
+  --dist-dock: 24px;
+  --dist-toast: 12px;
+  --dist-dialog: 12px;
+  --dist-digit: 6px;
+  --scale-press: 0.97;
+  --scale-pop-from: 0.6;
+  --scale-ring: 1.04;
+  --scale-thumb: 1.15;
+
+  /* v0.3.4 compatibility tokens */
   --duration-fast: 120ms;
   --duration-base: 200ms;
   --duration-slow: 320ms;
@@ -112,11 +144,45 @@
   --breakpoint-lg: 1024px;
 }
 
+::backdrop {
+  --color-scrim: #14201973;
+  --dur-slow: 340ms;
+  --dur-exit-slow: 220ms;
+  --ease-enter: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-exit: cubic-bezier(0.32, 0, 0.67, 0);
+}
+
 @media (prefers-reduced-motion: reduce) {
   :root {
+    --dur-instant: 0ms;
+    --dur-fast: 0ms;
+    --dur-base: 0ms;
+    --dur-slow: 0ms;
+    --dur-exit: 0ms;
+    --dur-exit-slow: 0ms;
+    --dur-stagger: 0ms;
+    --dur-bloom: 0ms;
+    --dur-fill: 0ms;
+    --dur-pulse: 0ms;
+    --dur-skeleton: 0ms;
+    --dist-panel: 0px;
+    --dist-tab: 0px;
+    --dist-rise: 0px;
+    --dist-dock: 0px;
+    --dist-toast: 0px;
+    --dist-dialog: 0px;
+    --dist-digit: 0px;
+    --scale-press: 1;
+    --scale-pop-from: 1;
+    --scale-ring: 1;
+    --scale-thumb: 1;
     --duration-fast: 0.01ms;
     --duration-base: 0.01ms;
     --duration-slow: 0.01ms;
     --duration-exit: 0.01ms;
+  }
+  ::backdrop {
+    --dur-slow: 0ms;
+    --dur-exit-slow: 0ms;
   }
 }

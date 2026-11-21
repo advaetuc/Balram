@@ -45,34 +45,47 @@ function TabList<T extends string>({ id, label, tabs, labels, selected, onSelect
   };
 
   return (
-    <div role="tablist" aria-label={label} data-mobile-nav={fixed || undefined}
-      className={`grid grid-cols-4 gap-2 bg-white print:hidden ${fixed
-        ? "fixed inset-x-0 bottom-0 z-bottom-bar border-t border-[color-mix(in_srgb,var(--color-border-strong)_40%,transparent)] px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] md:static md:mb-5 md:rounded-2xl md:border md:p-2"
-        : "mb-5 rounded-2xl border border-forest/15 p-2"}`}>
-      {tabs.map((tab, index) => (
-        <button type="button" role="tab" key={tab} id={`${id}-tab-${tab}`} aria-controls={`${id}-panel-${tab}`}
-          aria-selected={selected === tab} tabIndex={selected === tab ? 0 : -1}
-          onKeyDown={(event) => selectWithKeyboard(event, index)} onClick={() => onSelect(tab)}
-          className={`min-h-12 min-w-12 rounded-xl px-1 text-sm font-semibold sm:px-3 ${selected === tab ? "bg-forest text-white" : "text-ink hover:bg-daylight"}`}>
-          {labels[tab]}
-        </button>
-      ))}
+    <div data-mobile-nav={fixed || undefined} className={fixed
+      ? "fixed inset-x-0 bottom-0 z-bottom-bar border-t border-[color-mix(in_srgb,var(--color-border-strong)_40%,transparent)] bg-white px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] print:hidden md:static md:mb-5 md:rounded-2xl md:border md:p-2"
+      : "mb-5"}>
+      <div role="tablist" aria-label={label} data-active={tabs.indexOf(selected)}
+        className={`seg rounded-2xl bg-white print:hidden ${fixed ? "md:rounded-xl" : "border border-forest/15"}`}>
+        {tabs.map((tab, index) => (
+          <button type="button" role="tab" key={tab} id={`${id}-tab-${tab}`} aria-controls={`${id}-panel-${tab}`}
+            aria-selected={selected === tab} tabIndex={selected === tab ? 0 : -1}
+            onKeyDown={(event) => selectWithKeyboard(event, index)} onClick={() => onSelect(tab)}
+            className="min-h-12 min-w-0 break-words rounded-lg px-1 text-center text-sm font-semibold leading-body sm:px-3">
+            {labels[tab]}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
 
 export function DailyHome({ onSetup }: { onSetup: () => void }) {
-  const state=useBalramStore(s=>s),text=t(state.locale),[tab,setTab]=useState<HomeTab>("today");
-  const [farmTab, setFarmTab] = useState<FarmTab>("land");
+  const state=useBalramStore(s=>s),text=t(state.locale);
+  const [homeNav,setHomeNav]=useState<{tab:HomeTab;dir:"fwd"|"back"|"none"}>({tab:"today",dir:"none"});
+  const [farmNav,setFarmNav]=useState<{tab:FarmTab;dir:"fwd"|"back"|"none"}>({tab:"land",dir:"none"});
+  const tab=homeNav.tab,farmTab=farmNav.tab;
+  const selectHomeTab=(next:HomeTab)=>{
+    const previousIndex=homeTabs.indexOf(homeNav.tab),nextIndex=homeTabs.indexOf(next);
+    setHomeNav({tab:next,dir:nextIndex>previousIndex?"fwd":nextIndex<previousIndex?"back":"none"});
+  };
+  const selectFarmTab=(next:FarmTab)=>{
+    const previousIndex=farmTabs.indexOf(farmNav.tab),nextIndex=farmTabs.indexOf(next);
+    setFarmNav({tab:next,dir:nextIndex>previousIndex?"fwd":nextIndex<previousIndex?"back":"none"});
+  };
   const mr=state.locale==="mr",items=farmRoadmap(state),thisWeek=items.filter(item=>item.bucket==="this_week");
   const advisory=generateFieldVoiceAdvisories({allocations:state.cropAllocations,soilKitReading:state.soilKitReading,weatherSnapshot:state.weatherSnapshot,nowMs:state.now})[0];
   const irrigationItems=items.filter(item=>item.kind==="irrigation");
   return <div className="pb-24 max-md:pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-6 print:pb-0">
     <div className="mb-5 flex flex-wrap items-end justify-between gap-3 print:hidden"><div><p className="text-sm leading-body font-bold uppercase tracking-widest text-forest">{mr?"माझे शेत":"My Farm"}</p><h1 className="mt-1 text-3xl leading-heading font-bold">{state.farmProfile?.name??(mr?"आजचे नियोजन":"Today’s plan")}</h1></div></div>
-    <TabList id="home" label={text.dailyNavigation} tabs={homeTabs} labels={text.dailyTabs} selected={tab} onSelect={setTab} fixed />
+    <TabList id="home" label={text.dailyNavigation} tabs={homeTabs} labels={text.dailyTabs} selected={tab} onSelect={selectHomeTab} fixed />
     {homeTabs.map((key) => (
       <section key={key} id={`home-panel-${key}`} role="tabpanel" aria-labelledby={`home-tab-${key}`}
-        hidden={tab !== key} className="min-w-0 max-md:[&_:focus]:scroll-mb-[env(safe-area-inset-bottom)]">
+        hidden={tab !== key} data-dir={tab === key ? homeNav.dir : undefined}
+        className={`min-w-0 max-md:[&_:focus]:scroll-mb-[env(safe-area-inset-bottom)] ${tab === key ? "panel-tab" : ""}`}>
       {tab===key&&key==="today"&&<div className="space-y-5">
         {!state.sampleDataActive&&state.cropAllocations.length>0&&<CheckInCard/>}
         {state.soilSkipped&&!state.soilKitReading&&<p className="notice">{text.soilNotTested}</p>}
@@ -81,10 +94,11 @@ export function DailyHome({ onSetup }: { onSetup: () => void }) {
         <section className="bento-card"><h2 className="text-xl font-bold">{text.nextActions}</h2><div className="mt-3"><RoadmapList items={thisWeek} locale={state.locale}/></div></section>
       </div>}
       {tab===key&&key==="farm" && <>
-        <TabList id="farm" label={text.myFarm} tabs={farmTabs} labels={text.farmTabs} selected={farmTab} onSelect={setFarmTab} />
+        <TabList id="farm" label={text.myFarm} tabs={farmTabs} labels={text.farmTabs} selected={farmTab} onSelect={selectFarmTab} />
         {farmTabs.map((section) => (
           <div key={section} id={`farm-panel-${section}`} role="tabpanel" aria-labelledby={`farm-tab-${section}`}
-            hidden={section !== farmTab} className="space-y-5">
+            hidden={section !== farmTab} data-dir={section === farmTab ? farmNav.dir : undefined}
+            className={`space-y-5 ${section === farmTab ? section === "land" ? "panel-fade" : "panel-tab" : ""}`}>
             {section === farmTab && section === "land" && <div className="isolate"><MapClient /></div>}
             {section === farmTab && section === "crops" && <PortfolioCard />}
             {section === farmTab && section === "soil" && <SoilCard />}

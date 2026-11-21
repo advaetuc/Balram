@@ -24,12 +24,13 @@ export function PortfolioCard() {
   const [draftLines, setDraftLines] = useState<PlotDraft[]>([]);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [toast, setToast] = useState<Toast | null>(null);
-  const [highlighted, setHighlighted] = useState<readonly string[]>([]);
+  const [arrivedPlotIds, setArrivedPlotIds] = useState<ReadonlySet<string>>(() => new Set());
   const eventId = useRef(0);
   const latestState = useRef(state);
   const opener = useRef<HTMLElement | null>(null);
   const plotsTitle = useRef<HTMLHeadingElement>(null);
   const plotRows = useRef(new Map<string, HTMLDetailsElement>());
+  const arrivalTimers = useRef(new Map<string, number>());
   const writable = state.hydrated && !state.sampleDataActive;
 
   // A current backup can still contain plots without IDs. Give those entries
@@ -54,11 +55,29 @@ export function PortfolioCard() {
 
   useEffect(() => { latestState.current = state; }, [state]);
 
-  useEffect(() => {
-    if (highlighted.length === 0) return;
-    const timer = window.setTimeout(() => setHighlighted([]), 2000);
-    return () => window.clearTimeout(timer);
-  }, [highlighted]);
+  useEffect(() => () => {
+    for (const timer of arrivalTimers.current.values()) window.clearTimeout(timer);
+    arrivalTimers.current.clear();
+  }, []);
+
+  function markPlotArrivals(plotIds: readonly string[]) {
+    if (plotIds.length === 0) return;
+    setArrivedPlotIds(current => new Set([...current, ...plotIds]));
+    for (const plotId of plotIds) {
+      const previousTimer = arrivalTimers.current.get(plotId);
+      if (previousTimer !== undefined) window.clearTimeout(previousTimer);
+      const timer = window.setTimeout(() => {
+        arrivalTimers.current.delete(plotId);
+        setArrivedPlotIds(current => {
+          if (!current.has(plotId)) return current;
+          const next = new Set(current);
+          next.delete(plotId);
+          return next;
+        });
+      }, 1200);
+      arrivalTimers.current.set(plotId, timer);
+    }
+  }
 
   const dismissToast = useCallback((id: Toast["id"]) => {
     setToast(current => current?.id === id ? null : current);
@@ -127,6 +146,7 @@ export function PortfolioCard() {
     setDraftLines(lines => lines.filter(line => line.editingPlotId !== plotId));
     setCheckoutOpen(false);
     const fieldId = state.fieldGeometry?.fieldId;
+    const restoredPlotId = checkoutAllocations[index].plotId!;
     setToast({
       id: ++eventId.current, variant: "undo",
       message: `${text.plotRemovedNamed} ${displayPlotName(removed.plotName, state.locale, index + 1)}`,
@@ -135,7 +155,10 @@ export function PortfolioCard() {
         if (!current.hydrated || current.sampleDataActive || current.fieldGeometry?.fieldId !== fieldId) return;
         const restored = [...current.cropAllocations];
         restored.splice(index, 0, removed);
-        if (CropAllocationsSchema.safeParse(restored).success) current.setCropAllocations(restored);
+        if (CropAllocationsSchema.safeParse(restored).success) {
+          current.setCropAllocations(restored);
+          markPlotArrivals([restoredPlotId]);
+        }
         plotsTitle.current?.focus({ preventScroll: true });
       },
     });
@@ -147,7 +170,7 @@ export function PortfolioCard() {
     const first = added[0];
     setDraftLines([]);
     setCheckoutOpen(false);
-    setHighlighted(added.flatMap(plot => plot.plotId ? [plot.plotId] : []));
+    markPlotArrivals(added.flatMap(plot => plot.plotId ? [plot.plotId] : []));
     const id = ++eventId.current;
     if (!first?.plotId || first.areaGunthas == null) {
       setToast({ id, variant: "info", message: text.plotChangesSaved });
@@ -187,7 +210,7 @@ export function PortfolioCard() {
                   return (
                     <li key={plotId}>
                       <details ref={node => { if (node) plotRows.current.set(plotId, node); else plotRows.current.delete(plotId); }}
-                        className={`scroll-mt-4 rounded-xl border ${highlighted.includes(plotId) ? "border-forest bg-success-subtle" : "border-forest/15"}`}>
+                        className="plot-row scroll-mt-4 rounded-xl border border-forest/15" data-arrived={arrivedPlotIds.has(plotId) ? "" : undefined}>
                         <summary className="min-h-12 px-3 text-ink leading-body">
                           <span className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-2">
                             <span className="min-w-0 break-words">
@@ -198,7 +221,7 @@ export function PortfolioCard() {
                           </span>
                         </summary>
                         <div className="px-3 pb-3">
-                          <button type="button" className="button-secondary" disabled={!writable || !cropIds.includes(plot.cropId as CropId)}
+                          <button type="button" className="button-secondary press" disabled={!writable || !cropIds.includes(plot.cropId as CropId)}
                             onClick={event => editPlot(plot, index, event.currentTarget)}>{text.editPlot}</button>
                         </div>
                       </details>
@@ -211,7 +234,7 @@ export function PortfolioCard() {
             <h2 id="planted-crops-title" className="mb-2 text-base font-bold leading-body">{text.alreadyPlantedQuestion}</h2>
             <div className="flex flex-wrap gap-2">
               {cropIds.map(cropId => (
-                <button key={cropId} type="button" className="min-h-12 min-w-12 rounded-full border border-border-strong px-3 text-sm leading-body"
+                <button key={cropId} type="button" className="press min-h-12 min-w-12 rounded-full border border-border-strong px-3 text-sm leading-body"
                   disabled={!writable} aria-disabled={!writable || (freeGunthas !== null && freeGunthas < 0.1 && !draftLines.some(line => line.cropId === cropId && !line.editingPlotId))}
                   onClick={event => chooseCrop(cropId, event.currentTarget, true)}>
                   {cropLabel(state.locale, cropId)}
