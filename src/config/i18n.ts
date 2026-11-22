@@ -5,6 +5,14 @@ import type { ProvenanceTag } from "@/lib/domain/roadmap";
 
 const dictionary = {
   en: {
+    viz: {
+      showAsList: "Show as list",
+      textTwins: { land: "Land allocation", soil: "Soil test results", water: "Seven-day water outlook", stages: "Crop stages", sky: "Weather outlook", cropFit: "Crop fit", calendar: "Crop calendar" },
+      status: { good: "Good", fair: "Fair", needs_help: "Needs help" },
+      provenanceStrokes: { you_entered: "Solid line · You entered", measured_by_kit: "Solid line · Measured by kit", forecast: "Dashed line · Forecast", typical_season: "Dotted line · Typical for the season", sample: "Hatched fill · Sample" },
+      weatherProvenance: { forecast: "Forecast", typical_season: "Typical for the season", sample: "Sample" },
+      sky: { clear_hot: "Clear and hot", clear_mild: "Clear and mild", partly_cloudy: "Partly cloudy conditions possible", light_rain: "Light rain", heavy_rain: "Heavy rain", unavailable: "Weather data is unavailable" },
+    },
     advanced:"Advanced", alreadyPlantedQuestion:"Already planted?", pickPlantedStage:"Choose the current growth stage to continue.",
     cropAdded:"added", cropAddedBadge:"Added", plotsAdded:"plots added", viewPlot:"View", plotChangesSaved:"Plot changes saved.",
     noPlotsYet:"Choose a crop below to add your first plot.", noUrgentAdvice:"No urgent advice this week",
@@ -43,6 +51,14 @@ const dictionary = {
     yourPlots:"Your plots",editPlot:"Edit",removePlot:"Remove plot",undo:"Undo",plotAddedToast:"Added to your farm plan",plotRemovedToast:"Plot removed",plotRemovedNamed:"Plot removed:",cancelEdit:"Cancel edit",
   },
   mr: {
+    viz: {
+      showAsList: "यादी स्वरूपात पहा",
+      textTwins: { land: "जमिनीचे वाटप", soil: "माती चाचणीचे निकाल", water: "सात दिवसांचे पाणी नियोजन", stages: "पिकाच्या अवस्था", sky: "हवामानाचा अंदाज", cropFit: "पिकाची अनुरूपता", calendar: "पिकांचे वार्षिक वेळापत्रक" },
+      status: { good: "योग्य", fair: "बऱ्यापैकी योग्य", needs_help: "मदतीची गरज" },
+      provenanceStrokes: { you_entered: "अखंड रेषा · तुम्ही नोंदवलेले", measured_by_kit: "अखंड रेषा · किटने मोजलेले", forecast: "तुटक रेषा · अंदाज", typical_season: "ठिपक्यांची रेषा · हंगामातील नेहमीची स्थिती", sample: "तिरक्या रेषांचा नमुना · उदाहरण" },
+      weatherProvenance: { forecast: "अंदाज", typical_season: "हंगामातील नेहमीची स्थिती", sample: "नमुना" },
+      sky: { clear_hot: "निरभ्र आणि उष्ण", clear_mild: "निरभ्र आणि सौम्य", partly_cloudy: "अंशतः ढगाळ असण्याची शक्यता", light_rain: "हलका पाऊस", heavy_rain: "मुसळधार पाऊस", unavailable: "हवामानाची माहिती उपलब्ध नाही" },
+    },
     advanced:"प्रगत", alreadyPlantedQuestion:"आधीच लागवड केली आहे का?", pickPlantedStage:"पुढे जाण्यासाठी पिकाची सध्याची वाढीची अवस्था निवडा.",
     cropAdded:"जोडले", cropAddedBadge:"जोडले", plotsAdded:"प्लॉट जोडले", viewPlot:"पहा", plotChangesSaved:"प्लॉटमधील बदल जतन झाले.",
     noPlotsYet:"पहिला प्लॉट जोडण्यासाठी खालील पीक निवडा.", noUrgentAdvice:"या आठवड्यात कोणताही तातडीचा सल्ला नाही",
