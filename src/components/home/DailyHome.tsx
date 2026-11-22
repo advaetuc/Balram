@@ -14,6 +14,7 @@ import { RoadmapList } from "@/components/journey/RoadmapList";
 import { ProvenanceBadge } from "@/components/ui/ProvenanceBadge";
 import { t } from "@/config/i18n";
 import { CheckInCard } from "@/components/home/CheckInCard";
+import { TodaysSky } from "@/components/home/TodaysSky";
 import { BackupControls } from "@/components/home/BackupControls";
 
 const homeTabs = ["today", "farm", "water", "report"] as const;
@@ -88,6 +89,7 @@ export function DailyHome({ onSetup }: { onSetup: () => void }) {
         hidden={tab !== key} data-dir={tab === key ? homeNav.dir : undefined}
         className={`min-w-0 max-md:[&_:focus]:scroll-mb-[env(safe-area-inset-bottom)] ${tab === key ? "panel-tab" : ""}`}>
       {tab===key&&key==="today"&&<div className="space-y-5">
+        <TodaysSky />
         {!state.sampleDataActive&&state.cropAllocations.length>0&&<CheckInCard/>}
         {state.soilSkipped&&!state.soilKitReading&&<p className="notice">{text.soilNotTested}</p>}
         {advisory&&<article className="bento-card border-l-4 border-l-amber"><div className="flex flex-wrap items-center justify-between gap-2"><h2 className="text-xl font-bold">{advisory.headline[state.locale]}</h2>{state.sampleDataActive&&<ProvenanceBadge provenance="sample" locale={state.locale}/>}</div><p className="mt-2 leading-6">{advisory.message[state.locale]}</p><p className="mt-2 font-semibold">{advisory.actionLabel[state.locale]}</p><details className="mt-2"><summary>{text.whyAdvice}</summary><p className="rounded-lg bg-daylight p-3 text-sm">{advisory.reason[state.locale]}</p></details></article>}

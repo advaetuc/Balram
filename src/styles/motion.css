@@ -364,12 +364,27 @@
   to { opacity: 1; transform: none; }
 }
 
+@media (prefers-reduced-motion: no-preference) {
+  .sky-cloud-drift {
+    animation: sky-cloud-drift calc(var(--dur-skeleton) * 3) var(--ease-standard) backwards;
+  }
+}
+
+@keyframes sky-cloud-drift {
+  from { transform: translateX(calc(var(--dist-rise) * -1)); }
+  to { transform: none; }
+}
+
 @keyframes skeleton-pulse {
   0%, 100% { opacity: 0.55; }
   50% { opacity: 1; }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .sky-cloud-drift {
+    animation: none;
+  }
+
   .toast[data-state="leaving"],
   .toast-bar {
     display: none;

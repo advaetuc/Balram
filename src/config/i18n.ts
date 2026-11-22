@@ -7,6 +7,17 @@ const dictionary = {
   en: {
     viz: {
       showAsList: "Show as list",
+      todaysSky: {
+        lowTemperature: "Minimum temperature", highTemperature: "Maximum temperature",
+        noTemperature: "Temperature unavailable", unavailable: "unavailable", rain: "Rain",
+        mainStage: "Main crop stage", noStage: "No crop stage recorded",
+      },
+      cropFitTiles: {
+        soil: "Soil", water: "Water", sowing: "Sowing",
+        status: { good: "Good", fair: "Fair", needs_help: "Needs help" },
+        sowingHint: "Sowing tiles use the current month.",
+        forecast: "Matched to forecast", typical_season: "Matched to typical seasonal weather", sample: "Matched to sample weather",
+      },
       stageRail: {
         completed: "Completed", aboutOneWeek: "About {0} week to {1}", aboutWeeks: "About {0} weeks to {1}",
       },
@@ -95,6 +106,17 @@ const dictionary = {
   mr: {
     viz: {
       showAsList: "यादी स्वरूपात पहा",
+      todaysSky: {
+        lowTemperature: "किमान तापमान", highTemperature: "कमाल तापमान",
+        noTemperature: "तापमान उपलब्ध नाही", unavailable: "उपलब्ध नाही", rain: "पाऊस",
+        mainStage: "शेतातील प्रमुख पीक अवस्था", noStage: "पीक अवस्था नोंदवलेली नाही",
+      },
+      cropFitTiles: {
+        soil: "माती", water: "पाणी", sowing: "पेरणी",
+        status: { good: "योग्य", fair: "ठीक", needs_help: "काळजी घ्या" },
+        sowingHint: "पेरणीची स्थिती चालू महिन्यानुसार दाखवली आहे.",
+        forecast: "हवामान अंदाजाशी जुळवले", typical_season: "हंगामातील नेहमीच्या हवामानाशी जुळवले", sample: "नमुना हवामानाशी जुळवले",
+      },
       stageRail: {
         completed: "पूर्ण", aboutOneWeek: "{1} टप्प्यासाठी सुमारे {0} आठवडा", aboutWeeks: "{1} टप्प्यासाठी सुमारे {0} आठवडे",
       },

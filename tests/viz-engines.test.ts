@@ -565,3 +565,76 @@ test("StageRail is store-free and renders ordered stages and timing only when su
   assert.match(render({ weeksRemaining: 1, nextStage: "flowering_fruiting" }), /About 1 week to Flowering \/ Fruiting/);
   assert.match(render({ weeksRemaining: 4, nextStage: "flowering_fruiting" }), /About 4 weeks to Flowering \/ Fruiting/);
 });
+
+test("SkyScene is store-free and draws distinct weather treatments and provenance cues", () => {
+  const path = "../src/components/viz/SkyScene.tsx";
+  assert.doesNotMatch(readFileSync(new URL(path, import.meta.url), "utf8"), /useBalramStore|from\s+["'][^"']*\/store\//);
+  const strokes = loadVisualComponent("../src/components/viz/ProvenanceStroke.tsx", {});
+  const { SkyScene } = loadVisualComponent<{ SkyScene: (props: Record<string, unknown>) => ReactElement }>(path, {
+    react: { useId: () => "scene-audit" }, "./ProvenanceStroke": strokes,
+  });
+  const render = (condition: string | null, provenance = "forecast", dominantStage = "vegetative") =>
+    renderToString(createElement(SkyScene, { condition, dominantStage, provenance, locale: "en", ariaLabel: "Farm sky summary" }));
+
+  assert.match(render("clear_hot"), /role="img" aria-label="Farm sky summary"/);
+  assert.match(render("clear_hot"), /fill="#FFBF00"/);
+  assert.match(render("clear_mild"), /stop-color="#E0F2FE"/);
+  assert.match(render("clear_mild"), /stroke-dasharray="6 4"/);
+  assert.match(render("partly_cloudy", "typical_season"), /stroke-dasharray="2 4"/);
+  assert.equal((render("partly_cloudy").match(/class="sky-cloud-drift"/g) ?? []).length, 1);
+  for (const condition of ["light_rain", "heavy_rain"]) {
+    const rain = render(condition, "sample");
+    assert.match(rain, /stroke="#0369A1"/);
+    assert.match(rain, /fill="url\(#sky-scene-audit-pat-sample\)"/);
+    assert.doesNotMatch(rain, /sky-cloud-drift/);
+  }
+  assert.notEqual(render("clear_mild", "forecast", "planned"), render("clear_mild", "forecast", "harvesting"));
+  assert.doesNotMatch(render(null), /sky-cloud-drift|stroke="#0369A1"/);
+
+  const motion = readFileSync(new URL("../src/styles/motion.css", import.meta.url), "utf8");
+  assert.match(motion, /prefers-reduced-motion: no-preference\)\s*\{\s*\.sky-cloud-drift\s*\{\s*animation: sky-cloud-drift calc\(var\(--dur-skeleton\)/);
+  assert.match(motion, /prefers-reduced-motion: reduce\)\s*\{\s*\.sky-cloud-drift\s*\{\s*animation: none/);
+});
+
+test("CropFitTiles is store-free and each Marathi status has a visible word and distinct shape", () => {
+  const path = "../src/components/viz/CropFitTiles.tsx";
+  assert.doesNotMatch(readFileSync(new URL(path, import.meta.url), "utf8"), /useBalramStore|from\s+["'][^"']*\/store\//);
+  const { CropFitTiles } = loadVisualComponent<{ CropFitTiles: (props: Record<string, unknown>) => ReactElement }>(path, {
+    "@/config/i18n": { t },
+  });
+  const tiles = renderToString(createElement(CropFitTiles, {
+    locale: "mr", fit: { soil: "good", water: "fair", sowing: "needs_help" },
+  }));
+  assert.match(tiles, /grid-cols-3 gap-2/);
+  assert.match(tiles, /माती.*योग्य.*पाणी.*ठीक.*पेरणी.*काळजी घ्या/);
+  assert.equal((tiles.match(/<dt /g) ?? []).length, 3);
+  assert.equal((tiles.match(/<dd /g) ?? []).length, 3);
+  assert.equal(new Set([...tiles.matchAll(/<path d="([^"]+)"/g)].map(match => match[1])).size, 3);
+});
+
+test("Today's sky labels the baseline and leaves missing weather unbadged", () => {
+  const weatherSnapshot = baseline();
+  const state = {
+    weatherSnapshot: weatherSnapshot as typeof weatherSnapshot | null,
+    cropAllocations: [plot({ lifecycleStage: "vegetative" })], locale: "en", sampleDataActive: false,
+  };
+  const { TodaysSky } = loadVisualComponent<{ TodaysSky: () => ReactElement }>("../src/components/home/TodaysSky.tsx", {
+    "@/components/ui/ProvenanceBadge": { ProvenanceBadge: "test-provenance" },
+    "@/components/viz/SkyScene": { SkyScene: "test-sky" },
+    "@/components/viz/StageIllustration": { StageIllustration: () => null },
+    "@/config/i18n": { t }, "@/lib/domain/viz/skyCondition": { deriveSkyCondition }, "@/lib/ui/format": { formatNumber },
+    "@/store/useBalramStore": { useBalramStore: (select: (value: typeof state) => unknown) => select(state) },
+  });
+  const mockSceneProps = (node: ReactNode): Record<string, unknown> | undefined => {
+    if (Array.isArray(node)) return node.map(mockSceneProps).find(Boolean);
+    if (!isValidElement<{ children?: ReactNode }>(node)) return undefined;
+    return node.type === "test-sky" ? node.props : mockSceneProps(node.props.children);
+  };
+  const initial = TodaysSky();
+  assert.match(renderToString(initial), /Typical for the season.*<time datetime="2026-11-22".*provenance="estimated"/si);
+  assert.match(String(mockSceneProps(initial)?.ariaLabel), /Minimum temperature.*Maximum temperature.*Main crop stage · Vegetative/);
+  state.weatherSnapshot = null;
+  const missing = TodaysSky();
+  assert.equal(mockSceneProps(missing)?.condition, null);
+  assert.doesNotMatch(renderToString(missing), /provenance="estimated"|<time/);
+});
