@@ -7,6 +7,22 @@ const dictionary = {
   en: {
     viz: {
       showAsList: "Show as list",
+      waterRibbon: {
+        title: "Seven-day water outlook", day: "Day", rain: "Rain", cropNeed: "Crop water need",
+        irrigationQuestion: "Irrigate?", irrigate: "Irrigation may be needed",
+        noIrrigation: "No irrigation indicated", unavailable: "Insufficient data",
+        rainScenario: "Rain scenario", rainAsForecast: "Rain as forecast", rainAsTypical: "Typical seasonal rain", rainAsSample: "Rain as shown in sample",
+        illustrative: "What if rain is lower · Illustrative", scaledRain: "Scenario rain",
+        forecastRain: "Forecast rain", typicalRain: "Typical seasonal rain", sampleRain: "Sample rain",
+        typicalSeason: "Typical for this season", offlineSaved: "Offline · Weather saved",
+        noWeather: "Save a weather outlook to see the seven-day water plan.",
+        minTemp: "Minimum temperature", maxTemp: "Maximum temperature", netDepth: "Net irrigation depth",
+        runtime: "Estimated daily runtime", minutes: "min", savedSystem: "Uses your saved flow and efficiency for this estimate.",
+        dripPreset: "Uses the drip irrigation planning preset.", sprinklerPreset: "Uses the sprinkler planning preset.",
+        surfacePreset: "Uses the surface irrigation planning preset.", rainfed: "The saved irrigation method is rainfed.",
+        fertiliser: "Fertiliser caution", fertiliserAdvice: "Delay fertiliser application ahead of heavy rain. Rain can wash fertiliser away or carry it below the roots.",
+        planning: "This estimate counts the rain shown toward crop needs. Check soil moisture before irrigating.",
+      },
       soilGauges: {
         title: "Soil gauges", ph: "Soil pH", nitrogen: "Available nitrogen (N)", phosphorus: "Available phosphorus (Olsen P)",
         vertisol: "Typical Deccan black soil (Vertisol)", aboveScale: "The result is above the gauge scale.",
@@ -75,6 +91,22 @@ const dictionary = {
   mr: {
     viz: {
       showAsList: "यादी स्वरूपात पहा",
+      waterRibbon: {
+        title: "सात दिवसांचे पाणी नियोजन", day: "दिवस", rain: "पाऊस", cropNeed: "पिकाची पाण्याची गरज",
+        irrigationQuestion: "सिंचन करावे का?", irrigate: "सिंचनाची गरज भासू शकते",
+        noIrrigation: "सिंचनाची गरज दिसत नाही", unavailable: "पुरेशी माहिती नाही",
+        rainScenario: "पावसाचा अंदाज तपासा", rainAsForecast: "अंदाजाप्रमाणे पाऊस", rainAsTypical: "हंगामातील नेहमीचा पाऊस", rainAsSample: "नमुन्यातील पाऊस",
+        illustrative: "पाऊस कमी झाल्यास · उदाहरणात्मक अंदाज", scaledRain: "या उदाहरणातील पाऊस",
+        forecastRain: "अंदाजित पाऊस", typicalRain: "हंगामातील नेहमीचा पाऊस", sampleRain: "नमुन्यातील पाऊस",
+        typicalSeason: "हंगामानुसार सामान्य अंदाज", offlineSaved: "ऑफलाइन · हवामान जतन केले",
+        noWeather: "सात दिवसांचे पाणी नियोजन पाहण्यासाठी हवामानाचा अंदाज जतन करा.",
+        minTemp: "किमान तापमान", maxTemp: "कमाल तापमान", netDepth: "सिंचनासाठी निव्वळ पाण्याची गरज",
+        runtime: "दररोज सिंचनाचा अंदाजित वेळ", minutes: "मिनिटे", savedSystem: "या अंदाजात तुम्ही जतन केलेला प्रवाह आणि कार्यक्षमता वापरली आहे.",
+        dripPreset: "ठिबक सिंचनासाठीची नियोजन मूल्ये वापरली आहेत.", sprinklerPreset: "तुषार सिंचनासाठीची नियोजन मूल्ये वापरली आहेत.",
+        surfacePreset: "पाटपाण्यासाठीची नियोजन मूल्ये वापरली आहेत.", rainfed: "जतन केलेल्या माहितीनुसार पीक पावसावर अवलंबून आहे.",
+        fertiliser: "खत देताना काळजी", fertiliserAdvice: "मुसळधार पावसाआधी खत देणे पुढे ढकला. पावसाने खत वाहून जाऊ शकते किंवा मुळांच्या खाली झिरपू शकते.",
+        planning: "या अंदाजात दाखवलेला पाऊस पिकाची पाण्याची गरज भागवण्यासाठी धरला आहे. सिंचनापूर्वी जमिनीतील ओलावा तपासा.",
+      },
       soilGauges: {
         title: "माती चाचणीचे मापक", ph: "मातीचा सामू (pH)", nitrogen: "उपलब्ध नत्र", phosphorus: "उपलब्ध स्फुरद (ओल्सेन)",
         vertisol: "दख्खनच्या काळ्या मातीचा नेहमीचा सामू (वर्टिसोल)", aboveScale: "हा निकाल मापकाच्या कमाल मर्यादेपेक्षा जास्त आहे.",

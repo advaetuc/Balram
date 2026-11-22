@@ -10,10 +10,12 @@ import { indiaDate } from "../src/lib/domain/calendar";
 import { formatNumber } from "../src/lib/ui/format";
 import { renderToString } from "react-dom/server";
 import { createSampleFixture } from "../src/mocks/fixtures";
-import { updatePlotGunthas } from "../src/lib/domain/allocation";
-import { SQUARE_METRES_PER_GUNTHA } from "../src/lib/domain/geometry";
+import { getCropStageKc, MaharashtraCropMatrix } from "../src/config/cropMatrix";
+import { displayPlotName, formatArea } from "../src/lib/domain/landUnits";
+import { allocatePlotsByGunthas, updatePlotGunthas } from "../src/lib/domain/allocation";
+import { GUNTHAS_PER_ACRE, SQUARE_METRES_PER_GUNTHA } from "../src/lib/domain/geometry";
 import { getSeasonalCropRecommendations } from "../src/lib/domain/cropRecommendations";
-import { createRegionalBaselineWeatherSnapshot, resolveDailyEt0 } from "../src/lib/domain/irrigation";
+import { calculatePhaseWaterBreakdown, calculateSystemRuntime, createRegionalBaselineWeatherSnapshot, resolveDailyEt0 } from "../src/lib/domain/irrigation";
 import { buildCropCalendar } from "../src/lib/domain/viz/calendarLayout";
 import { evaluateCropFit } from "../src/lib/domain/viz/cropFit";
 import { buildSoilGauges } from "../src/lib/domain/viz/gaugeZones";
@@ -21,7 +23,7 @@ import { deriveSkyCondition } from "../src/lib/domain/viz/skyCondition";
 import { layoutTiles } from "../src/lib/domain/viz/tileLayout";
 import { buildWaterRibbon, HEAVY_RAIN_CAUTION_MM } from "../src/lib/domain/viz/waterRibbon";
 import { useNow } from "../src/lib/ui/useNow";
-import { CropAllocationsSchema, type CropAllocation, type SoilKitReading } from "../src/types/domain";
+import { CropAllocationsSchema, growthToLifecycleStage, type CropAllocation, type SoilKitReading } from "../src/types/domain";
 
 function plot(overrides: Partial<CropAllocation> = {}): CropAllocation {
   return {
@@ -386,4 +388,139 @@ test("pH controls rank a local copy, clamp and reset without writing to the save
   assert.ok(render().every(node => node.props.children !== t("en").viz.soilGauges.whatIf));
   assert.equal(snapshot.soilKitReading, saved);
   assert.equal(saved.ph, 10.4);
+});
+
+function loadWaterComponent<T>(path: string, modules: Record<string, unknown>) {
+  const source = readFileSync(new URL(path, import.meta.url), "utf8");
+  const { outputText } = ts.transpileModule(source, { compilerOptions: {
+    module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX,
+  } });
+  const exports = {} as T;
+  runInNewContext(outputText, {
+    exports, require: (id: string) => {
+      if (id === "react/jsx-runtime") return { jsx, jsxs };
+      assert.ok(Object.hasOwn(modules, id), `unexpected module: ${id}`);
+      return modules[id];
+    },
+  });
+  return exports;
+}
+
+test("WaterDayColumn is store-free and renders the source's distinct provenance stroke", () => {
+  const path = "../src/components/viz/WaterDayColumn.tsx";
+  assert.doesNotMatch(readFileSync(new URL(path, import.meta.url), "utf8"), /useBalramStore|from\s+["'][^"']*\/store\//);
+  const strokes = loadWaterComponent("../src/components/viz/ProvenanceStroke.tsx", {});
+  const { WaterDayColumn } = loadWaterComponent<{ WaterDayColumn: (props: Record<string, unknown>) => ReactElement }>(path, {
+    react: { useId: () => "day-audit" }, "@/config/i18n": { t }, "./ProvenanceStroke": strokes,
+  });
+  const day = buildWaterRibbon({ weatherSnapshot: baseline(), plot: plot(), latitudeDeg: 18.5 })[0];
+  const render = (provenance: typeof day.provenance) => renderToString(createElement(WaterDayColumn, {
+    day: { ...day, provenance, heavyRainCaution: true, irrigate: true }, locale: "en", scaleMaxMm: 25,
+    label: "Water planning for Sunday", weekday: "Sun", dateLabel: "22", temperatureLabel: "30°C",
+    rainLabel: "0 mm", dialogId: "water-detail", onOpen: () => {},
+  }));
+
+  assert.match(render("typical_season"), /stroke-dasharray="2 4"/);
+  assert.match(render("forecast"), /stroke-dasharray="6 4"/);
+  assert.match(render("sample"), /fill="url\(#water-day-day-audit-pat-sample\)"/);
+  assert.match(render("typical_season"), /aria-haspopup="dialog" aria-controls="water-detail"/);
+  assert.match(render("typical_season"), /<title>Fertiliser caution<\/title>/);
+  assert.match(render("typical_season"), /<title>Irrigation may be needed<\/title>/);
+});
+
+test("WaterRibbon labels baseline and illustrative rain, retains seven table rows and restores day focus", () => {
+  const weatherSnapshot = baseline();
+  weatherSnapshot.daily[0].precipitation = 26;
+  weatherSnapshot.daily[0].referenceEvapotranspiration = 4;
+  const snapshot = Object.freeze({
+    weatherSnapshot, cropAllocations: [plot({ areaGunthas: 40 })], fieldGeometry: null,
+    connection: "offline", locale: "en", landUnit: "gunthas", sampleDataActive: false, irrigationSetup: null,
+    now: Date.parse(weatherSnapshot.fetchedAt) + 3_600_000,
+  });
+  const slots: unknown[] = [];
+  let slot = 0;
+  let afterRender: (() => void)[] = [];
+  const { WaterRibbon } = loadWaterComponent<{ WaterRibbon: (props: { compact?: boolean }) => ReactElement }>(
+    "../src/components/irrigation/WaterRibbon.tsx", {
+      react: {
+        useId: () => `audit-${slot++}`,
+        useMemo: (factory: () => unknown) => factory(),
+        useEffect: (effect: () => void) => { afterRender.push(effect); },
+        useRef: (initial: unknown) => {
+          const index = slot++;
+          return slots[index] ?? (slots[index] = { current: initial });
+        },
+        useState: (initial: unknown) => {
+          const index = slot++;
+          if (!(index in slots)) slots[index] = initial;
+          return [slots[index], (value: unknown) => { slots[index] = value; }];
+        },
+      },
+      "@/config/cropMatrix": { getCropStageKc, MaharashtraCropMatrix },
+      "@/config/i18n": { cropLabel, t },
+      "@/components/ui/ProvenanceBadge": { ProvenanceBadge: "test-provenance" },
+      "@/components/ui/RadioChoices": { RadioChoices: "test-radio" },
+      "@/components/viz/VizCaption": { VizCaption: "test-caption" },
+      "@/components/viz/VizTable": { VizTable: "test-table" },
+      "@/components/viz/WaterDayColumn": { WaterDayColumn: "test-day" },
+      "@/lib/domain/allocation": { allocatePlotsByGunthas },
+      "@/lib/domain/geometry": { GUNTHAS_PER_ACRE },
+      "@/lib/domain/irrigation": { calculatePhaseWaterBreakdown, calculateSystemRuntime, resolveDailyEt0 },
+      "@/lib/domain/viz/waterRibbon": { buildWaterRibbon },
+      "@/lib/domain/landUnits": { displayPlotName, formatArea },
+      "@/lib/ui/format": { formatNumber },
+      "@/store/useBalramStore": { useBalramStore: (select: (state: typeof snapshot) => unknown) => select(snapshot) },
+      "@/types/domain": { growthToLifecycleStage },
+    });
+  type Props = {
+    children?: ReactNode; day?: ReturnType<typeof buildWaterRibbon>[number]; provenance?: string;
+    summary?: string; className?: string; rows?: string[][]; onChange?: (scale: 50) => void;
+    onOpen?: (date: string, trigger: { isConnected: true; focus(): void }) => void; onClose?: () => void;
+    ref?: { current: unknown };
+  };
+  const elements = (node: ReactNode): ReactElement<Props>[] => {
+    if (Array.isArray(node)) return node.flatMap(elements);
+    return isValidElement<Props>(node) ? [node, ...elements(node.props.children)] : [];
+  };
+  const render = (compact = false) => {
+    slot = 0;
+    afterRender = [];
+    const tree = elements(WaterRibbon({ compact }));
+    for (const effect of afterRender) effect();
+    return tree;
+  };
+
+  const initial = render();
+  const caption = initial.find(node => node.type === "test-caption");
+  assert.equal(caption?.props.provenance, "estimated");
+  assert.equal(caption?.props.summary, "Typical for this season");
+  assert.match(renderToString(initial[0]), /Offline · Weather saved.*1 hour ago/);
+  initial.find(node => node.type === "test-radio")!.props.onChange!(50);
+  const scaled = render();
+  const table = scaled.find(node => node.type === "test-table");
+  assert.equal(table?.props.rows?.length, 7);
+  assert.equal(table?.props.rows?.[0][1], "13");
+  const banner = scaled.find(node => node.props.className?.includes("bg-amber") &&
+    Array.isArray(node.props.children) && node.props.children.includes("What if rain is lower · Illustrative"));
+  assert.ok(banner && !banner.props.className?.includes("print:hidden"));
+  const day = scaled.find(node => node.type === "test-day")!;
+  assert.equal(day.props.day?.illustrative, true);
+  assert.equal(day.props.day?.heavyRainCaution, true);
+
+  let focusCount = 0;
+  const modal = { open: false, showModal() { this.open = true; }, close() { this.open = false; } };
+  scaled.find(node => node.type === "dialog")!.props.ref!.current = modal;
+  day.props.onOpen!(day.props.day!.date, { isConnected: true, focus() { focusCount++; } });
+  const detail = render();
+  assert.equal(modal.open, true);
+  assert.ok(detail.some(node => node.type === "dt" && node.props.children === "Estimated daily runtime"));
+  assert.ok(detail.some(node => node.type === "dd" && node.props.children === "0 min"));
+  modal.close();
+  detail.find(node => node.type === "dialog")!.props.onClose!();
+  assert.equal(focusCount, 1);
+  const compact = render(true);
+  assert.equal(compact.filter(node => node.type === "test-day").length, 7);
+  assert.ok(compact.every(node => node.type !== "test-radio" && node.type !== "test-table"));
+  assert.ok(compact.filter(node => node.type === "test-day").every(node => !node.props.day?.illustrative));
+  assert.equal(weatherSnapshot.daily[0].precipitation, 26);
 });
