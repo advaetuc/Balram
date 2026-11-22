@@ -6,8 +6,8 @@ import { createRegionalBaselineWeatherSnapshot } from "../src/lib/domain/irrigat
 import { createBalramStore, migratePersistedFarm, PERSISTENCE_VERSION } from "../src/store/useBalramStore";
 import { PersistedFarmSchema } from "../src/types/domain";
 
-test("persistence v5 migrates versions zero through four with Acres as the land-unit default", () => {
-  assert.equal(PERSISTENCE_VERSION, 5);
+test("persistence v6 migrates versions zero through four with Acres as the land-unit default", () => {
+  assert.equal(PERSISTENCE_VERSION, 6);
   const { landUnit: _landUnit, ...oldFarm } = createEmptyFixture();
   for (const version of [0, 1, 2, 3, 4]) {
     const migrated = migratePersistedFarm({ ...oldFarm, landUnit: undefined }, version);
@@ -15,7 +15,7 @@ test("persistence v5 migrates versions zero through four with Acres as the land-
   }
 });
 
-test("empty and sample fixtures conform to the v5 farm schema", () => {
+test("empty and sample fixtures conform to the v6 farm schema", () => {
   assert.equal(PersistedFarmSchema.parse(createEmptyFixture()).landUnit, "acres");
   assert.equal(PersistedFarmSchema.parse(createSampleFixture()).landUnit, "acres");
 });

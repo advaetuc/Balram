@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { PersistedFarmSchema, type PersistedFarm } from "@/types/domain";
-import { migratePersistedFarm, PERSISTENCE_VERSION } from "@/store/useBalramStore";
+import { migratePersistedFarm, PERSISTENCE_VERSION, type BalramState } from "@/store/useBalramStore";
 
 export const BACKUP_FORMAT = "balram-farm-backup" as const;
 export interface BalramBackupEnvelope {
@@ -52,4 +52,8 @@ export function parseFarmBackup(rawJson: string): PersistedFarm {
   catch { throw new Error("The backup farm data is invalid or incomplete. Your current farm was not changed."); }
   if (farm.sampleDataActive) throw new Error("Sample Farm data cannot be restored as a real farm.");
   return farm;
+}
+
+export function importFarmBackup(rawJson: string, target: Pick<BalramState, "importFarmProfiles">) {
+  return target.importFarmProfiles(parseFarmBackup(rawJson));
 }

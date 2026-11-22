@@ -1,10 +1,13 @@
-# CONTEXT.md — Ground-Truth Handoff Snapshot for Balram (`v0.4.1`)
+# CONTEXT.md — Ground-Truth Handoff Snapshot for Balram (`v0.5.0`)
 
-*Updated 22 November 2026 · Branch: `frontend` (ready to merge into `main`) · Persistence: `v5` · Dependencies: unchanged*
+*Updated 22 November 2026 · Branch `frontend` · Persistence schema 6 · Dependencies unchanged*
 
-## 1. Current Shipped State (`v0.4.1`)
+## 1. Current Release Milestone (`v0.5.0`)
 Balram is a local-first, zero-database, Marathi-first precision agritech web platform for Maharashtra smallholder farmers (2–10 acres), pairing physical soil-testing chemistry (1:2.5 soil-water pH, alkaline $\text{KMnO}_4$ N, Olsen molybdenum-blue P, plus Soil Health Card `kg/ha`) with offline-first visual farm planning.
 
+* **Local Multi-Farm Profiles (`v0.5.0`)**
+  * Up to six farms per device with unique names of up to 30 graphemes. The bilingual naming screen, Field Notebook *My Farms* gallery with crop-proportion ribbons, and header dialog switcher stay on the single offline route. Users can save an editable Pune sample copy and undo a deletion for seven seconds, pausing the countdown with hover or keyboard focus.
+  * Schema v6 persists the active farm and its stashed peers atomically in one IndexedDB record. Older v0–v5 records migrate with a best-effort `balram:legacy-v5` safety copy, removed on the next healthy v6 boot. Export includes all farms, and v5/v6 imports add farms until the device reaches capacity.
 * **Design & Motion System (`v0.3.4`–`v0.3.5`):**
   * Daylight Field Notebook light-mode outdoor palette (`src/styles/tokens.css`, `tokens.json`) with `≥3.58:1` control borders (`#5F8570`), `≥5.17:1` semantic provenance badges, `18px` body / `1.6` Devanagari line-height, and `≥48×48px` touch targets.
   * Pure-CSS "Organic Growing Path" motion (`src/styles/motion.css`): `@starting-style` native `<dialog>` sheets, directional Journey/Tab panels (opacity-only on map panels), `.seg` sliding pills, `StationIcon` stroke-draw bloom, `ToastHost` 4s info / 7s hover-and-focus-pausable Undo countdown bar, and instant `prefers-reduced-motion` collapse.
@@ -18,7 +21,7 @@ Balram is a local-first, zero-database, Marathi-first precision agritech web pla
   * **Coordinate-Free 1080×1080 `FarmCard` PNG & A4 `FarmReport`:** Renders the segmented `LandBar` + plots + top actions via `data:image/svg+xml` → Canvas → PNG share/download (zero coordinates, zero CSP diff), alongside static soil, water, and calendar visuals in A4 print.
 
 ## 2. Verification Baseline & Known Manual Checks Pending
-* **Automated Gates:** `npm run typecheck`, `npm test` (zero-dependency Node 22 suite), `npm run build` (`scripts/finalize-release.mjs` approving 40 offline shell files), and `git diff --check`.
+* **Automated release gates** passed on `frontend`. `npm run typecheck` and `git diff --check` exited 0. `npm test` passed all 117 tests. `npm run build` exited 0, and `scripts/finalize-release.mjs` regenerated `public/sw.js` with hashes for the static script policies and 40 approved offline application files.
 * **Manual Real-Device QA Pending Before/After Vercel Deploy:**
   1. Test native Web Share (`FarmCardShareButton`) & PNG download fallback on 1–2 real Android/iOS phones (verify Devanagari canvas glyph shaping).
   2. Test A4 print preview in English and Marathi (`FarmReport`).

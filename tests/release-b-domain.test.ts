@@ -18,7 +18,7 @@ const allocation=(plotId:string,cropId:string,stage:CropAllocation["lifecycleSta
 const validFarm=():PersistedFarm=>createSampleFixture();
 
 test("schema v5 migration accepts and normalizes v0 through v4 persisted blobs",()=>{
- assert.equal(PERSISTENCE_VERSION,5);
+ assert.equal(PERSISTENCE_VERSION,6);
  const fixture=createEmptyFixture();
  const legacyCrop={cropId:"onion",percentage:100,season:"rabi",growthStage:"mid-season",plantingDate:null};
  for(const version of [0,1,2,3,4]){

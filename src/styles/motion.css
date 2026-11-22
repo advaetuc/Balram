@@ -309,6 +309,22 @@
   }
 }
 
+@media (max-width: 639px) {
+  .sheet.farm-switcher-sheet:not([open]) {
+    transform: translateY(100%);
+  }
+
+  .sheet.farm-switcher-sheet[open] {
+    transition-timing-function: var(--ease-sheet);
+  }
+
+  @starting-style {
+    .sheet.farm-switcher-sheet[open] {
+      transform: translateY(100%);
+    }
+  }
+}
+
 @keyframes dock-in {
   from { opacity: 0; transform: translateX(var(--dist-dock)); }
   to { opacity: 1; transform: none; }
