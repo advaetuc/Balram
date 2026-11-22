@@ -9,6 +9,8 @@ import { cropLabel, seasonLabel, t } from "../src/config/i18n";
 import { indiaDate } from "../src/lib/domain/calendar";
 import { formatNumber } from "../src/lib/ui/format";
 import { farmRoadmap } from "../src/lib/ui/farmRoadmap";
+import { buildFarmCardSvg, FARM_CARD_SIZE } from "../src/lib/ui/farmCardSvg";
+import type { RoadmapItem } from "../src/lib/domain/roadmap";
 import { renderToString } from "react-dom/server";
 import { createSampleFixture } from "../src/mocks/fixtures";
 import { getCropStageKc, MaharashtraCropMatrix } from "../src/config/cropMatrix";
@@ -392,14 +394,14 @@ test("pH controls rank a local copy, clamp and reset without writing to the save
   assert.equal(saved.ph, 10.4);
 });
 
-function loadVisualComponent<T>(path: string, modules: Record<string, unknown>) {
+function loadVisualComponent<T>(path: string, modules: Record<string, unknown>, globals: Record<string, unknown> = {}) {
   const source = readFileSync(new URL(path, import.meta.url), "utf8");
   const { outputText } = ts.transpileModule(source, { compilerOptions: {
     module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX,
   } });
   const exports = {} as T;
   runInNewContext(outputText, {
-    exports, require: (id: string) => {
+    ...globals, exports, require: (id: string) => {
       if (id === "react/jsx-runtime") return { Fragment, jsx, jsxs };
       assert.ok(Object.hasOwn(modules, id), `unexpected module: ${id}`);
       return modules[id];
@@ -752,4 +754,162 @@ test("CropCalendar supplies the hydrated Today marker and filters actions by sel
   assert.equal(state.cropAllocations[1].plotId, undefined);
   assert.equal(actions(render(true)), undefined);
   assert.equal(ribbon(render(true)).printStatic, true);
+});
+
+function farmCardAction(id: string, en: string, mr: string): RoadmapItem {
+  return {
+    id, title: { en, mr }, detail: { en: "Private point 73.781234", mr: "खासगी बिंदू १८.५४१२३४" },
+    bucket: "this_week", kind: "harvest", priority: 1, plotId: null, provenance: "you_entered",
+  };
+}
+
+test("Farm Card SVG escapes localized display text and excludes coordinates and private records", () => {
+  const roadmap = [
+    farmCardAction("one", "Check & prepare harvest 18.521234", "काढणीची तयारी & तपासा १८.५२१२३४"),
+    farmCardAction("two", "Check plot readiness", "प्लॉटची तयारी तपासा"),
+    farmCardAction("three", "Omitted third action", "तिसरे वगळलेले काम"),
+  ];
+  for (const locale of ["en", "mr"] as const) {
+    const fixture = createSampleFixture();
+    const state = {
+      ...fixture, locale, sampleDataActive: false,
+      farmProfile: { ...fixture.farmProfile!, name: locale === "en" ? "Green & <Farm>" : "हिरवे & <शेत>" },
+      fieldGeometry: { ...fixture.fieldGeometry!, boundary: { type: "Polygon" as const, coordinates: [[
+        [73.8533333, 18.5211111], [73.8544444, 18.5222222], [73.8555555, 18.5233333], [73.8533333, 18.5211111],
+      ]] as NonNullable<NonNullable<typeof fixture.fieldGeometry>["boundary"]>["coordinates"] },
+      },
+      cropAllocations: [{ ...fixture.cropAllocations[0], plotName: "Plot <7> 73.8567" }, fixture.cropAllocations[1]],
+    };
+    const svg = buildFarmCardSvg({ state, roadmap });
+    assert.match(svg, /^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg" width="1080" height="1080"[^>]*>[\s\S]*<\/svg>$/);
+    assert.equal(svg.includes(`lang="${locale}"`), true);
+    assert.match(svg, locale === "en" ? /Green &amp; &lt;Farm&gt;/ : /हिरवे &amp; &lt;शेत&gt;/);
+    assert.match(svg, /Plot &lt;7&gt;/);
+    assert.ok(svg.includes(cropLabel(locale, "bajra")));
+    assert.ok(svg.includes(t(locale).stageNames.harvesting));
+    assert.ok(svg.includes(formatArea(80, state.landUnit, locale)));
+    assert.match(svg, locale === "en" ? /Check &amp; prepare harvest/ : /काढणीची तयारी &amp; तपासा/);
+    assert.ok(svg.includes(t(locale).provenance.you_entered));
+    assert.doesNotMatch(svg, /18\.52|73\.85|१८\.५२|Private point|खासगी बिंदू|<script|<foreignObject|Omitted third action|तिसरे वगळलेले काम/);
+  }
+});
+
+test("Farm Card uses only scalar area and caps the plotted blocks and names on larger farms", () => {
+  const fixture = createSampleFixture();
+  const area = 400_000 * SQUARE_METRES_PER_GUNTHA;
+  const inaccessible = () => { throw new Error("The exporter accessed private map data"); };
+  const fieldGeometry = Object.defineProperties({ areaSquareMetres: area }, {
+    center: { get: inaccessible }, boundary: { get: inaccessible }, fieldId: { get: inaccessible },
+  }) as NonNullable<typeof fixture.fieldGeometry>;
+  const state = {
+    ...fixture, fieldGeometry,
+    cropAllocations: Array.from({ length: 8 }, (_, i) => plot({
+      plotId: `plot-${i}`, plotName: `Plot ${i + 1}`, percentage: 12.5, areaGunthas: 50_000,
+    })),
+  };
+  Object.defineProperty(state, "weatherSnapshot", { get: inaccessible });
+  const svg = buildFarmCardSvg({ state, roadmap: [] });
+  assert.equal((svg.match(/width="156" height="126"/g) ?? []).length, 4);
+  assert.match(svg, /\+9,996 more acre blocks/);
+  assert.match(svg, /\+2 more plots/);
+  assert.match(svg, /Sample farm · For illustration/);
+  assert.doesNotMatch(svg, />Plot 8</);
+  const normal = layoutTiles(200.5, [plot()]);
+  assert.deepEqual(layoutTiles(200.5, [plot()], 4), normal.slice(0, 4));
+});
+
+test("Farm Card button exports PNG files, falls back locally and respects cancelled shares", async () => {
+  const state = createSampleFixture();
+  const slots: unknown[] = [];
+  let cursor = 0;
+  let supportsFileShare = true;
+  let cancelShare = false;
+  let shared = 0;
+  let downloaded = 0;
+  let revoked = 0;
+  const anchor = {
+    href: "", download: "",
+    click() {
+      assert.equal(this.href, "blob:mock-png");
+      assert.match(this.download, /^balram-farm-card-\d{4}-\d{2}-\d{2}\.png$/);
+      downloaded++;
+    },
+    remove() {},
+  };
+  class MockImage {
+    onload?: () => void;
+    set src(url: string) {
+      const prefix = "data:image/svg+xml;charset=utf-8,";
+      assert.ok(url.startsWith(prefix));
+      assert.match(decodeURIComponent(url.slice(prefix.length)), /width="1080" height="1080"/);
+      this.onload?.();
+    }
+  }
+  const png = new Blob(["png-test"], { type: "image/png" });
+  const canvas = {
+    width: 0, height: 0,
+    getContext: () => ({
+      drawImage(image: unknown, x: number, y: number, w: number, h: number) {
+        assert.ok(image instanceof MockImage);
+        assert.deepEqual([x, y, w, h], [0, 0, 1080, 1080]);
+      },
+    }),
+    toBlob(callback: (value: Blob) => void, type: string) {
+      assert.deepEqual([this.width, this.height, type], [1080, 1080, "image/png"]);
+      callback(png);
+    },
+  };
+  type Props = { children?: ReactNode; onClick?: () => Promise<void> };
+  const { FarmCardShareButton } = loadVisualComponent<{
+    FarmCardShareButton: (props: { state: typeof state; roadmap: RoadmapItem[] }) => ReactElement<Props>;
+  }>("../src/components/ui/FarmCardShareButton.tsx", {
+    react: {
+      useState: (initial: unknown) => {
+        const index = cursor++;
+        if (!(index in slots)) slots[index] = initial;
+        return [slots[index], (value: unknown) => { slots[index] = value; }];
+      },
+      useRef: () => ({ current: false }),
+    },
+    "@/config/i18n": { t }, "@/lib/domain/calendar": { indiaDate },
+    "@/lib/ui/farmCardSvg": { buildFarmCardSvg, FARM_CARD_SIZE },
+  }, {
+    Image: MockImage, File, DOMException,
+    navigator: {
+      canShare: ({ files }: { files: File[] }) => {
+        assert.equal(files[0].type, "image/png");
+        return supportsFileShare;
+      },
+      share: async ({ files }: { files: File[] }) => {
+        if (cancelShare) throw new DOMException("Cancelled", "AbortError");
+        assert.match(files[0].name, /^balram-farm-card-\d{4}-\d{2}-\d{2}\.png$/);
+        shared++;
+      },
+    },
+    document: {
+      createElement: (tag: string) => tag === "canvas" ? canvas : anchor, body: { append() {} },
+    },
+    URL: {
+      createObjectURL: (blob: Blob) => { assert.equal(blob, png); return "blob:mock-png"; },
+      revokeObjectURL: () => { revoked++; },
+    },
+    window: { setTimeout: (callback: () => void) => callback() },
+  });
+  const click = async () => {
+    cursor = 0;
+    const view = FarmCardShareButton({ state, roadmap: [] });
+    const button = (view.props.children as ReactElement<Props>[])[0];
+    await button.props.onClick!();
+  };
+
+  await click();
+  assert.deepEqual([shared, downloaded], [1, 0]);
+  cancelShare = true;
+  await click();
+  assert.deepEqual([shared, downloaded], [1, 0]);
+  supportsFileShare = false;
+  await click();
+  assert.deepEqual([shared, downloaded, revoked], [1, 1, 1]);
+  cursor = 0;
+  assert.match(renderToString(FarmCardShareButton({ state, roadmap: [] })), /role="status"[^>]*>Farm card downloaded\./);
 });

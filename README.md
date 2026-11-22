@@ -1,6 +1,14 @@
-# Balram v0.3.5 — Maharashtra farm planning
+# Balram v0.4.0 — Maharashtra farm planning
 
 Balram is a local-first, zero-database farm planning app for Maharashtra. It combines field mapping, Acres and Gunthas plot management, crop planning, on-site soil records, weather context, irrigation estimates, check-ins, and printable reports. English and Marathi (`मराठी`) are available.
+
+## v0.4.0 — Interactive farm visuals
+
+- **Land and soil:** Allocate Gunthas with patterned acre tiles, or use the plot buttons on a phone. Read pH, nitrogen, and phosphorus gauges. Try a different pH to see how crop recommendations change without updating the saved test.
+- **Weather and water:** Today's Sky shows the saved weather source and dominant crop stage. Open a day in the seven-day water ribbon for rainfall, crop water need, and runtime estimates. Test lower rainfall as an illustrative scenario.
+- **Crops and check-ins:** A botanical rail shows the saved crop stage and time to the next stage. Picture cards record the stage and recent field event. The crop advisor shows soil, water, and sowing fit.
+- **Roadmap and report:** Select a plot in the crop calendar to see its actions. The A4 report includes the 12-month calendar, soil gauges, and an unscaled water outlook in English and Marathi.
+- **Farm Card:** Share a 1080 × 1080 PNG from the report, or download it when file sharing is unavailable. The card is built in the browser and works offline. It includes the displayed farm and plot names, land areas, crop stages, and leading roadmap actions. The preview shows up to four acre blocks and six plots, with counts for the remainder. The card excludes map coordinates and boundaries. Sample cards are marked as illustrative.
 
 ## v0.3.5 — Organic Growing Path
 
@@ -18,7 +26,7 @@ The Daylight Field Notebook design system brings shared color, typography, and m
 - **Soil Health Card:** enter pH and available nitrogen/phosphorus values in kg/ha. Balram classifies entered nutrient values and explains the categories; it does not replace laboratory interpretation.
 - **Check-ins:** record a plot stage, recent field event, and optional short note. Check-ins are farmer-entered records and do not overwrite weather data.
 - **Backup and restore:** download or restore a validated JSON farm backup. Backup files contain field map coordinates; keep them private. Restore validation completes before saved state is replaced.
-- **Coordinate-free sharing:** share or copy a farm summary with plot, soil, and roadmap details. Map coordinates and boundary geometry are excluded.
+- **Coordinate-free sharing:** share or copy a text summary, or export a PNG Farm Card. Map coordinates and boundary geometry are excluded.
 - **Balram's Field Voice and water planning:** bilingual plain-language advisories and phase-wise water estimates. Estimates are planning aids, not irrigation commands.
 - **Weather resilience:** live Open-Meteo requests use the deployment's forwarded origin, daily ET₀ falls back to Hargreaves when forecast ET₀ is missing, and a seven-day Maharashtra seasonal baseline keeps planning available offline or during provider outages.
 - **Irrigation tools:** both plot presets and the measured-flow estimator open with plot and delivery-method starting values. Verify flow and efficiency against the actual irrigation block before using runtime estimates.

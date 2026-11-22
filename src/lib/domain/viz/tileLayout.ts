@@ -17,10 +17,14 @@ export interface AcreBlock {
   tiles: LandTile[];
 }
 
-/** Partial acres contain only the cells backed by land. Rows and columns are zero-indexed. */
-export function layoutTiles(totalGunthas: number, plots: readonly CropAllocation[]): AcreBlock[] {
+/** Partial acres contain only the cells backed by land. A block limit preserves the full-farm apportionment. */
+export function layoutTiles(totalGunthas: number, plots: readonly CropAllocation[], maxBlocks = Infinity): AcreBlock[] {
   if (!Number.isFinite(totalGunthas) || totalGunthas < 0) {
     throw new RangeError("Total land area must be finite and nonnegative.");
+  }
+
+  if (maxBlocks !== Infinity && (!Number.isInteger(maxBlocks) || maxBlocks < 0)) {
+    throw new RangeError("Maximum acre blocks must be a nonnegative integer.");
   }
 
   const areas = plots.map((plot) => plot.areaGunthas ?? totalGunthas * plot.percentage / 100);
@@ -47,6 +51,7 @@ export function layoutTiles(totalGunthas: number, plots: readonly CropAllocation
   for (const { index } of ranked.slice(0, Math.max(0, remaining))) counts[index]++;
 
   const blocks: AcreBlock[] = [];
+  const tileLimit = maxBlocks * GUNTHAS_PER_ACRE;
   let tileIndex = 0;
   function addTile(assignment: TileAssignment, fillFraction: number) {
     const acreIndex = Math.floor(tileIndex / GUNTHAS_PER_ACRE);
@@ -57,10 +62,11 @@ export function layoutTiles(totalGunthas: number, plots: readonly CropAllocation
   }
 
   assignments.forEach((assignment, index) => {
-    for (let tile = 0; tile < counts[index]; tile++) addTile(assignment, 1);
+    const visible = Math.min(counts[index], tileLimit - tileIndex);
+    for (let tile = 0; tile < visible; tile++) addTile(assignment, 1);
   });
   const fraction = totalGunthas - wholeTiles;
-  if (fraction > 0) {
+  if (fraction > 0 && wholeTiles < tileLimit) {
     const index = quotas.reduce((best, quota, i) =>
       quota - counts[i] > quotas[best] - counts[best] ? i : best, 0);
     addTile(assignments[index], fraction);

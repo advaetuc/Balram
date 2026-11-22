@@ -26,7 +26,7 @@ const statusByBand: Record<Band, BulletGaugeZone["status"]> = {
   high: "good",
 };
 
-function describeGauge(
+export function describeGauge(
   gauge: GaugeGeometry, value: number | null, locale: Locale, label: string, unit?: string,
 ) {
   const text = t(locale).viz.soilGauges;

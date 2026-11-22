@@ -7,6 +7,12 @@ const dictionary = {
   en: {
     viz: {
       showAsList: "Show as list",
+      farmCard: {
+        share: "Share farm card (PNG)", preparing: "Preparing farm card…",
+        downloaded: "Farm card downloaded.", failed: "Could not share or download the farm card.",
+        sample: "Sample farm · For illustration", moreAcres: "+{0} more acre blocks", morePlots: "+{0} more plots",
+        tileKey: "One full tile is one guntha.", noArea: "Field area unavailable.", noPlots: "No plots saved.",
+      },
       cropCalendar: {
         title: "Crop calendar",
         months: { 0: "Jan", 1: "Feb", 2: "Mar", 3: "Apr", 4: "May", 5: "Jun", 6: "Jul", 7: "Aug", 8: "Sep", 9: "Oct", 10: "Nov", 11: "Dec" } as Readonly<Record<number, string>>,
@@ -115,6 +121,12 @@ const dictionary = {
   mr: {
     viz: {
       showAsList: "यादी स्वरूपात पहा",
+      farmCard: {
+        share: "शेत कार्ड शेअर करा (पीएनजी)", preparing: "शेत कार्ड तयार होत आहे…",
+        downloaded: "शेत कार्ड डाउनलोड झाले.", failed: "शेत कार्ड शेअर किंवा डाउनलोड करता आले नाही.",
+        sample: "नमुना शेत · केवळ उदाहरण", moreAcres: "+{0} आणखी एकर गट", morePlots: "+{0} आणखी प्लॉट",
+        tileKey: "एक पूर्ण चौकोन म्हणजे एक गुंठा.", noArea: "शेताचे क्षेत्रफळ उपलब्ध नाही.", noPlots: "प्लॉट जतन केलेले नाहीत.",
+      },
       cropCalendar: {
         title: "पिकांचे वार्षिक वेळापत्रक",
         months: { 0: "जाने", 1: "फेब्रु", 2: "मार्च", 3: "एप्रि", 4: "मे", 5: "जून", 6: "जुलै", 7: "ऑग", 8: "सप्टें", 9: "ऑक्ट", 10: "नोव्हें", 11: "डिसें" } as Readonly<Record<number, string>>,
