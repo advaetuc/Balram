@@ -98,7 +98,7 @@ function snapshotStatuses(farm: PersistedFarm) {
   };
 }
 
-function persistedSlice(state: BalramState): PersistedFarm {
+export function persistedSlice(state: BalramState): PersistedFarm {
   return {
     farmProfile: state.farmProfile, fieldGeometry: state.fieldGeometry,
     cropAllocations: state.cropAllocations, irrigationSetup: state.irrigationSetup,

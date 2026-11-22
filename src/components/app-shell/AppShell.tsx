@@ -29,17 +29,22 @@ function nextStation(stations:ReturnType<typeof deriveJourney>):JourneyStationId
 export function AppShell(){
   const state=useBalramStore(s=>s),text=t(state.locale);
   const [view,setView]=useState<View>("landing");
+  const [farmViewVersion, setFarmViewVersion] = useState(0);
   const [samplePending,setSamplePending]=useState(false);
   const [farmToast, setFarmToast] = useState<FarmToast | null>(null);
   const toastId = useRef(0);
   const content = useRef<HTMLDivElement>(null);
   const hasContent = useRef(false);
   const farmView = view === "journey" || view === "daily";
-  const viewKey = farmView ? `${view}:${state.sampleDataActive ? "sample" : state.activeProfileId ?? ""}` : view;
+  // Explicit farm navigation resets the tabs. An import can activate the first farm in place.
+  const viewKey = farmView ? `${view}:${state.sampleDataActive ? "sample" : farmViewVersion}` : view;
   const dismissToast = useCallback((id: Toast["id"]) => {
     setFarmToast((current) => current?.id === id ? null : current);
   }, []);
-  const openFarm = useCallback((setupComplete: boolean) => setView(setupComplete ? "daily" : "journey"), []);
+  const openFarm = useCallback((setupComplete: boolean) => {
+    setFarmViewVersion((version) => version + 1);
+    setView(setupComplete ? "daily" : "journey");
+  }, []);
   const persistenceRequested=useRef(false);
   const progressRef=useRef<HTMLDivElement>(null);
   const nowIso=state.now===null?null:new Date(state.now).toISOString();
@@ -105,6 +110,7 @@ export function AppShell(){
     onAction: () => {
       try {
         state.restoreFarmProfile(farmToast.snapshot);
+        if (farmToast.snapshot.wasActive) setFarmViewVersion((version) => version + 1);
         setView((current) => current === "name-farm" ? "farms" : current);
         setFarmToast({ id: ++toastId.current, kind: "restored", name: farmToast.snapshot.meta.name });
       } catch {

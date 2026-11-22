@@ -1,17 +1,37 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { useBalramStore } from "@/store/useBalramStore";
 import { t } from "@/config/i18n";
 import { LandUnitToggle } from "@/components/ui/LandUnitToggle";
-
 import { FarmSwitcher } from "@/components/profiles/FarmSwitcher";
+import { makeUniqueProfileName } from "@/lib/domain/profileNames";
+import { MAX_FARM_PROFILES } from "@/types/domain";
 
 export function Header() {
   const state = useBalramStore((value) => value);
   const text = t(state.locale);
   const offline = state.connection === "offline";
   const memoryOnly = state.storageStatus.mode === "memory";
+  const [savingSample, setSavingSample] = useState(false);
+  const [sampleError, setSampleError] = useState<"sampleCopyCap" | "actionFailed" | null>(null);
+  const atFarmLimit = state.profiles.length >= MAX_FARM_PROFILES;
+
+  async function saveEditableCopy() {
+    if (savingSample || atFarmLimit) return;
+    setSavingSample(true);
+    setSampleError(null);
+    try {
+      const name = makeUniqueProfileName(text.profiles.sampleName, state.profiles);
+      await state.createFarmProfile(name, { fromSample: true });
+      window.dispatchEvent(new CustomEvent("balram:open-farm", { detail: true }));
+    } catch (error) {
+      setSampleError(error instanceof RangeError ? "sampleCopyCap" : "actionFailed");
+    } finally {
+      setSavingSample(false);
+    }
+  }
 
   return (
     <header lang={state.locale} className="border-b border-forest/20 bg-white print:hidden">
@@ -34,11 +54,21 @@ export function Header() {
             onClick={() => state.setLocale(state.locale === "en" ? "mr" : "en")}>{state.locale === "en" ? "मराठी" : "इंग्रजी"}</button>
         </nav>
       </div>
-      {state.sampleDataActive && <div role="status" className="border-t border-amber bg-amber text-ink">
+      {state.sampleDataActive && <div className="border-t border-amber bg-amber text-ink">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-2 sm:px-6">
-          <strong>{text.sampleBanner}</strong><button type="button" className="min-h-12 min-w-12 rounded-lg border border-border-strong bg-white px-4 font-bold" disabled={!state.hydrated} onClick={() => { void state.setSampleData(false); }}>{text.exitSampleButton}</button>
+          <strong role="status">{text.sampleBanner}</strong>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" className="button-primary press min-h-12"
+              disabled={!state.hydrated || savingSample || atFarmLimit}
+              aria-describedby={atFarmLimit ? "sample-copy-cap" : undefined}
+              onClick={() => { void saveEditableCopy(); }}>{text.profiles.saveSampleCopy}</button>
+            <button type="button" className="button-secondary min-h-12" disabled={!state.hydrated || savingSample}
+              onClick={() => { setSampleError(null); void state.setSampleData(false); }}>{text.exitSampleButton}</button>
+          </div>
+          {atFarmLimit && <p id="sample-copy-cap" role="status" className="basis-full text-sm font-semibold">{text.profiles.sampleCopyCap}</p>}
         </div>
       </div>}
+      {sampleError && <p role="status" className="mx-auto max-w-7xl px-4 py-2 text-sm font-semibold sm:px-6">{text.profiles[sampleError]}</p>}
       {(offline || memoryOnly) && (
         <div role="status" className="border-t border-forest/10 bg-surface-muted text-ink">
           <div className="mx-auto flex max-w-7xl items-start gap-2 px-4 py-2 text-sm sm:px-6">
