@@ -14,6 +14,7 @@ import { AlertsCard } from "@/components/dashboard/AlertsCard";
 import { FarmReport } from "@/components/report/FarmReport";
 import { StationIcon } from "@/components/ui/StationIcon";
 import { RoadmapList } from "./RoadmapList";
+import { CropCalendar } from "./CropCalendar";
 import { farmRoadmap } from "@/lib/ui/farmRoadmap";
 import { indiaDate } from "@/lib/ui/format";
 import { ProvenanceBadge } from "@/components/ui/ProvenanceBadge";
@@ -118,7 +119,7 @@ export function JourneyShell({ onFinish, onHome }: { onFinish: () => void; onHom
     :activeStation==="soil"?<><SoilCard/>{state.soilSkipped&&<p className="notice mt-4">{text.soilNotTested}</p>}</>
     :activeStation==="crops"?<PortfolioCard/>
     :activeStation==="advice"?<><div className="mb-4 flex flex-wrap gap-2">{state.soilSkipped&&!state.soilKitReading&&<span className="data-badge bg-amber text-ink">{text.soilNotTested}</span>}{state.sampleDataActive&&<span className="data-badge bg-amber text-ink">{text.provenance.sample}</span>}</div><AlertsCard/></>
-    :<><section className="bento-card"><h2 className="text-xl font-bold">{text.stationNames.roadmap}</h2><div className="mt-4"><RoadmapList items={items} locale={state.locale}/></div></section>
+    :<><section className="bento-card"><h2 className="text-xl font-bold">{text.stationNames.roadmap}</h2><CropCalendar /><div className="mt-4"><RoadmapList items={items} locale={state.locale}/></div></section>
       <details className="bento-card mt-4"><summary>{text.reportPreview}</summary><FarmReport/></details>
       <button type="button" className="button-primary mt-4 w-full" disabled={!state.hydrated||state.sampleDataActive} onClick={()=>{state.setSetupCompletedAt(indiaDate(state.now)??"2026-11-16");onFinish()}}>{text.finishSetup}</button>
       {state.sampleDataActive&&<p className="notice mt-3">{text.sampleReadOnly}</p>}</>;

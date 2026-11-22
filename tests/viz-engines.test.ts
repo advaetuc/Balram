@@ -5,9 +5,10 @@ import { runInNewContext } from "node:vm";
 import { createElement, isValidElement, type ReactElement, type ReactNode } from "react";
 import { Fragment, jsx, jsxs } from "react/jsx-runtime";
 import ts from "typescript";
-import { cropLabel, t } from "../src/config/i18n";
+import { cropLabel, seasonLabel, t } from "../src/config/i18n";
 import { indiaDate } from "../src/lib/domain/calendar";
 import { formatNumber } from "../src/lib/ui/format";
+import { farmRoadmap } from "../src/lib/ui/farmRoadmap";
 import { renderToString } from "react-dom/server";
 import { createSampleFixture } from "../src/mocks/fixtures";
 import { getCropStageKc, MaharashtraCropMatrix } from "../src/config/cropMatrix";
@@ -637,4 +638,118 @@ test("Today's sky labels the baseline and leaves missing weather unbadged", () =
   const missing = TodaysSky();
   assert.equal(mockSceneProps(missing)?.condition, null);
   assert.doesNotMatch(renderToString(missing), /provenance="estimated"|<time/);
+});
+
+test("CalendarRibbon is store-free, windows 6 or 12 months and omits Today on the server", () => {
+  const path = "../src/components/viz/CalendarRibbon.tsx";
+  assert.doesNotMatch(readFileSync(new URL(path, import.meta.url), "utf8"), /useBalramStore|from\s+["'][^"']*\/store\//);
+  const strokes = loadVisualComponent("../src/components/viz/ProvenanceStroke.tsx", {});
+  const { CalendarRibbon } = loadVisualComponent<{ CalendarRibbon: (props: Record<string, unknown>) => ReactElement }>(path, {
+    react: { useId: () => "calendar-audit" }, "@/config/i18n": { seasonLabel, t },
+    "@/types/domain": { LifecycleStageSchema }, "./ProvenanceStroke": strokes,
+  });
+  const allocations = [
+    plot({ plotId: "onion-a", plantingDate: "2027-12-20" }),
+    plot({ plotId: "bajra-b", cropId: "bajra", plantingDate: null }),
+  ];
+  const render = (todayIso: string | null, printStatic: boolean, half = 0) => renderToString(createElement(CalendarRibbon, {
+    layout: buildCropCalendar({ allocations, todayIso }), locale: "en", printStatic, half,
+    labels: [
+      { key: "onion-a", name: "Well Plot", crop: "Onion", needsPlantingDate: false },
+      { key: "bajra-b", name: "Canal Plot", crop: "Bajra", needsPlantingDate: true },
+    ],
+    formatDate: (date: string) => date, selectedKey: "onion-a", actionsId: "actions",
+    onHalfChange: () => {}, onPlotSelect: () => {},
+  }));
+
+  const server = render(null, false);
+  assert.match(server, /grid-cols-6/);
+  assert.match(server, /grid-cols-12/);
+  assert.match(server, /aria-pressed="true" aria-controls="actions"/);
+  assert.match(server, /Add planting date to chart harvest/);
+  assert.doesNotMatch(server, /aria-label="Today"/);
+  const july = render("2028-07-03", false, 1);
+  assert.equal((july.match(/aria-label="Today"/g) ?? []).length, 2);
+  assert.match(july, /Jul<!-- --> – <!-- -->Dec|Jul – Dec/);
+  const january = render("2028-07-03", false, 0);
+  assert.equal((january.match(/aria-label="Today"/g) ?? []).length, 1);
+  const printable = render(null, true);
+  assert.doesNotMatch(printable, /<button|grid-cols-6|aria-label="Today"/);
+  assert.match(printable, /grid-cols-12/);
+  assert.match(printable, /Harvest estimate · 2028-04-17/);
+  assert.match(printable, /fill="url\(#calendar-calendar-audit-pat-stripes\)"/);
+  assert.match(printable, /stroke-dasharray="3 2"/);
+});
+
+test("CropCalendar supplies the hydrated Today marker and filters actions by selected plot", () => {
+  const allocations = [
+    plot({ plotId: "named", plotName: "Well Plot" }),
+    plot({ cropId: "bajra", plotName: "Canal Plot" }),
+  ];
+  const state = {
+    locale: "en", sampleDataActive: false, cropAllocations: allocations,
+    fieldGeometry: null, soilKitReading: null, weatherSnapshot: null, irrigationSetup: null, now: null,
+  } as unknown as Parameters<typeof farmRoadmap>[0];
+  let todayIso: string | null = null;
+  let slot = 0;
+  const slots: unknown[] = [];
+  const { CropCalendar } = loadVisualComponent<{ CropCalendar: (props: { printStatic?: boolean }) => ReactElement }>(
+    "../src/components/journey/CropCalendar.tsx", {
+      react: {
+        useId: () => `calendar-audit-${slot++}`,
+        useMemo: (factory: () => unknown) => factory(),
+        useState: (initial: unknown) => {
+          const index = slot++;
+          if (!(index in slots)) slots[index] = initial;
+          return [slots[index], (next: unknown) => {
+            slots[index] = typeof next === "function" ? next(slots[index]) : next;
+          }];
+        },
+      },
+      "@/config/i18n": { cropLabel, t },
+      "@/components/viz/CalendarRibbon": { CalendarRibbon: "test-ribbon" },
+      "@/components/viz/VizCaption": { VizCaption: "test-caption" },
+      "@/components/viz/VizTable": { VizTable: "test-table" },
+      "@/lib/domain/landUnits": { displayPlotName },
+      "@/lib/domain/viz/calendarLayout": { buildCropCalendar },
+      "@/lib/ui/farmRoadmap": { farmRoadmap },
+      "@/lib/ui/useNow": { useNow: () => ({ todayIso }) },
+      "@/store/useBalramStore": { useBalramStore: (select: (value: typeof state) => unknown) => select(state) },
+      "@/types/domain": { growthToLifecycleStage },
+      "./RoadmapList": { RoadmapList: "test-roadmap" },
+    });
+  type Props = {
+    children?: ReactNode;
+    layout?: ReturnType<typeof buildCropCalendar>;
+    half?: number;
+    printStatic?: boolean;
+    onHalfChange?: (half: 0 | 1) => void;
+    onPlotSelect?: (key: string) => void;
+    items?: ReturnType<typeof farmRoadmap>;
+  };
+  const elements = (node: ReactNode): ReactElement<Props>[] => {
+    if (Array.isArray(node)) return node.flatMap(elements);
+    return isValidElement<Props>(node) ? [node, ...elements(node.props.children)] : [];
+  };
+  const render = (printStatic = false) => {
+    slot = 0;
+    return elements(CropCalendar({ printStatic }));
+  };
+  const ribbon = (view: ReturnType<typeof render>) => view.find(node => node.type === "test-ribbon")!.props;
+  const actions = (view: ReturnType<typeof render>) => view.find(node => node.type === "test-roadmap")?.props.items;
+  assert.equal(ribbon(render()).layout?.todayXPercent, null);
+  assert.equal(ribbon(render()).half, 0);
+  todayIso = "2026-11-22";
+  assert.notEqual(ribbon(render()).layout?.todayXPercent, null);
+  assert.equal(ribbon(render()).half, 1);
+
+  ribbon(render()).onHalfChange!(0);
+  assert.equal(ribbon(render()).half, 0);
+  ribbon(render()).onPlotSelect!("plot:named");
+  assert.deepEqual(actions(render())?.map(item => item.plotId), ["named"]);
+  ribbon(render()).onPlotSelect!("legacy:1");
+  assert.deepEqual(actions(render())?.map(item => item.title.en), ["Prepare Canal Plot for sowing"]);
+  assert.equal(state.cropAllocations[1].plotId, undefined);
+  assert.equal(actions(render(true)), undefined);
+  assert.equal(ribbon(render(true)).printStatic, true);
 });

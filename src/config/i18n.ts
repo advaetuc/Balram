@@ -7,6 +7,15 @@ const dictionary = {
   en: {
     viz: {
       showAsList: "Show as list",
+      cropCalendar: {
+        title: "Crop calendar",
+        months: { 0: "Jan", 1: "Feb", 2: "Mar", 3: "Apr", 4: "May", 5: "Jun", 6: "Jul", 7: "Aug", 8: "Sep", 9: "Oct", 10: "Nov", 11: "Dec" } as Readonly<Record<number, string>>,
+        previousMonths: "Previous 6 months", nextMonths: "Next 6 months", today: "Today",
+        sowingWindow: "Typical sowing window (MPKV/ICAR norms)", harvestEstimate: "Harvest estimate",
+        addPlantingDate: "Add planting date to chart harvest", activeStage: "Active stage",
+        legend: "Calendar legend", plotActions: "Next actions for this plot", noPlots: "Add a plot to see its crop calendar.",
+        caption: "Crop stages and harvest dates are planning estimates.",
+      },
       todaysSky: {
         lowTemperature: "Minimum temperature", highTemperature: "Maximum temperature",
         noTemperature: "Temperature unavailable", unavailable: "unavailable", rain: "Rain",
@@ -106,6 +115,15 @@ const dictionary = {
   mr: {
     viz: {
       showAsList: "यादी स्वरूपात पहा",
+      cropCalendar: {
+        title: "पिकांचे वार्षिक वेळापत्रक",
+        months: { 0: "जाने", 1: "फेब्रु", 2: "मार्च", 3: "एप्रि", 4: "मे", 5: "जून", 6: "जुलै", 7: "ऑग", 8: "सप्टें", 9: "ऑक्ट", 10: "नोव्हें", 11: "डिसें" } as Readonly<Record<number, string>>,
+        previousMonths: "मागील ६ महिने", nextMonths: "पुढील ६ महिने", today: "आज",
+        sowingWindow: "पेरणीचा नेहमीचा काळ (महात्मा फुले कृषी विद्यापीठ व भारतीय कृषी संशोधन परिषदेचे निकष)",
+        harvestEstimate: "काढणीचा अंदाज", addPlantingDate: "काढणीची तारीख पाहण्यासाठी लागवड तारीख भरा", activeStage: "सध्याची पीक अवस्था",
+        legend: "वेळापत्रकातील चिन्हे", plotActions: "या प्लॉटसाठी पुढील कामे", noPlots: "पिकाचे वेळापत्रक पाहण्यासाठी प्लॉट जोडा.",
+        caption: "पिकाच्या अवस्था आणि काढणीच्या तारखा नियोजनासाठी अंदाजित आहेत.",
+      },
       todaysSky: {
         lowTemperature: "किमान तापमान", highTemperature: "कमाल तापमान",
         noTemperature: "तापमान उपलब्ध नाही", unavailable: "उपलब्ध नाही", rain: "पाऊस",
