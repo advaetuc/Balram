@@ -24,7 +24,7 @@ import { evaluateCropFit } from "../src/lib/domain/viz/cropFit";
 import { buildSoilGauges } from "../src/lib/domain/viz/gaugeZones";
 import { estimateWeeksToNextStage } from "../src/lib/domain/viz/stageProgress";
 import { deriveSkyCondition } from "../src/lib/domain/viz/skyCondition";
-import { layoutTiles } from "../src/lib/domain/viz/tileLayout";
+import { barSegments, MAX_VISIBLE_BAR_PLOTS, MIN_SEGMENT_DISPLAY_PERCENT } from "../src/lib/domain/viz/barSegments";
 import { buildWaterRibbon, HEAVY_RAIN_CAUTION_MM } from "../src/lib/domain/viz/waterRibbon";
 import { useNow } from "../src/lib/ui/useNow";
 import { CropAllocationsSchema, growthToLifecycleStage, LifecycleStageSchema, type CropAllocation, type SoilKitReading } from "../src/types/domain";
@@ -51,47 +51,55 @@ function baseline(date = "2026-11-22") {
   });
 }
 
-test("tile layout maps 7.3 acres to 292 tiles, including a one-tile plot", () => {
-  const blocks = layoutTiles(7.3 * 40, [plot({ areaGunthas: 1 })]);
-  assert.deepEqual(blocks.map(({ tiles }) => tiles.length), [40, 40, 40, 40, 40, 40, 40, 12]);
-  const tiles = blocks.flatMap((block) => block.tiles);
-  assert.equal(tiles.filter(({ kind }) => kind === "plot").length, 1);
-  assert.equal(tiles.filter(({ kind }) => kind === "fallow").length, 291);
-  assert.deepEqual([tiles[39].row, tiles[39].column, tiles[40].row, tiles[40].column], [4, 7, 0, 0]);
+test("bar segments preserve exact area on a fractional-acre farm and report unassigned land", () => {
+  const result = barSegments(7.3 * 40, [plot({ areaGunthas: 80, plotId: "well" }), plot({ areaGunthas: 91.5 })]);
+  assert.equal(result.totalGunthas, 292);
+  assert.equal(result.unassignedGunthas, 120.5);
+  assert.deepEqual(result.segments.map(segment => segment.areaGunthas), [80, 91.5, 120.5]);
+  assert.deepEqual(result.segments.map(segment => segment.truePercent), [80, 91.5, 120.5].map(area => area / 292 * 100));
+  assert.deepEqual(result.segments.map(segment => segment.kind), ["plot", "plot", "fallow"]);
+  assert.ok(Math.abs(result.segments.reduce((sum, segment) => sum + segment.displayWidthPercent, 0) - 100) < 1e-10);
 });
 
-test("tile layout cycles five patterns with bilingual crop initials on a 10-acre farm", () => {
-  const ids = ["onion", "bajra", "groundnut", "sugarcane", "pomegranate", "rabi_jowar", "bajra", "onion"];
-  const plots = ids.map((cropId, index) => plot({ cropId, plotId: `plot-${index}`, areaGunthas: 50, percentage: 12.5 }));
-  const blocks = layoutTiles(400, plots);
-  assert.equal(blocks.length, 10);
-  assert.ok(blocks.every(({ tiles }) => tiles.length === 40));
-  const tiles = blocks.flatMap(({ tiles }) => tiles);
-  assert.equal(tiles.length, 400);
-  assert.deepEqual(tiles.filter((_, index) => index % 50 === 0)
-    .flatMap((tile) => tile.kind === "plot" ? [[tile.patternIndex, tile.initial.en, tile.initial.mr]] : []), [
-    [0, "O", "क"], [1, "B", "ब"], [2, "G", "भ"], [3, "S", "ऊ"],
-    [4, "P", "ड"], [0, "R", "र"], [1, "B", "ब"], [2, "O", "क"],
-  ]);
+test("a one-Guntha plot gets a 15 percent target without changing the recorded area or shares", () => {
+  const tiny = Object.freeze(plot({ areaGunthas: 1, percentage: 0.25, plotId: "tiny" }));
+  const input = Object.freeze([tiny, Object.freeze(plot({ areaGunthas: 239, percentage: 59.75 }))]);
+  const { segments } = barSegments(400, input);
+  assert.equal(MIN_SEGMENT_DISPLAY_PERCENT, 15);
+  assert.deepEqual(segments.map(segment => segment.truePercent), [0.25, 59.75, 40]);
+  assert.equal(segments[0].displayWidthPercent, 15);
+  assert.equal(segments[0].areaGunthas, 1);
+  assert.equal(input[0].percentage, 0.25);
+  assert.ok(Math.abs(segments[1].displayWidthPercent / segments[2].displayWidthPercent - 239 / 160) < 1e-10);
+  assert.ok(Math.abs(segments.reduce((sum, segment) => sum + segment.displayWidthPercent, 0) - 100) < 1e-10);
 });
 
-test("tile layout apportions whole land by largest remainder and preserves a fractional final tile", () => {
-  const plots = [
-    plot({ areaGunthas: 2.2, plotId: "first", percentage: 36 }),
-    plot({ areaGunthas: 3.6, plotId: "second", percentage: 60 }),
-  ];
-  const tiles = layoutTiles(6.25, plots).flatMap((block) => block.tiles);
-  assert.deepEqual(tiles.flatMap((tile) => tile.kind === "plot" && tile.fillFraction === 1 ? [tile.plotId] : []), ["first", "first", "second", "second", "second", "second"]);
-  assert.equal(tiles.at(-1)?.fillFraction, 0.25);
-  assert.equal(tiles.at(-1)?.kind, "fallow");
-  assert.equal(tiles.reduce((sum, tile) => sum + tile.fillFraction, 0), 6.25);
+test("zero land has no segments and a single plot can fill the whole bar", () => {
+  assert.deepEqual(barSegments(0, [plot()]), { segments: [], unassignedGunthas: 0, totalGunthas: 0, overflowPlotCount: 0 });
+  const { segments } = barSegments(40, [plot()]);
+  assert.equal(segments.length, 1);
+  assert.equal(segments[0].displayWidthPercent, 100);
+  assert.equal(segments[0].truePercent, 100);
+  assert.equal(barSegments(40, []).segments[0].displayWidthPercent, 100);
+});
 
-  const over = layoutTiles(5.5, plots).flatMap((block) => block.tiles);
-  assert.equal(over.filter(({ fillFraction }) => fillFraction === 1).length, 5);
-  assert.ok(over.reduce((sum, tile) => sum + tile.fillFraction, 0) <= 5.5);
-  const legacy = layoutTiles(41, [plot()]).flatMap((block) => block.tiles);
-  assert.equal(legacy.filter(({ kind }) => kind === "plot").length, 41);
-  assert.deepEqual(layoutTiles(0, []), []);
+test("bar segments retain the first six plots, count overflow and cycle patterns in input order", () => {
+  const plots = Array.from({ length: 8 }, (_, index) => plot({
+    cropId: index % 2 ? "onion" : "bajra", areaGunthas: 50, percentage: 12.5, plotId: `plot-${index}`,
+  }));
+  const result = barSegments(400, plots);
+  assert.equal(MAX_VISIBLE_BAR_PLOTS, 6);
+  assert.equal(result.overflowPlotCount, 2);
+  assert.equal(result.unassignedGunthas, 0);
+  const visible = result.segments.filter(segment => segment.kind === "plot");
+  assert.equal(visible.length, 6);
+  assert.deepEqual(visible.map(segment => segment.plotId), plots.slice(0, 6).map(item => item.plotId));
+  assert.deepEqual(visible.map(segment => segment.patternIndex), [0, 1, 2, 3, 4, 0]);
+  assert.deepEqual(visible.map(segment => segment.initial), [0, 1, 2, 3, 4, 5].map(index => index % 2 ? { en: "O", mr: "क" } : { en: "B", mr: "ब" }));
+  assert.ok(visible.every(segment => segment.truePercent === 12.5 && segment.displayWidthPercent >= 15));
+  const withFallow = barSegments(440, plots);
+  assert.equal(withFallow.unassignedGunthas, 40);
+  assert.deepEqual(withFallow.segments.map(segment => segment.displayWidthPercent), [15, 15, 15, 15, 15, 15, 10]);
 });
 
 test("nutrient gauges classify exact soil-card thresholds and clamp out-of-range pins", () => {
@@ -287,20 +295,12 @@ test("filling the field apportions exactly 100 percent without changing guntha a
   assert.deepEqual(withTinyPlot.map(({ percentage }) => percentage), [0.01, 99.99]);
 });
 
-test("Guntha Tiles mounts after LandBar and uses the responsive, store-backed allocation path", () => {
-  const dashboard = new URL("../src/components/dashboard/", import.meta.url);
-  const tiles = readFileSync(new URL("GunthaTiles.tsx", dashboard), "utf8");
-  const portfolio = readFileSync(new URL("PortfolioCard.tsx", dashboard), "utf8");
-  assert.match(tiles, /useMemo\(\(\) => layoutTiles\(totalGunthas, state\.cropAllocations\),\s*\[totalGunthas, state\.cropAllocations\]\)/);
-  assert.match(tiles, /AcreCard = memo\(/);
-  assert.match(tiles, /next = updatePlotGunthas\(/);
-  assert.doesNotMatch(tiles, /\bpercentage\s*[:=]|style=\{\{/);
-  assert.match(tiles, /role="img"[^>]+md:hidden/);
-  assert.match(tiles, /min-h-12 min-w-12/);
-  assert.match(tiles, /paintEnabled \? "md:touch-none" : ""/);
-  assert.match(tiles, /<VizTable /);
-  assert.match(tiles, /<VizCaption [^>]+sampleDataActive \? "sample" : "you_entered"/);
-  assert.match(portfolio, /<LandBar [^>]*\/>\s*<GunthaTiles\s*\/>/);
+test("Portfolio opens and focuses a plot through the Land Bar without the retired grid", () => {
+  const portfolio = readFileSync(new URL("../src/components/dashboard/PortfolioCard.tsx", import.meta.url), "utf8");
+  assert.doesNotMatch(portfolio, /GunthaTiles/);
+  assert.match(portfolio, /<LandBar [\s\S]*?onSelectPlot=\{selectLandPlot\}/);
+  assert.match(portfolio, /row\.open = true/);
+  assert.match(portfolio, /id="your-plots"/);
 });
 
 test("BulletGauge is store-free and SoilGauges mounts above the enrichment checklist", () => {
@@ -794,7 +794,7 @@ test("Farm Card SVG escapes localized display text and excludes coordinates and 
   }
 });
 
-test("Farm Card uses only scalar area and caps the plotted blocks and names on larger farms", () => {
+test("Farm Card uses only scalar area and caps the plotted segments and names on larger farms", () => {
   const fixture = createSampleFixture();
   const area = 400_000 * SQUARE_METRES_PER_GUNTHA;
   const inaccessible = () => { throw new Error("The exporter accessed private map data"); };
@@ -809,13 +809,12 @@ test("Farm Card uses only scalar area and caps the plotted blocks and names on l
   };
   Object.defineProperty(state, "weatherSnapshot", { get: inaccessible });
   const svg = buildFarmCardSvg({ state, roadmap: [] });
-  assert.equal((svg.match(/width="156" height="126"/g) ?? []).length, 4);
-  assert.match(svg, /\+9,996 more acre blocks/);
+  const segments = svg.match(/data-land-segment="plot"/g) ?? [];
+  assert.equal(segments.length, MAX_VISIBLE_BAR_PLOTS);
+  assert.match(svg, /height="56"/);
   assert.match(svg, /\+2 more plots/);
   assert.match(svg, /Sample farm · For illustration/);
   assert.doesNotMatch(svg, />Plot 8</);
-  const normal = layoutTiles(200.5, [plot()]);
-  assert.deepEqual(layoutTiles(200.5, [plot()], 4), normal.slice(0, 4));
 });
 
 test("Farm Card button exports PNG files, falls back locally and respects cancelled shares", async () => {
@@ -912,4 +911,41 @@ test("Farm Card button exports PNG files, falls back locally and respects cancel
   assert.deepEqual([shared, downloaded, revoked], [1, 1, 1]);
   cursor = 0;
   assert.match(renderToString(FarmCardShareButton({ state, roadmap: [] })), /role="status"[^>]*>Farm card downloaded\./);
+});
+
+test("Land Bar renders a fixed-height set of plot buttons and keeps the full table accessible", () => {
+  const strokes = loadVisualComponent("../src/components/viz/ProvenanceStroke.tsx", {});
+  const table = loadVisualComponent("../src/components/viz/VizTable.tsx", { "@/config/i18n": { t } });
+  const { LandBar } = loadVisualComponent<{ LandBar: (props: Record<string, unknown>) => ReactElement }>(
+    "../src/components/ui/LandBar.tsx", {
+      react: { useId: () => "land-audit" },
+      "@/config/i18n": { cropLabel, t },
+      "@/components/ui/ProvenanceBadge": { ProvenanceBadge: () => null },
+      "@/components/viz/ProvenanceStroke": strokes,
+      "@/components/viz/VizTable": table,
+      "@/lib/domain/landUnits": { displayPlotName, formatArea },
+      "@/lib/domain/viz/barSegments": { barSegments },
+      "@/lib/ui/format": { formatNumber },
+      "@/types/domain": { growthToLifecycleStage },
+    },
+  );
+  for (const count of [1, 3, 8]) {
+    const plots = Array.from({ length: count }, (_, index) => plot({
+      plotId: `plot-${index}`, plotName: `Plot ${index + 1}`, areaGunthas: 1,
+    }));
+    const markup = renderToString(createElement(LandBar, {
+      totalGunthas: 400, allocatedGunthas: count, plots, selectedPlotId: "plot-0",
+      onSelectPlot: () => {}, onShowAllPlots: () => {}, unit: "gunthas", locale: "mr", sampleDataActive: false,
+    }));
+    assert.match(markup, /flex h-14 min-w-\[320px\]/);
+    assert.match(markup, /प्लॉट 1 · कांदा · 1 गुंठा/);
+    const widths = [...markup.matchAll(/<button[^>]*style="width:([\d.]+)%"[^>]*min-h-14 min-w-12/g)];
+    assert.equal(widths.length, Math.min(count, 6));
+    for (const match of widths) assert.ok(Number(match[1]) * 3.2 >= 48);
+    assert.match(markup, /aria-pressed="true"/);
+    assert.match(markup, /pat-fallow/);
+    assert.match(markup, /sr-only peer-open:hidden print:!block print:not-sr-only/);
+    assert.equal((markup.match(/scope="row"/g) ?? []).length, 2 * (count + 1));
+    if (count === 8) assert.match(markup, /\+२ इतर/);
+  }
 });

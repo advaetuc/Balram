@@ -1,59 +1,74 @@
-# Balram v0.4.0 — Maharashtra farm planning
+<p align="center">
+  <img src="public/icon.svg" alt="Balram" width="72" height="72" />
+</p>
 
-Balram is a local-first, zero-database farm planning app for Maharashtra. It combines field mapping, Acres and Gunthas plot management, crop planning, on-site soil records, weather context, irrigation estimates, check-ins, and printable reports. English and Marathi (`मराठी`) are available.
+<h1 align="center">Balram</h1>
 
-## v0.4.0 — Interactive farm visuals
+<p align="center">
+  <strong>Local-first, Marathi-first precision agritech planner for smallholder farmers in Maharashtra.</strong><br/>
+  <em>v0.4.1 · Daylight Field Notebook · Organic Growing Path · Interactive Visuals</em>
+</p>
 
-- **Land and soil:** Allocate Gunthas with patterned acre tiles, or use the plot buttons on a phone. Read pH, nitrogen, and phosphorus gauges. Try a different pH to see how crop recommendations change without updating the saved test.
-- **Weather and water:** Today's Sky shows the saved weather source and dominant crop stage. Open a day in the seven-day water ribbon for rainfall, crop water need, and runtime estimates. Test lower rainfall as an illustrative scenario.
-- **Crops and check-ins:** A botanical rail shows the saved crop stage and time to the next stage. Picture cards record the stage and recent field event. The crop advisor shows soil, water, and sowing fit.
-- **Roadmap and report:** Select a plot in the crop calendar to see its actions. The A4 report includes the 12-month calendar, soil gauges, and an unscaled water outlook in English and Marathi.
-- **Farm Card:** Share a 1080 × 1080 PNG from the report, or download it when file sharing is unavailable. The card is built in the browser and works offline. It includes the displayed farm and plot names, land areas, crop stages, and leading roadmap actions. The preview shows up to four acre blocks and six plots, with counts for the remainder. The card excludes map coordinates and boundaries. Sample cards are marked as illustrative.
+---
 
-## v0.3.5 — Organic Growing Path
+**Balram** is a zero-database, offline-first Next.js 15 web application and interdisciplinary chemistry-plus-software platform built for smallholder farmers (2–10 acres) in Maharashtra, India. All field boundaries, crop plots, soil test readings, check-ins, and cached forecasts live strictly inside the farmer's browser (`IndexedDB`) with zero accounts, zero external tracking, and full English (`en`) & Marathi (`मराठी`) parity.
 
-The Daylight Field Notebook design system brings shared color, typography, and motion tokens to Balram. The Organic Growing Path adds reduced-motion-aware transitions for navigation, dialogs, crop planning, weather loading, and soil guidance. It includes compact navigation, native mobile dialogs, accessible plot checkout and Undo, and readable English and Marathi layouts. The canonical tokens live in `src/styles/`.
+> **Core Thesis:** *Analytical chemistry generates the soil results; Balram's local-first software translates them into immediate, visual, plain-language field actions.*
 
-## Features
+---
 
-- **Growing Path:** a six-station guided setup for land, weather, soil, crops, advice, and a prioritized roadmap.
-- **Crop checkout:** choose recommended crops, size named plots in Acres or Gunthas, and confirm plot edits before saving them.
-- **Land units:** switch the display and entry unit between Acres and Gunthas without changing canonical field or plot areas.
-- **Plain-language planning:** compact source badges, simple daily weather guidance, and a cleaner mobile and desktop planning flow.
-- **Local persistence:** Zustand hydrates farm records from IndexedDB (`PERSISTENCE_VERSION = 5`). A session-memory fallback keeps editing available when browser storage is unavailable. The app requests persistent browser storage after hydration when supported.
-- **Read-only Sample Farm overlay:** explore illustrative Pune data without changing the saved farm.
-- **Field and plots:** draw or enter a field boundary, with persisted GeoJSON coordinates in `[longitude, latitude]` order. Divide land into named plots and track crop lifecycle stages.
-- **Soil Health Card:** enter pH and available nitrogen/phosphorus values in kg/ha. Balram classifies entered nutrient values and explains the categories; it does not replace laboratory interpretation.
-- **Check-ins:** record a plot stage, recent field event, and optional short note. Check-ins are farmer-entered records and do not overwrite weather data.
-- **Backup and restore:** download or restore a validated JSON farm backup. Backup files contain field map coordinates; keep them private. Restore validation completes before saved state is replaced.
-- **Coordinate-free sharing:** share or copy a text summary, or export a PNG Farm Card. Map coordinates and boundary geometry are excluded.
-- **Balram's Field Voice and water planning:** bilingual plain-language advisories and phase-wise water estimates. Estimates are planning aids, not irrigation commands.
-- **Weather resilience:** live Open-Meteo requests use the deployment's forwarded origin, daily ET₀ falls back to Hargreaves when forecast ET₀ is missing, and a seven-day Maharashtra seasonal baseline keeps planning available offline or during provider outages.
-- **Irrigation tools:** both plot presets and the measured-flow estimator open with plot and delivery-method starting values. Verify flow and efficiency against the actual irrigation block before using runtime estimates.
-- **Offline use:** after a successful production build/install, the service worker caches an allowlist of application files. Farm data is kept locally; provider responses and map tiles are not cached.
+## Key Capabilities (`v0.4.1`)
 
-## Architecture
+* **Growing Path Shell (`/` Single-Route Offline PWA):**
+  * Language-first landing (`English` / `मराठी`), a **6-station Setup Journey** (*My Land → Weather → My Soil → My Crops → Balram's Advice → My Roadmap*), a **4-tab Daily Home** (*Today, My Farm, Water, Report*), and a non-destructive read-only **Sample Farm (Pune)** overlay.
+  * Compact 56px header with global **`Acres | Gunthas` (`एकर | गुंठे`)** unit toggle and native `<dialog>` **`About & data`** sheet.
+* **Spatial Mapping & Constant-Height Interactive `LandBar`:**
+  * Hardware-accelerated [Leaflet](https://leafletjs.com/reference.html) `L.canvas()` polygon drawing with Marathi `L.drawLocal` tooltips, topological ring validation, and [Turf.js](https://turfjs.org/docs/api/area) geodesic area conversion (`40 Gunthas = 1 Acre`).
+  * Constant-height **56px segmented `LandBar`** (`src/lib/domain/viz/barSegments.ts`) sized proportionally with a 15% touch-safe minimum width, 5 color+pattern fills, crop initials, tap-to-select plot focus, and a collapsible `VizTable` text twin.
+* **Station 4 Crop Advisor & Checkout Sidebar:**
+  * Soil- and weather-matched crop recommendations with 3-tile **`CropFitTiles`** (*Soil, Water, Sowing* — Good / Fair / Needs help), visible **`Already planted?`** quick chips, a docked Right **`CropCheckoutSheet`** on desktop / native `<dialog>` sheet on mobile, and a **7-second hover/focus-pausable Undo toast** (`ToastHost`).
+* **On-Site Chemistry Soil Kit & Live pH What-If Gauges:**
+  * Supports the **Balram In-House Chemistry Kit** (1:2.5 soil-water suspension pH, alkaline $\text{KMnO}_4$ Available Nitrogen, Olsen molybdenum-blue Available Phosphorus), **Soil Health Card (`kg/ha`)** classifiers (Subbiah & Asija; Olsen), and commercial rapid kits.
+  * Visual **`BulletGauge`** bars (`SoilGauges`) with the Deccan Vertisol pH band (`7.8–8.4`), salinity-gated gypsum advice, and a non-persisted **`Try a different pH`** (`±0.1`) live crop re-ranking simulator.
+* **Resilient Weather, Seven-Day Water Ribbon & Irrigation Planner:**
+  * Daily [Open-Meteo](https://open-meteo.com/en/docs) Edge proxy with 4-decimal privacy rounding, Hargreaves-Samani $ET_0$ fallback, and an automatic 7-day Maharashtra seasonal baseline so planning tools never stall offline.
+  * Interactive **7-day `WaterRibbon`** with dashed/dotted provenance strokes, heavy-rain fertiliser caution, native `<dialog>` day details, and an illustrative `100% / 75% / 50% / 25%` rain what-if.
+  * Offline-capable [FAO-56](https://www.fao.org/4/x0490e/x0490e00.htm) phase-wise weekly water planner and illustrative drought reallocation simulator.
+* **Field Voice, Botanical Stage Rail, Picture-Card Check-Ins & 12-Month Crop Calendar:**
+  * Conversational bilingual **Balram's Field Voice** advisories with expandable *"Why this advice?"* triggers.
+  * 4-step botanical **`StageRail`** with post-hydration weeks-to-next estimates, 3-tap illustrated **2×2 Stage / 3×2 Event** `CheckInCard`, **`TodaysSky`** panoramic SVG hero, and 12-month **`CropCalendar`** SVG timeline.
+* **Coordinate-Free Farm Card PNG, Backup/Restore & A4 Print Report:**
+  * Exports a coordinate-free **1080×1080 Farm Card PNG** (offline SVG → Canvas → Web Share / download fallback), validated `.json` farm backups, and a bilingual A4 printable **`FarmReport`** with static soil, water, and calendar visuals.
 
-- Next.js 15 App Router, React 19, TypeScript, and Tailwind CSS.
-- `src/types/domain.ts`: Zod contracts for browser-persisted farm state.
-- `src/store/useBalramStore.ts`: hydration-safe Zustand store, migrations, request-generation guards, check-ins, and local persistence.
-- `src/lib/domain/`: geometry, land allocation, soil interpretation, crop recommendations, Field Voice, and irrigation calculations.
-- `src/lib/storage/`: IndexedDB adapter and validated backup/restore format.
-- `src/lib/api/` and `src/app/api/`: bounded same-origin provider proxy routes. Open-Meteo weather uses rounded-coordinate caching and works on serverless isolates; SoilGrids and Agmarknet are disabled. Geocoding is unavailable on Edge deployments without a shared rate-limit authority.
-- `scripts/finalize-release.mjs`: adds per-document inline script CSP hashes and generates `public/sw.js` from the exact production build assets.
+---
 
-There are no user accounts, remote farm database, or analytics. Provider availability is not guaranteed. Review provider licensing and deployment constraints in [RELEASE.md](RELEASE.md).
+## Architecture & Tech Stack
 
-## Development and verification
+| Layer | Implementation |
+| :--- | :--- |
+| **Framework & Runtime** | Next.js `15.5` App Router (single static `"/"` shell + `POST`-only Edge routes), React `19`, TypeScript `5.9` |
+| **Styling & Motion** | Tailwind CSS `3.4.17` (`theme.extend`), `src/styles/tokens.css` & `tokens.json` (light-mode outdoor WCAG AA), pure-CSS `src/styles/motion.css` (`@starting-style`, `transform`/`opacity` only, instant `prefers-reduced-motion`) |
+| **State & Storage** | Vanilla Zustand `5` + `useSyncExternalStore` (zero SSR hydration mismatch), IndexedDB (`idb` `8.0`, `PERSISTENCE_VERSION = 5`, `v0–v4` migrations, 4s timeout + memory fallback), generation-guarded `AbortController` |
+| **GIS & Validation** | Leaflet `1.9` (`L.canvas()`), `react-leaflet-draw`, `@turf/area`, `@turf/center-of-mass`, Zod `3.25` |
+| **Security & Offline PWA** | Build-time SHA-256 inline-script CSP finalizer (`scripts/finalize-release.mjs`) + allowlisted Service Worker (`public/sw.js`, 40 approved offline files) |
+| **Testing** | Zero-dependency Node 22 native test runner (`npm test`, `node:test`) covering domain math, schema migrations, i18n parity, motion guardrails, and visual engines |
+
+---
+
+## Local Development & Verification
 
 ```bash
+# Install dependencies (Node 22.x)
 npm install
+
+# Start development server
 npm run dev
+
+# Run full release verification gate
 npm run typecheck
 npm test
 npm run build
 git diff --check
-npm start
 ```
 
-Always use `npm run build` for a release build; it runs Next.js and the CSP/service-worker finalizer together.
+> **Vercel Deployment Note:** Deploy with **Node.js `22.x`** and Build Command **`npm run build`** (never bare `next build`, so `scripts/finalize-release.mjs` injects static HTML CSP hashes and generates `public/sw.js`). No external API keys or database environment variables are required.

@@ -1,15 +1,15 @@
 import { MaharashtraCropMatrix, type CropId } from "@/config/cropMatrix";
 import { cropLabel, t } from "@/config/i18n";
 import { allocatePlotsByGunthas } from "@/lib/domain/allocation";
-import { GUNTHAS_PER_ACRE } from "@/lib/domain/geometry";
 import { displayPlotName, formatArea } from "@/lib/domain/landUnits";
 import type { RoadmapItem } from "@/lib/domain/roadmap";
-import { layoutTiles } from "@/lib/domain/viz/tileLayout";
+import { barSegments, MAX_VISIBLE_BAR_PLOTS } from "@/lib/domain/viz/barSegments";
 import { growthToLifecycleStage, type Locale, type PersistedFarm } from "@/types/domain";
 
 export const FARM_CARD_SIZE = 1080;
-const ACRE_LIMIT = 4;
-const PLOT_LIMIT = 6;
+const BAR_X = 62;
+const BAR_WIDTH = 956;
+const BAR_HEIGHT = 56;
 
 const stripe = '<path d="M-2 2 2-2M0 8 8 0M6 10 10 6" fill="none" />';
 const patterns = [
@@ -22,7 +22,7 @@ const patterns = [
 ] as const;
 
 const patternDefs = patterns.map(([background, marks], index) =>
-  `<pattern id="farm-tile-${index}" width="8" height="8" patternUnits="userSpaceOnUse">
+  `<pattern id="farm-bar-${index}" width="8" height="8" patternUnits="userSpaceOnUse">
     <rect width="8" height="8" fill="${background}"/><g stroke="${index === 5 ? "#5F8570" : "#FFFFFF"}" stroke-width="1.4">${marks}</g>
   </pattern>`).join("");
 
@@ -72,39 +72,37 @@ export function buildFarmCardSvg({ state, roadmap }: { state: PersistedFarm; roa
   const number = new Intl.NumberFormat(locale === "mr" ? "mr-IN" : "en-IN");
   const escapeLine = (value: string, width: number, size: number) => escapeXml(fitLine(value, width, size, locale));
 
-  const blocks = totalGunthas === null ? [] : layoutTiles(totalGunthas, cropAllocations, ACRE_LIMIT);
-  const remainingAcres = Math.max(0, Math.ceil((totalGunthas ?? 0) / GUNTHAS_PER_ACRE) - blocks.length);
-  const mosaic = blocks.map((block, index) => {
-    const x = 60 + (index % 2) * 170;
-    const y = 366 + Math.floor(index / 2) * 138;
-    return `<g transform="translate(${x} ${y})">
-      <rect width="156" height="126" rx="13" fill="#F0FDF4" stroke="#BCD6C5"/>
-      <text x="12" y="23" font-size="15" font-weight="700" fill="#1E5631">${escapeXml(dictionary.viz.gunthaTiles.acre)} ${number.format(index + 1)}</text>
-      ${block.tiles.map(tile => {
-        const x = 12 + tile.column * 17;
-        const y = 34 + tile.row * 17;
-        const width = Math.max(1, Math.round(tile.fillFraction * 14));
-        const pattern = tile.kind === "plot" ? tile.patternIndex : 5;
-        return `<rect x="${x}" y="${y}" width="${width}" height="14" rx="2" fill="url(#farm-tile-${pattern})"/>`;
-      }).join("")}
+  const { segments, overflowPlotCount, unassignedGunthas } = barSegments(totalGunthas ?? 0, cropAllocations);
+  let rightEdge = BAR_X;
+  const bar = segments.map(segment => {
+    const x = Math.round(rightEdge);
+    rightEdge += segment.displayWidthPercent / 100 * BAR_WIDTH;
+    const width = Math.round(rightEdge) - x;
+    const pattern = segment.kind === "plot" ? segment.patternIndex : 5;
+    const centre = x + Math.floor(width / 2);
+    return `<g data-land-segment="${segment.kind}">
+      <rect x="${x}" width="${width}" height="${BAR_HEIGHT}" fill="url(#farm-bar-${pattern})"/>
+      ${segment.kind === "plot" ? `<circle cx="${centre}" cy="28" r="16" fill="#212121"/>
+      <text x="${centre}" y="35" text-anchor="middle" font-size="20" font-weight="700" fill="#FFFFFF">${escapeXml(segment.initial[locale])}</text>` : ""}
     </g>`;
   }).join("");
+  const unassigned = totalGunthas === null ? dictionary.landBar.unknown : formatArea(unassignedGunthas, landUnit, locale);
 
-  const plots = allocation.plots.slice(0, PLOT_LIMIT).map((plot, index) => {
-    const y = 364 + index * 58;
+  const plots = allocation.plots.slice(0, MAX_VISIBLE_BAR_PLOTS).map((plot, index) => {
+    const x = index % 2 === 0 ? 62 : 550;
+    const y = 474 + Math.floor(index / 2) * 72;
     const name = shareableText(displayPlotName(plot.plotName, locale, index + 1));
     const crop = Object.hasOwn(MaharashtraCropMatrix, plot.cropId) ? cropLabel(locale, plot.cropId as CropId) : dictionary.crop;
     const stage = dictionary.stageNames[plot.lifecycleStage ?? growthToLifecycleStage(plot.growthStage)];
     const areaText = plot.areaGunthas === null ? `${number.format(plot.percentage)}%` : formatArea(plot.areaGunthas, landUnit, locale);
-    return `<g transform="translate(424 ${y})">
-      <rect x="0" y="2" width="20" height="20" rx="4" fill="url(#farm-tile-${index % 5})"/>
-      <text x="30" y="18" font-size="22" font-weight="700" fill="#1E5631">${escapeLine(name, 360, 22)}</text>
-      <text x="30" y="42" font-size="17" fill="#475569">${escapeLine(`${crop} · ${stage}`, 535, 17)}</text>
-      <text x="589" y="19" font-size="17" text-anchor="end" font-weight="700" fill="#212121">${escapeLine(areaText, 185, 17)}</text>
-      <path d="M30 53H589" stroke="#E8F0F1" />
+    return `<g transform="translate(${x} ${y})">
+      <rect x="0" y="2" width="20" height="20" rx="4" fill="url(#farm-bar-${index % 5})"/>
+      <text x="30" y="18" font-size="22" font-weight="700" fill="#1E5631">${escapeLine(name, 300, 22)}</text>
+      <text x="30" y="42" font-size="17" fill="#475569">${escapeLine(`${crop} · ${stage}`, 432, 17)}</text>
+      <text x="468" y="19" font-size="17" text-anchor="end" font-weight="700" fill="#212121">${escapeLine(areaText, 130, 17)}</text>
+      <path d="M30 53H468" stroke="#E8F0F1" />
     </g>`;
   }).join("");
-  const remainingPlots = Math.max(0, cropAllocations.length - PLOT_LIMIT);
 
   const actions = roadmap.slice(0, 2).map((item, index) => `<g transform="translate(62 ${847 + index * 82})">
     <rect width="956" height="70" rx="12" fill="#F0FDF4"/>
@@ -115,7 +113,9 @@ export function buildFarmCardSvg({ state, roadmap }: { state: PersistedFarm; roa
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${FARM_CARD_SIZE}" height="${FARM_CARD_SIZE}" viewBox="0 0 1080 1080" lang="${locale}" xml:lang="${locale}" role="img" aria-labelledby="farm-card-title">
   <title id="farm-card-title">${escapeXml(dictionary.shareTitle)}</title>
-  <defs>${patternDefs}</defs>
+  <defs>${patternDefs}<clipPath id="farm-land">
+    <rect x="${BAR_X}" width="${BAR_WIDTH}" height="${BAR_HEIGHT}" rx="10"/>
+  </clipPath></defs>
   <rect width="1080" height="1080" fill="#F0FDF4"/>
   <g font-family="'Noto Sans Devanagari', 'Noto Sans', system-ui, sans-serif">
     <rect x="38" y="32" width="1004" height="224" rx="24" fill="#1E5631"/>
@@ -130,12 +130,11 @@ export function buildFarmCardSvg({ state, roadmap }: { state: PersistedFarm; roa
     <text x="68" y="214" font-size="24" font-weight="600" fill="#F0FDF4">${escapeLine(`${dictionary.shareLand} · ${total}`, 920, 24)}</text>
     <rect x="38" y="276" width="1004" height="472" rx="22" fill="#FFFFFF" stroke="#BCD6C5"/>
     <text x="62" y="327" font-size="29" font-weight="700" fill="#1E5631">${escapeXml(dictionary.sharePlots)}</text>
-    <path d="M405 345V719" stroke="#E8F0F1" stroke-width="2"/>
-    ${mosaic || `<text x="62" y="401" font-size="18" fill="#475569">${escapeXml(copy.noArea)}</text>`}
-    ${remainingAcres ? `<text x="62" y="672" font-size="18" font-weight="700" fill="#1E5631">${escapeLine(copy.moreAcres.replace("{0}", number.format(remainingAcres)), 320, 18)}</text>` : ""}
-    ${blocks.length ? `<text x="62" y="${blocks.length <= 2 ? 522 : 652}" font-size="16" fill="#475569">${escapeLine(copy.tileKey, 322, 16)}</text>` : ""}
-    ${plots || `<text x="424" y="401" font-size="19" fill="#475569">${escapeXml(copy.noPlots)}</text>`}
-    ${remainingPlots ? `<text x="454" y="727" font-size="18" font-weight="700" fill="#1E5631">${escapeLine(copy.morePlots.replace("{0}", number.format(remainingPlots)), 530, 18)}</text>` : ""}
+    ${bar ? `<g transform="translate(0 356)" clip-path="url(#farm-land)">${bar}</g>`
+      : `<text x="62" y="388" font-size="18" fill="#475569">${escapeXml(copy.noArea)}</text>`}
+    <text x="62" y="444" font-size="18" font-weight="600" fill="#1E5631">${escapeLine(`${dictionary.landBar.unassigned}: ${unassigned}`, 700, 18)}</text>
+    ${plots || `<text x="62" y="506" font-size="19" fill="#475569">${escapeXml(copy.noPlots)}</text>`}
+    ${overflowPlotCount ? `<text x="62" y="725" font-size="18" font-weight="700" fill="#1E5631">${escapeLine(copy.morePlots.replace("{0}", number.format(overflowPlotCount)), 530, 18)}</text>` : ""}
     <rect x="38" y="770" width="1004" height="270" rx="22" fill="#FFFFFF" stroke="#BCD6C5"/>
     <text x="62" y="819" font-size="29" font-weight="700" fill="#1E5631">${escapeXml(dictionary.shareActions)}</text>
     ${actions || `<text x="62" y="880" font-size="20" fill="#475569">${escapeLine(dictionary.roadmapEmpty, 950, 20)}</text>`}

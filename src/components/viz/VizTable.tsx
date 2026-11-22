@@ -6,11 +6,12 @@ interface VizTableProps {
   locale: Locale;
   caption: string;
   columns: readonly string[];
+  alwaysReadable?: boolean;
   /** The first cell in each row names the item and serves as the row header. */
   rows: readonly (readonly ReactNode[])[];
 }
 
-export function VizTable({ locale, caption, columns, rows }: VizTableProps) {
+export function VizTable({ locale, caption, columns, rows, alwaysReadable = false }: VizTableProps) {
   const table = <table className="w-full border-collapse text-start text-sm">
     <caption className="caption-top py-2 text-start font-semibold">{caption}</caption>
     <thead>
@@ -25,13 +26,13 @@ export function VizTable({ locale, caption, columns, rows }: VizTableProps) {
   </table>;
 
   return <>
-    <details className="print:hidden">
+    <details className={alwaysReadable ? "peer print:hidden" : "print:hidden"}>
       <summary className="min-h-12 cursor-pointer rounded py-3 font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest">
         {t(locale).viz.showAsList}
       </summary>
       <div className="overflow-x-auto">{table}</div>
     </details>
     {/* Closed details can suppress their content in print, regardless of child display. */}
-    <div className="hidden print:block">{table}</div>
+    <div className={alwaysReadable ? "sr-only peer-open:hidden print:!block print:not-sr-only" : "hidden print:block"}>{table}</div>
   </>;
 }
