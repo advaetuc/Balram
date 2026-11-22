@@ -5,6 +5,29 @@ import type { ProvenanceTag } from "@/lib/domain/roadmap";
 
 const dictionary = {
   en: {
+    profiles: {
+      nameTitle: "Name your farm", nameSubtitle: "Give this field notebook a name so you can find it again.",
+      nameLabel: "Farm name", nameHint: "Choose up to 30 characters.", counter: "{0} / {1}",
+      continueSetup: "Continue to setup", createFarm: "Create farm", back: "Back",
+      sampleStart: "Start with an editable copy of Pune sample",
+      sampleHint: "Begin with example plots and soil readings you can edit.",
+      sampleName: "Sample farm · Pune", sampleCopy: "Editable Sample Copy",
+      suggestions: { home: "Home Field", well: "Well Plot", river: "River Farm" },
+      validation: { empty: "Enter a farm name.", too_long: "Keep the name to 30 characters or fewer.", duplicate: "You already have a farm with this name." },
+      title: "My Farms", subtitle: "Open a farm to pick up where you left off.",
+      landingLink: "My Farms ({0})", farmCount: "{0} / {1}", capacity: "Saved farms",
+      capReached: "You can keep up to 6 farms.", newFarm: "New Farm",
+      emptyList: "You have no saved farms yet.", switchTitle: "Switch farm", switchLabel: "Switch farm. Current farm: {0}",
+      manage: "Manage farms", open: "Open", rename: "Rename", delete: "Delete", active: "Active",
+      renameTitle: "Rename farm", saveName: "Save name", cancel: "Cancel",
+      origin: { sample_copy: "Sample copy", imported: "Imported" },
+      area: "Field area", areaMissing: "Area not set", plots: "Plots", setup: "Setup", setupComplete: "Complete", setupPending: "In progress",
+      updated: "Updated {0}", ribbon: "Crop allocation", ribbonEmpty: "No plot proportions yet",
+      ribbonShare: "{0}: {1}%", ribbonMore: "Includes unallocated land and any additional plots",
+      removed: "Deleted {0}.", restored: "Restored {0}.", undo: "Undo",
+      actionFailed: "The farm change could not be completed. Try again.",
+      undoFailed: "This farm could not be restored. Check the farm limit and existing names.",
+    },
     viz: {
       showAsList: "Show as list",
       farmCard: {
@@ -106,6 +129,29 @@ const dictionary = {
     yourPlots:"Your plots",editPlot:"Edit",removePlot:"Remove plot",undo:"Undo",plotAddedToast:"Added to your farm plan",plotRemovedToast:"Plot removed",plotRemovedNamed:"Plot removed:",cancelEdit:"Cancel edit",
   },
   mr: {
+    profiles: {
+      nameTitle: "तुमच्या शेताला नाव द्या", nameSubtitle: "ही शेतवही पुन्हा सहज सापडण्यासाठी तिला नाव द्या.",
+      nameLabel: "शेताचे नाव", nameHint: "जास्तीत जास्त ३० अक्षरे वापरा.", counter: "{0} / {1} अक्षरे",
+      continueSetup: "मांडणी सुरू करा", createFarm: "शेत तयार करा", back: "मागे",
+      sampleStart: "पुण्याच्या नमुना शेताची बदलता येणारी प्रत वापरा",
+      sampleHint: "उदाहरणातील प्लॉट आणि मातीच्या नोंदी वापरा. त्यात बदल करता येतील.",
+      sampleName: "नमुना शेत · पुणे", sampleCopy: "बदलता येणारी नमुना प्रत",
+      suggestions: { home: "घरचे शेत", well: "विहिरीचे शेत", river: "नदीकाठचे शेत" },
+      validation: { empty: "शेताचे नाव लिहा.", too_long: "शेताचे नाव ३० अक्षरांपर्यंत ठेवा.", duplicate: "या नावाचे शेत आधीच आहे." },
+      title: "माझी शेते", subtitle: "जिथे थांबलात तिथून पुढे सुरू करण्यासाठी शेत उघडा.",
+      landingLink: "माझी शेते ({0})", farmCount: "{0} / {1} शेते", capacity: "जतन केलेली शेते",
+      capReached: "तुम्ही जास्तीत जास्त 6 शेते ठेवू शकता.", newFarm: "नवीन शेत",
+      emptyList: "अजून कोणतेही शेत जतन केलेले नाही.", switchTitle: "शेत बदला", switchLabel: "शेत बदला. सध्याचे शेत: {0}",
+      manage: "शेते सांभाळा", open: "उघडा", rename: "नाव बदला", delete: "काढा", active: "सध्या उघडे",
+      renameTitle: "शेताचे नाव बदला", saveName: "नाव जतन करा", cancel: "रद्द करा",
+      origin: { sample_copy: "नमुना प्रत", imported: "आयात केलेले" },
+      area: "शेताचे क्षेत्रफळ", areaMissing: "क्षेत्रफळ भरलेले नाही", plots: "प्लॉट", setup: "मांडणी", setupComplete: "पूर्ण", setupPending: "सुरू आहे",
+      updated: "बदलाची तारीख {0}", ribbon: "पिकांसाठी जमीन वाटप", ribbonEmpty: "प्लॉटचे प्रमाण अजून उपलब्ध नाही",
+      ribbonShare: "{0}: {1}% जमीन", ribbonMore: "यात मोकळी जमीन आणि उरलेले प्लॉट समाविष्ट आहेत",
+      removed: "{0} काढले.", restored: "{0} पुन्हा जतन केले.", undo: "पूर्ववत करा",
+      actionFailed: "शेतातील बदल पूर्ण झाला नाही. पुन्हा प्रयत्न करा.",
+      undoFailed: "हे शेत पुन्हा जतन करता आले नाही. शेतांची मर्यादा आणि नावे तपासा.",
+    },
     viz: {
       showAsList: "यादी स्वरूपात पहा",
       farmCard: {

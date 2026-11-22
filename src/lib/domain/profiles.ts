@@ -1,5 +1,5 @@
 import type { ProfileMeta, StashedFarm } from "@/types/domain";
-import { squareMetresToGunthas } from "./geometry";
+import { squareMetresToGunthas } from "./areaConversion";
 import { barSegments } from "./viz/barSegments";
 
 export * from "./profileOperations";

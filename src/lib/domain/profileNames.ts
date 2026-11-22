@@ -12,6 +12,10 @@ function graphemes(name: string): string[] {
     : Array.from(name);
 }
 
+export function countProfileNameGraphemes(raw: string): number {
+  return graphemes(normalizeProfileName(raw)).length;
+}
+
 export function fitProfileName(name: string, suffix = ""): string {
   const segments = graphemes(name).slice(0, MAX_PROFILE_NAME_LENGTH - graphemes(suffix).length);
   while (segments.length > 0) {

@@ -11,7 +11,7 @@ export const TOAST_UNDO_MS = 7000;
 
 export type Toast = { id: string | number; message: string } & (
   | ({ variant: "info" } & (ToastAction | { actionLabel?: never; onAction?: never }))
-  | { variant: "undo"; onAction: () => void }
+  | { variant: "undo"; actionLabel?: string; onAction: () => void }
 );
 
 function ToastTimer({ toast, paused, onDismiss }: {
@@ -64,7 +64,7 @@ export function ToastHost({ toast, locale, onDismiss }: {
     }, delay);
     return () => window.clearTimeout(timeout);
   }, [toastId, leaving?.id]);
-  const actionLabel = toast?.variant === "undo" ? t(locale).undo : toast?.actionLabel;
+  const actionLabel = toast?.actionLabel ?? (toast?.variant === "undo" ? t(locale).undo : undefined);
   const pauseActiveToast = toast?.variant === "undo" && (hovered || focused);
 
   return (

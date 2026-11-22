@@ -63,6 +63,9 @@ test("createFarmProfile creates a blank farm and an editable copy after leaving 
   const raw = records.get(STORAGE_KEY);
   await state().setSampleData(true);
   assert.equal(state().sampleDataActive, true);
+  assert.equal(state().activeProfileId, null);
+  assert.deepEqual(state().profiles.map(({ id }) => id), [originalId]);
+  assert.deepEqual(state().farmStash[originalId], original);
   assert.equal(records.get(STORAGE_KEY), raw);
 
   await state().createFarmProfile("नमुना प्रत", { fromSample: true });

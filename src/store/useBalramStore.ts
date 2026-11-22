@@ -7,7 +7,7 @@ import { createJSONStorage, persist } from "zustand/middleware";
 import { createIndexedDBStorage, type StorageStatus } from "@/lib/storage/db";
 import { upgradeLegacyFarmProfiles } from "@/lib/domain/profileMigration";
 import {
-  createEditableSampleSlice, createProfile, createProfileId, deleteProfile, mergeImportedProfiles,
+  createEditableSampleSlice, createProfile, createProfileId, deleteProfile, extractFarmSlice, mergeImportedProfiles,
   renameProfile, restoreDeletedProfile, switchProfile, validateProfileName, type DeletedProfileSnapshot,
 } from "@/lib/domain/profileOperations";
 import { createEmptyFixture, createSampleFixture } from "@/mocks/fixtures";
@@ -310,13 +310,18 @@ export function createBalramStore(disk = createIndexedDBStorage()) {
         if (enabled ? overlayActive : !overlayActive && !current.sampleDataActive) return;
         const revision = ++sampleRevision;
         if (enabled) {
-          realFarmBackup = current.sampleDataActive ? createEmptyFixture() : current;
+          const savedFarms = current.sampleDataActive ? createEmptyFixture() : current;
+          realFarmBackup = savedFarms;
           writesEnabled = false;
           commitFarm(current, true);
           await disk.flush();
           if (revision !== sampleRevision) return;
           const { locale, landUnit } = get();
-          const next = { ...createSampleFixture(), locale, landUnit };
+          const next = {
+            ...createSampleFixture(), locale, landUnit, profiles: savedFarms.profiles,
+            farmStash: savedFarms.activeProfileId === null ? savedFarms.farmStash
+              : { ...savedFarms.farmStash, [savedFarms.activeProfileId]: extractFarmSlice(savedFarms) },
+          };
           set({ ...next, ...snapshotStatuses(next) });
         } else {
           const next = realFarmBackup ?? (current.sampleDataActive ? createEmptyFixture() : current);

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { LandUnitSchema, type LandUnit, type Locale } from "@/types/domain";
-import { GUNTHAS_PER_ACRE } from "./geometry";
+import { GUNTHAS_PER_ACRE } from "./areaConversion";
 
 export { LandUnitSchema };
 export type { LandUnit };

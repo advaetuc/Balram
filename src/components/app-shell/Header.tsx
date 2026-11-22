@@ -5,6 +5,8 @@ import { useBalramStore } from "@/store/useBalramStore";
 import { t } from "@/config/i18n";
 import { LandUnitToggle } from "@/components/ui/LandUnitToggle";
 
+import { FarmSwitcher } from "@/components/profiles/FarmSwitcher";
+
 export function Header() {
   const state = useBalramStore((value) => value);
   const text = t(state.locale);
@@ -13,7 +15,7 @@ export function Header() {
 
   return (
     <header lang={state.locale} className="border-b border-forest/20 bg-white print:hidden">
-      <div className="mx-auto flex min-h-[56px] max-w-7xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-1 sm:px-6">
+      <div className="mx-auto grid min-h-[56px] max-w-7xl grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-2 px-4 py-1 sm:flex sm:flex-wrap sm:justify-between sm:gap-x-4 sm:px-6">
         <Link href="/" aria-label={state.locale === "mr" ? "बलराम मुख्यपृष्ठ" : "Balram home"} className="flex min-h-12 items-center gap-3 rounded-lg pr-3">
           <span className="flex size-12 items-center justify-center rounded-xl bg-forest text-white" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-7">
@@ -23,8 +25,9 @@ export function Header() {
           <span><span className="block text-2xl leading-heading font-bold tracking-tight text-forest">Balram</span>
             <span className="hidden text-sm font-medium text-ink sm:block">{text.tagline}</span></span>
         </Link>
-        <nav aria-label={state.locale === "mr" ? "मुख्य नेव्हिगेशन" : "Primary"} className="flex flex-wrap items-center gap-2 text-sm font-semibold">
-          <button type="button" className="inline-flex min-h-12 items-center rounded-lg px-4 hover:bg-forest/5" onClick={() => window.dispatchEvent(new Event("balram:show-landing"))}>{text.home}</button>
+        <div className="flex min-w-0 items-center justify-end text-sm empty:hidden"><FarmSwitcher /></div>
+        <nav aria-label={state.locale === "mr" ? "मुख्य नेव्हिगेशन" : "Primary"} className="col-span-2 flex w-full flex-wrap items-center gap-1 text-sm font-semibold sm:w-auto sm:gap-2">
+          <button type="button" className="inline-flex min-h-12 min-w-12 items-center rounded-lg px-3 hover:bg-forest/5 sm:px-4" onClick={() => window.dispatchEvent(new Event("balram:show-landing"))}>{text.home}</button>
           <LandUnitToggle />
           <button type="button" className="min-h-12 min-w-12 rounded-lg border border-border-strong px-3" disabled={!state.hydrated}
             aria-label={state.locale === "en" ? "Switch to Marathi" : "इंग्रजीत बदला"}
