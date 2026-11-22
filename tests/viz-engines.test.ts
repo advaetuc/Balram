@@ -4,6 +4,8 @@ import test from "node:test";
 import { createElement } from "react";
 import { renderToString } from "react-dom/server";
 import { createSampleFixture } from "../src/mocks/fixtures";
+import { updatePlotGunthas } from "../src/lib/domain/allocation";
+import { SQUARE_METRES_PER_GUNTHA } from "../src/lib/domain/geometry";
 import { getSeasonalCropRecommendations } from "../src/lib/domain/cropRecommendations";
 import { createRegionalBaselineWeatherSnapshot, resolveDailyEt0 } from "../src/lib/domain/irrigation";
 import { buildCropCalendar } from "../src/lib/domain/viz/calendarLayout";
@@ -13,7 +15,7 @@ import { deriveSkyCondition } from "../src/lib/domain/viz/skyCondition";
 import { layoutTiles } from "../src/lib/domain/viz/tileLayout";
 import { buildWaterRibbon, HEAVY_RAIN_CAUTION_MM } from "../src/lib/domain/viz/waterRibbon";
 import { useNow } from "../src/lib/ui/useNow";
-import type { CropAllocation, SoilKitReading } from "../src/types/domain";
+import { CropAllocationsSchema, type CropAllocation, type SoilKitReading } from "../src/types/domain";
 
 function plot(overrides: Partial<CropAllocation> = {}): CropAllocation {
   return {
@@ -237,4 +239,54 @@ test("visual primitives are store-free and visual engines have no React, store, 
   for (const filename of readdirSync(engines).filter((file) => /\.ts$/.test(file))) {
     assert.doesNotMatch(readFileSync(new URL(filename, engines), "utf8"), /from\s+["']react|useBalramStore|\/store\/|Date\.now\(|new Date\(\)/, filename);
   }
+});
+
+test("tile adjustments resize named and legacy plots through canonical guntha updates", () => {
+  const area = 40 * SQUARE_METRES_PER_GUNTHA;
+  const allocations = [
+    plot({ plotId: "named", areaGunthas: 10, percentage: 25 }),
+    plot({ cropId: "bajra", percentage: 25 }),
+  ];
+  const shrunk = updatePlotGunthas(allocations, "bajra-1", 9, area);
+  const transferred = updatePlotGunthas(shrunk, "named", 11, area);
+  assert.deepEqual(transferred.map(({ areaGunthas }) => areaGunthas), [11, 9]);
+  assert.equal(allocations[1].areaGunthas, undefined);
+  assert.ok(CropAllocationsSchema.safeParse(transferred).success);
+  assert.throws(() => updatePlotGunthas(transferred, "named", 32, area), RangeError);
+  assert.throws(() => updatePlotGunthas(transferred, "named", 0, area));
+});
+
+test("filling the field apportions exactly 100 percent without changing guntha areas", () => {
+  const area = 400 * SQUARE_METRES_PER_GUNTHA;
+  const allocations = [
+    plot({ plotId: "one", areaGunthas: 100.1, percentage: 25.03 }),
+    plot({ plotId: "two", areaGunthas: 100.1, percentage: 25.03 }),
+    plot({ plotId: "three", areaGunthas: 190, percentage: 47.5 }),
+  ];
+  const filled = CropAllocationsSchema.parse(updatePlotGunthas(allocations, "three", 199.8, area));
+  assert.deepEqual(filled.map(({ areaGunthas }) => areaGunthas), [100.1, 100.1, 199.8]);
+  assert.equal(filled.reduce((sum, { percentage }) => sum + Math.round(percentage * 100), 0), 10_000);
+
+  const largeField = 10_000 * SQUARE_METRES_PER_GUNTHA;
+  const withTinyPlot = CropAllocationsSchema.parse(updatePlotGunthas([
+    plot({ plotId: "tiny", areaGunthas: 0.1, percentage: 0.01 }),
+    plot({ plotId: "large", areaGunthas: 9999, percentage: 99.99 }),
+  ], "large", 9999.9, largeField));
+  assert.deepEqual(withTinyPlot.map(({ percentage }) => percentage), [0.01, 99.99]);
+});
+
+test("Guntha Tiles mounts after LandBar and uses the responsive, store-backed allocation path", () => {
+  const dashboard = new URL("../src/components/dashboard/", import.meta.url);
+  const tiles = readFileSync(new URL("GunthaTiles.tsx", dashboard), "utf8");
+  const portfolio = readFileSync(new URL("PortfolioCard.tsx", dashboard), "utf8");
+  assert.match(tiles, /useMemo\(\(\) => layoutTiles\(totalGunthas, state\.cropAllocations\),\s*\[totalGunthas, state\.cropAllocations\]\)/);
+  assert.match(tiles, /AcreCard = memo\(/);
+  assert.match(tiles, /next = updatePlotGunthas\(/);
+  assert.doesNotMatch(tiles, /\bpercentage\s*[:=]|style=\{\{/);
+  assert.match(tiles, /role="img"[^>]+md:hidden/);
+  assert.match(tiles, /min-h-12 min-w-12/);
+  assert.match(tiles, /paintEnabled \? "md:touch-none" : ""/);
+  assert.match(tiles, /<VizTable /);
+  assert.match(tiles, /<VizCaption [^>]+sampleDataActive \? "sample" : "you_entered"/);
+  assert.match(portfolio, /<LandBar [^>]*\/>\s*<GunthaTiles\s*\/>/);
 });

@@ -84,5 +84,23 @@ export function updatePlotGunthas(plots:readonly CropAllocation[],targetPlotId:s
  if(total!==null&&sum>total+.05)throw new RangeError("Plot areas exceed the remaining farm land.");
  const denominator=total??sum;
  if(denominator<=0)throw new RangeError("Enter a valid total plot area.");
- return next.map(p=>({...p,percentage:Math.round(((p.areaGunthas??0)/denominator)*10000)/100}));
+ const targetPoints = Math.min(10_000, Math.max(next.length, Math.round(sum / denominator * 10_000)));
+ const shares = next.map(plot => (plot.areaGunthas ?? 0) / sum * targetPoints);
+ const points = shares.map(share => Math.max(1, Math.floor(share)));
+ let remaining = targetPoints - points.reduce((totalPoints, share) => totalPoints + share, 0);
+ const order = shares.map((share, index) => ({ index, remainder: share - points[index] }))
+   .sort((a, b) => b.remainder - a.remainder || a.index - b.index);
+ for (const { index } of order) {
+   if (remaining <= 0) break;
+   points[index]++;
+   remaining--;
+ }
+ // Tiny positive plots need one basis point to remain valid. Fund those points from larger plots.
+ for (const { index } of order.reverse()) {
+   if (remaining >= 0) break;
+   const deduction = Math.min(points[index] - 1, -remaining);
+   points[index] -= deduction;
+   remaining += deduction;
+ }
+ return next.map((plot, index) => ({ ...plot, percentage: points[index] / 100 }));
 }

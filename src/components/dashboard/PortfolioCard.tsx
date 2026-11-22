@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MaharashtraCropMatrix, type CropId } from "@/config/cropMatrix";
 import { cropLabel, t } from "@/config/i18n";
+import { GunthaTiles } from "@/components/dashboard/GunthaTiles";
 import { CropAdvisorCard } from "@/components/dashboard/CropAdvisorCard";
 import { CropCheckoutSheet, type PlotDraft } from "@/components/crops/CropCheckoutSheet";
 import { LandBar } from "@/components/ui/LandBar";
@@ -195,6 +196,7 @@ export function PortfolioCard() {
   return (
     <div id="portfolio" className="space-y-5">
       <LandBar totalGunthas={derived.totalFarmGunthas} allocatedGunthas={derived.allocatedGunthas} unit={state.landUnit} locale={state.locale} />
+      <GunthaTiles />
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,370px)]">
         <div className="min-w-0 space-y-5">
           <section className="bento-card">

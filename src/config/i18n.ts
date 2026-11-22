@@ -7,6 +7,19 @@ const dictionary = {
   en: {
     viz: {
       showAsList: "Show as list",
+      gunthaTiles: {
+        title: "Land by plot", acre: "Acre", tile: "Tile", partial: "Partial guntha", area: "Area",
+        unassigned: "Unassigned", legend: "Plot legend", selectPlot: "Select a plot to adjust",
+        adjustGunthas: "Adjust the selected plot in gunthas", addAcre: "+1 Acre (+40)", fillRemaining: "Fill remaining",
+        paint: "Paint", keyboardHelp: "Tap a tile to move one guntha to the selected plot or free one from it. Use arrow keys and Enter to do the same.",
+        paintHelp: "Drag across tiles to move land to the selected plot. Start on a tile in that plot to free land. Lift to save.",
+        empty: "Set your field area in My Land to see your plots here.",
+        caption: "One full tile represents one guntha. Tiles are grouped by plot.",
+        overCapacity: "There isn’t enough unassigned land for that change.",
+        keepPlotArea: "Keep some land in each plot. Use Remove plot to free the entire area.",
+        cannotAdjust: "This change could not be saved. Check the plot areas and try again.",
+        updated: "Plot areas updated.", noRoom: "There isn’t enough unassigned land to add to this plot.",
+      },
       textTwins: { land: "Land allocation", soil: "Soil test results", water: "Seven-day water outlook", stages: "Crop stages", sky: "Weather outlook", cropFit: "Crop fit", calendar: "Crop calendar" },
       status: { good: "Good", fair: "Fair", needs_help: "Needs help" },
       provenanceStrokes: { you_entered: "Solid line · You entered", measured_by_kit: "Solid line · Measured by kit", forecast: "Dashed line · Forecast", typical_season: "Dotted line · Typical for the season", sample: "Hatched fill · Sample" },
@@ -53,6 +66,19 @@ const dictionary = {
   mr: {
     viz: {
       showAsList: "यादी स्वरूपात पहा",
+      gunthaTiles: {
+        title: "प्लॉटनुसार जमीन", acre: "एकर", tile: "चौकोन", partial: "गुंठ्याचा काही भाग", area: "क्षेत्रफळ",
+        unassigned: "मोकळी जमीन", legend: "प्लॉटची चिन्हे", selectPlot: "क्षेत्र बदलण्यासाठी प्लॉट निवडा",
+        adjustGunthas: "निवडलेल्या प्लॉटचे क्षेत्र गुंठ्यांत बदला", addAcre: "+१ एकर (+४०)", fillRemaining: "उरलेली जमीन जोडा",
+        paint: "रंगवा", keyboardHelp: "चौकोन दाबून निवडलेल्या प्लॉटमध्ये एक गुंठा जोडा किंवा त्यातून एक गुंठा मोकळा करा. बाणांच्या कळा आणि एंटर कळही वापरता येते.",
+        paintHelp: "निवडलेल्या प्लॉटमध्ये जमीन जोडण्यासाठी चौकोनांवरून ओढा. जमीन मोकळी करण्यासाठी त्याच प्लॉटच्या चौकोनापासून सुरू करा. बदल जतन करण्यासाठी सोडा.",
+        empty: "इथे प्लॉट पाहण्यासाठी माझी जमीन या विभागात शेताचे क्षेत्रफळ भरा.",
+        caption: "एक पूर्ण चौकोन म्हणजे एक गुंठा. प्रत्येक प्लॉटचे चौकोन एकत्र दाखवले आहेत.",
+        overCapacity: "या बदलासाठी पुरेशी मोकळी जमीन नाही.",
+        keepPlotArea: "प्रत्येक प्लॉटमध्ये थोडी जमीन ठेवा. संपूर्ण क्षेत्र मोकळे करण्यासाठी प्लॉट काढा.",
+        cannotAdjust: "हा बदल जतन झाला नाही. प्लॉटचे क्षेत्र तपासून पुन्हा प्रयत्न करा.",
+        updated: "प्लॉटचे क्षेत्र बदलले.", noRoom: "या प्लॉटमध्ये जोडण्यासाठी पुरेशी मोकळी जमीन नाही.",
+      },
       textTwins: { land: "जमिनीचे वाटप", soil: "माती चाचणीचे निकाल", water: "सात दिवसांचे पाणी नियोजन", stages: "पिकाच्या अवस्था", sky: "हवामानाचा अंदाज", cropFit: "पिकाची अनुरूपता", calendar: "पिकांचे वार्षिक वेळापत्रक" },
       status: { good: "योग्य", fair: "बऱ्यापैकी योग्य", needs_help: "मदतीची गरज" },
       provenanceStrokes: { you_entered: "अखंड रेषा · तुम्ही नोंदवलेले", measured_by_kit: "अखंड रेषा · किटने मोजलेले", forecast: "तुटक रेषा · अंदाज", typical_season: "ठिपक्यांची रेषा · हंगामातील नेहमीची स्थिती", sample: "तिरक्या रेषांचा नमुना · उदाहरण" },
