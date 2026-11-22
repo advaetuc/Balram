@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import test from "node:test";
-import { createElement } from "react";
+import { runInNewContext } from "node:vm";
+import { createElement, isValidElement, type ReactElement, type ReactNode } from "react";
+import { jsx, jsxs } from "react/jsx-runtime";
+import ts from "typescript";
+import { cropLabel, t } from "../src/config/i18n";
+import { indiaDate } from "../src/lib/domain/calendar";
+import { formatNumber } from "../src/lib/ui/format";
 import { renderToString } from "react-dom/server";
 import { createSampleFixture } from "../src/mocks/fixtures";
 import { updatePlotGunthas } from "../src/lib/domain/allocation";
@@ -289,4 +295,95 @@ test("Guntha Tiles mounts after LandBar and uses the responsive, store-backed al
   assert.match(tiles, /<VizTable /);
   assert.match(tiles, /<VizCaption [^>]+sampleDataActive \? "sample" : "you_entered"/);
   assert.match(portfolio, /<LandBar [^>]*\/>\s*<GunthaTiles\s*\/>/);
+});
+
+test("BulletGauge is store-free and SoilGauges mounts above the enrichment checklist", () => {
+  const gauge = readFileSync(new URL("../src/components/viz/BulletGauge.tsx", import.meta.url), "utf8");
+  assert.doesNotMatch(gauge, /useBalramStore|from\s+["'][^"']*\/store\/|style=\{\{/);
+  assert.match(gauge, /role="img"[^>]+aria-label=\{ariaLabel\}/);
+  assert.match(gauge, /pinX === null && <rect/);
+  const card = readFileSync(new URL("../src/components/dashboard/SoilCard.tsx", import.meta.url), "utf8");
+  assert.match(card, /interpretation&&<>\s*<SoilGauges [^>]*\/>[\s\S]*?What Your Soil Needs Before Planting/);
+});
+
+test("pH controls rank a local copy, clamp and reset without writing to the saved result", () => {
+  // Execute the component with a frozen store snapshot and a small hook harness.
+  const saved = Object.freeze(soil({ ph: 10.4 }));
+  const snapshot = Object.freeze({
+    soilKitReading: saved, weatherSnapshot: null, now: Date.parse("2026-04-30T19:00:00Z"),
+    locale: "en" as const, sampleDataActive: false,
+  });
+  let whatIfPh: number | null = null;
+  let resets = 0;
+  const inputs: Parameters<typeof getSeasonalCropRecommendations>[0][] = [];
+  const modules = {
+    react: {
+      useId: () => "soil-audit",
+      useRef: () => ({ current: { focus: () => { resets++; } } }),
+      useState: () => [whatIfPh, (update: ((previous: number | null) => number) | null) => {
+        whatIfPh = update === null ? null : update(whatIfPh);
+      }],
+    },
+    "react/jsx-runtime": { jsx, jsxs },
+    "@/components/viz/BulletGauge": { BulletGauge: "test-gauge" },
+    "@/components/viz/VizCaption": { VizCaption: "test-caption" },
+    "@/components/viz/VizTable": { VizTable: "test-table" },
+    "@/config/i18n": { cropLabel, t },
+    "@/lib/domain/calendar": { indiaDate },
+    "@/lib/domain/cropRecommendations": { getSeasonalCropRecommendations: (input: typeof inputs[number]) => {
+      inputs.push(input);
+      return getSeasonalCropRecommendations(input);
+    } },
+    "@/lib/domain/viz/gaugeZones": { buildSoilGauges },
+    "@/lib/ui/format": { formatNumber },
+    "@/store/useBalramStore": { useBalramStore: (select: (state: typeof snapshot) => unknown) => select(snapshot) },
+  };
+  const url = new URL("../src/components/dashboard/SoilGauges.tsx", import.meta.url);
+  const { outputText } = ts.transpileModule(readFileSync(url, "utf8"), { compilerOptions: {
+    module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX,
+  } });
+  type Props = {
+    children?: ReactNode; className?: string; onClick?: () => void; "aria-label"?: string;
+    "aria-disabled"?: boolean; rows?: string[][];
+  };
+  const exports = {} as { SoilGauges: () => ReactElement<unknown, (props: unknown) => ReactNode> };
+  runInNewContext(outputText, {
+    exports, require: (id: keyof typeof modules) => {
+      assert.ok(Object.hasOwn(modules, id), `unexpected module: ${id}`);
+      return modules[id];
+    },
+  });
+  const elements = (node: ReactNode): ReactElement<Props>[] => {
+    if (Array.isArray(node)) return node.flatMap(elements);
+    return isValidElement<Props>(node) ? [node, ...elements(node.props.children)] : [];
+  };
+  const render = () => {
+    const result = exports.SoilGauges();
+    return elements(result.type(result.props));
+  };
+  const increase = (view: ReturnType<typeof render>) =>
+    view.find(node => node.props["aria-label"] === t("en").phIncrease)?.props;
+  assert.equal(inputs.length, 0);
+  assert.ok(increase(render())?.onClick);
+  increase(render())!.onClick!();
+  const trial = render();
+  assert.equal(whatIfPh, 10.5);
+  assert.equal(increase(trial)?.["aria-disabled"], true);
+  increase(trial)!.onClick!();
+  assert.equal(whatIfPh, 10.5);
+  assert.equal(inputs[0].monthZeroIndexed, 4);
+  assert.notEqual(inputs[0].soilKitReading, saved);
+  assert.equal(inputs[0].soilKitReading?.ph, 10.5);
+  assert.equal(trial.find(node => node.type === "test-table")?.props.rows?.[0][1], "10.4");
+  const controls = trial.find(node => node.type === "section" && node.props.className?.includes("print:hidden"));
+  assert.ok(controls);
+  assert.equal(elements(controls).filter(node => node.type === "li").length, 3);
+  const reset = trial.find(node => node.props.children === t("en").viz.soilGauges.reset);
+  assert.ok(reset?.props.onClick);
+  reset.props.onClick();
+  assert.equal(whatIfPh, null);
+  assert.equal(resets, 1);
+  assert.ok(render().every(node => node.props.children !== t("en").viz.soilGauges.whatIf));
+  assert.equal(snapshot.soilKitReading, saved);
+  assert.equal(saved.ph, 10.4);
 });

@@ -7,6 +7,15 @@ const dictionary = {
   en: {
     viz: {
       showAsList: "Show as list",
+      soilGauges: {
+        title: "Soil gauges", ph: "Soil pH", nitrogen: "Available nitrogen (N)", phosphorus: "Available phosphorus (Olsen P)",
+        vertisol: "Typical Deccan black soil (Vertisol)", aboveScale: "The result is above the gauge scale.",
+        bands: { strongly_acidic: "Strongly acidic", slightly_acidic: "Slightly acidic", optimal_neutral: "Ideal", moderately_alkaline: "Moderately alkaline", strongly_alkaline: "Strongly alkaline", low: "Low", medium: "Medium", high: "High" },
+        chosen: "You chose {0}", tryPh: "Try a different pH", decrease: "−0.1", increase: "+0.1",
+        reset: "Back to my result", whatIf: "What if · Not your real result", topCrops: "Top crops at this pH",
+        tableCaption: "Saved soil test results", parameter: "Test", result: "Result", zone: "Zone status", threshold: "Threshold range",
+        caption: "The list shows the saved test and its thresholds.",
+      },
       gunthaTiles: {
         title: "Land by plot", acre: "Acre", tile: "Tile", partial: "Partial guntha", area: "Area",
         unassigned: "Unassigned", legend: "Plot legend", selectPlot: "Select a plot to adjust",
@@ -66,6 +75,15 @@ const dictionary = {
   mr: {
     viz: {
       showAsList: "यादी स्वरूपात पहा",
+      soilGauges: {
+        title: "माती चाचणीचे मापक", ph: "मातीचा सामू (pH)", nitrogen: "उपलब्ध नत्र", phosphorus: "उपलब्ध स्फुरद (ओल्सेन)",
+        vertisol: "दख्खनच्या काळ्या मातीचा नेहमीचा सामू (वर्टिसोल)", aboveScale: "हा निकाल मापकाच्या कमाल मर्यादेपेक्षा जास्त आहे.",
+        bands: { strongly_acidic: "तीव्र आम्लीय", slightly_acidic: "किंचित आम्लीय", optimal_neutral: "आदर्श", moderately_alkaline: "मध्यम विम्ल", strongly_alkaline: "तीव्र विम्ल", low: "कमी", medium: "मध्यम", high: "जास्त" },
+        chosen: "तुम्ही {0} निवडले", tryPh: "वेगळा सामू तपासून पहा", decrease: "−०.१", increase: "+०.१",
+        reset: "माझ्या खऱ्या निकालाकडे परत", whatIf: "अंदाज तपासा · हा तुमचा खरा निकाल नाही", topCrops: "या सामूसाठी सर्वाधिक योग्य पिके",
+        tableCaption: "जतन केलेले माती चाचणीचे निकाल", parameter: "चाचणी", result: "निकाल", zone: "पातळीची स्थिती", threshold: "पातळीची मर्यादा",
+        caption: "यादीत जतन केलेले निकाल आणि त्यांच्या मर्यादा आहेत.",
+      },
       gunthaTiles: {
         title: "प्लॉटनुसार जमीन", acre: "एकर", tile: "चौकोन", partial: "गुंठ्याचा काही भाग", area: "क्षेत्रफळ",
         unassigned: "मोकळी जमीन", legend: "प्लॉटची चिन्हे", selectPlot: "क्षेत्र बदलण्यासाठी प्लॉट निवडा",
