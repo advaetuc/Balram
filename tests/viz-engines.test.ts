@@ -3,7 +3,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import test from "node:test";
 import { runInNewContext } from "node:vm";
 import { createElement, isValidElement, type ReactElement, type ReactNode } from "react";
-import { jsx, jsxs } from "react/jsx-runtime";
+import { Fragment, jsx, jsxs } from "react/jsx-runtime";
 import ts from "typescript";
 import { cropLabel, t } from "../src/config/i18n";
 import { indiaDate } from "../src/lib/domain/calendar";
@@ -19,11 +19,12 @@ import { calculatePhaseWaterBreakdown, calculateSystemRuntime, createRegionalBas
 import { buildCropCalendar } from "../src/lib/domain/viz/calendarLayout";
 import { evaluateCropFit } from "../src/lib/domain/viz/cropFit";
 import { buildSoilGauges } from "../src/lib/domain/viz/gaugeZones";
+import { estimateWeeksToNextStage } from "../src/lib/domain/viz/stageProgress";
 import { deriveSkyCondition } from "../src/lib/domain/viz/skyCondition";
 import { layoutTiles } from "../src/lib/domain/viz/tileLayout";
 import { buildWaterRibbon, HEAVY_RAIN_CAUTION_MM } from "../src/lib/domain/viz/waterRibbon";
 import { useNow } from "../src/lib/ui/useNow";
-import { CropAllocationsSchema, growthToLifecycleStage, type CropAllocation, type SoilKitReading } from "../src/types/domain";
+import { CropAllocationsSchema, growthToLifecycleStage, LifecycleStageSchema, type CropAllocation, type SoilKitReading } from "../src/types/domain";
 
 function plot(overrides: Partial<CropAllocation> = {}): CropAllocation {
   return {
@@ -390,7 +391,7 @@ test("pH controls rank a local copy, clamp and reset without writing to the save
   assert.equal(saved.ph, 10.4);
 });
 
-function loadWaterComponent<T>(path: string, modules: Record<string, unknown>) {
+function loadVisualComponent<T>(path: string, modules: Record<string, unknown>) {
   const source = readFileSync(new URL(path, import.meta.url), "utf8");
   const { outputText } = ts.transpileModule(source, { compilerOptions: {
     module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX,
@@ -398,7 +399,7 @@ function loadWaterComponent<T>(path: string, modules: Record<string, unknown>) {
   const exports = {} as T;
   runInNewContext(outputText, {
     exports, require: (id: string) => {
-      if (id === "react/jsx-runtime") return { jsx, jsxs };
+      if (id === "react/jsx-runtime") return { Fragment, jsx, jsxs };
       assert.ok(Object.hasOwn(modules, id), `unexpected module: ${id}`);
       return modules[id];
     },
@@ -409,8 +410,8 @@ function loadWaterComponent<T>(path: string, modules: Record<string, unknown>) {
 test("WaterDayColumn is store-free and renders the source's distinct provenance stroke", () => {
   const path = "../src/components/viz/WaterDayColumn.tsx";
   assert.doesNotMatch(readFileSync(new URL(path, import.meta.url), "utf8"), /useBalramStore|from\s+["'][^"']*\/store\//);
-  const strokes = loadWaterComponent("../src/components/viz/ProvenanceStroke.tsx", {});
-  const { WaterDayColumn } = loadWaterComponent<{ WaterDayColumn: (props: Record<string, unknown>) => ReactElement }>(path, {
+  const strokes = loadVisualComponent("../src/components/viz/ProvenanceStroke.tsx", {});
+  const { WaterDayColumn } = loadVisualComponent<{ WaterDayColumn: (props: Record<string, unknown>) => ReactElement }>(path, {
     react: { useId: () => "day-audit" }, "@/config/i18n": { t }, "./ProvenanceStroke": strokes,
   });
   const day = buildWaterRibbon({ weatherSnapshot: baseline(), plot: plot(), latitudeDeg: 18.5 })[0];
@@ -440,7 +441,7 @@ test("WaterRibbon labels baseline and illustrative rain, retains seven table row
   const slots: unknown[] = [];
   let slot = 0;
   let afterRender: (() => void)[] = [];
-  const { WaterRibbon } = loadWaterComponent<{ WaterRibbon: (props: { compact?: boolean }) => ReactElement }>(
+  const { WaterRibbon } = loadVisualComponent<{ WaterRibbon: (props: { compact?: boolean }) => ReactElement }>(
     "../src/components/irrigation/WaterRibbon.tsx", {
       react: {
         useId: () => `audit-${slot++}`,
@@ -523,4 +524,44 @@ test("WaterRibbon labels baseline and illustrative rain, retains seven table row
   assert.ok(compact.every(node => node.type !== "test-radio" && node.type !== "test-table"));
   assert.ok(compact.filter(node => node.type === "test-day").every(node => !node.props.day?.illustrative));
   assert.equal(weatherSnapshot.daily[0].precipitation, 26);
+});
+
+test("stage progress withholds timing on the server, at harvest and for unknown crops", () => {
+  const input = { cropId: "onion", lifecycleStage: "vegetative" as const, plantingDate: "2028-02-29", todayIso: "2028-03-28" };
+  assert.equal(estimateWeeksToNextStage({ ...input, todayIso: null }), null);
+  assert.equal(estimateWeeksToNextStage({ ...input, lifecycleStage: "harvesting" }), null);
+  assert.equal(estimateWeeksToNextStage({ ...input, cropId: "constructor" }), null);
+  assert.equal(estimateWeeksToNextStage({ ...input, plantingDate: "2027-02-29" }), null);
+  assert.equal(estimateWeeksToNextStage({ ...input, todayIso: "2028-04-31" }), null);
+});
+
+test("stage progress uses the cumulative phase end across leap day and rounds up to at least one week", () => {
+  const input = { cropId: "onion", lifecycleStage: "vegetative" as const, plantingDate: "2028-02-29", todayIso: "2028-03-28" };
+  assert.deepEqual(estimateWeeksToNextStage(input), { weeksRemaining: 4, nextStage: "flowering_fruiting" });
+  assert.deepEqual(estimateWeeksToNextStage({ ...input, todayIso: "2028-03-29" }), { weeksRemaining: 4, nextStage: "flowering_fruiting" });
+  assert.deepEqual(estimateWeeksToNextStage({ ...input, todayIso: "2028-05-02" }), { weeksRemaining: 1, nextStage: "flowering_fruiting" });
+  assert.deepEqual(estimateWeeksToNextStage({ ...input, plantingDate: null }), { weeksRemaining: 5, nextStage: "flowering_fruiting" });
+  assert.deepEqual(estimateWeeksToNextStage({ ...input, todayIso: "2028-02-26" }), { weeksRemaining: 8, nextStage: "flowering_fruiting" });
+  assert.deepEqual(estimateWeeksToNextStage({
+    cropId: "bajra", lifecycleStage: "flowering_fruiting", plantingDate: "2027-12-28", todayIso: "2028-02-22",
+  }), { weeksRemaining: 2, nextStage: "harvesting" });
+});
+
+test("StageRail is store-free and renders ordered stages and timing only when supplied", () => {
+  const path = "../src/components/viz/StageRail.tsx";
+  assert.doesNotMatch(readFileSync(new URL(path, import.meta.url), "utf8"), /useBalramStore|from\s+["'][^"']*\/store\//);
+  const illustration = loadVisualComponent("../src/components/viz/StageIllustration.tsx", {});
+  const { StageRail } = loadVisualComponent<{ StageRail: (props: Record<string, unknown>) => ReactElement }>(path, {
+    "@/config/i18n": { t }, "@/lib/ui/format": { formatNumber }, "@/types/domain": { LifecycleStageSchema },
+    "./StageIllustration": illustration,
+  });
+  const render = (weeksToNext: ReturnType<typeof estimateWeeksToNextStage>) =>
+    renderToString(createElement(StageRail, { locale: "en", stage: "vegetative", weeksToNext }));
+  const server = render(null);
+  assert.match(server, /Planned.*aria-current="step".*Vegetative.*Flowering \/ Fruiting.*Harvesting/s);
+  assert.equal((server.match(/<svg[^>]*class="size-8"/g) ?? []).length, 4);
+  assert.match(server, /sr-only">Completed/);
+  assert.doesNotMatch(server, /About /);
+  assert.match(render({ weeksRemaining: 1, nextStage: "flowering_fruiting" }), /About 1 week to Flowering \/ Fruiting/);
+  assert.match(render({ weeksRemaining: 4, nextStage: "flowering_fruiting" }), /About 4 weeks to Flowering \/ Fruiting/);
 });

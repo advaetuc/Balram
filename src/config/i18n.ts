@@ -7,6 +7,9 @@ const dictionary = {
   en: {
     viz: {
       showAsList: "Show as list",
+      stageRail: {
+        completed: "Completed", aboutOneWeek: "About {0} week to {1}", aboutWeeks: "About {0} weeks to {1}",
+      },
       waterRibbon: {
         title: "Seven-day water outlook", day: "Day", rain: "Rain", cropNeed: "Crop water need",
         irrigationQuestion: "Irrigate?", irrigate: "Irrigation may be needed",
@@ -81,6 +84,7 @@ const dictionary = {
     whyAdvice:"Why this advice?", roadmapBuckets:{this_week:"This Week",next_two_weeks:"Next Two Weeks",later:"Later"}, roadmapEmpty:"No roadmap actions yet. Add a plot or soil result to build a plan.", reportPreview:"Farm report preview", finishSetupDone:"Setup complete. Your farm plan is ready.",
     provenance:{measured_by_kit:"Measured by kit",forecast:"Forecast",estimated:"Estimated",you_entered:"You entered",assumed:"Assumed",sample:"Sample"},
     statusDone:"Done", statusReady:"Ready", todayWater:"Today's planned water", nextActions:"Next actions", continueStep:"Continue: Step",
+    checkInCadence:"Check-in cadence",checkInUnlinkedPlot:"No linked plot",
     checkInStart:"Start 30-sec check-in",checkInDueTitle:"A quick field check-in is due",checkInDueBody:"Record the plot stage and any recent field event.",checkInWeekly:"7-day · Weekly",checkInMonthly:"30-day · Monthly",checkInPlot:"Select plot",checkInStage:"Confirm or update crop stage",checkInEvent:"Recent field event",checkInNote:"Short note (optional)",checkInSave:"Save check-in",checkInCancel:"Cancel",checkInRecent:"Recent check-ins",checkInEmpty:"No check-ins saved yet.",checkInEvents:{none:"No event",heavy_rain:"Heavy rain",hail:"Hail",heat_wave:"Heat wave",cold_night:"Cold night",water_shortage:"Water shortage"},
     backupTitle:"Farm backup",backupCoordinateWarning:"The downloaded backup contains your field map coordinates. Keep the file private.",backupExport:"Download JSON backup",backupImport:"Restore JSON backup",backupSuccess:"Farm backup restored.",backupExported:"Backup downloaded.",backupFailure:"This backup could not be restored. Your current farm data was not changed.",backupFileTooLarge:"Choose a backup file smaller than 2 MB.",
     shareSummary:"Share Summary",shareCopied:"Copied to clipboard",shareFailure:"Could not share or copy the summary.",shareTitle:"Balram · Farm summary",shareLand:"Total land",sharePlots:"Plots",shareSoil:"Soil",shareSoilUntested:"Soil not tested",shareSoilTested:"Soil test",shareActions:"Next actions",checkInsReport:"Recent check-ins",roadmapReport:"Roadmap actions",event:"Event",note:"Note",
@@ -91,6 +95,9 @@ const dictionary = {
   mr: {
     viz: {
       showAsList: "यादी स्वरूपात पहा",
+      stageRail: {
+        completed: "पूर्ण", aboutOneWeek: "{1} टप्प्यासाठी सुमारे {0} आठवडा", aboutWeeks: "{1} टप्प्यासाठी सुमारे {0} आठवडे",
+      },
       waterRibbon: {
         title: "सात दिवसांचे पाणी नियोजन", day: "दिवस", rain: "पाऊस", cropNeed: "पिकाची पाण्याची गरज",
         irrigationQuestion: "सिंचन करावे का?", irrigate: "सिंचनाची गरज भासू शकते",
@@ -165,6 +172,7 @@ const dictionary = {
     whyAdvice:"हा सल्ला का?", roadmapBuckets:{this_week:"या आठवड्यात",next_two_weeks:"पुढील दोन आठवडे",later:"नंतर"}, roadmapEmpty:"सध्या पुढील कामे नाहीत. नियोजनासाठी प्लॉट किंवा मातीचा निकाल जोडा.", reportPreview:"शेत अहवालाची झलक", finishSetupDone:"सेटअप पूर्ण. तुमचे शेत नियोजन तयार आहे.",
     provenance:{measured_by_kit:"किटद्वारे मोजलेले",forecast:"हवामान अंदाज",estimated:"अंदाजित",you_entered:"तुम्ही नोंदवलेले",assumed:"गृहीत धरलेले",sample:"नमुना"},
     statusDone:"पूर्ण", statusReady:"तयार", todayWater:"आजचे नियोजित पाणी", nextActions:"पुढील कामे", continueStep:"पुढे: टप्पा",
+    checkInCadence:"नोंदीचे अंतर",checkInUnlinkedPlot:"प्लॉट जोडलेला नाही",
     checkInStart:"३० सेकंद तपासणी सुरू करा",checkInDueTitle:"शेताची छोटी नोंद करायची आहे",checkInDueBody:"प्लॉटची अवस्था आणि अलीकडील शेतातील घटना नोंदवा.",checkInWeekly:"७ दिवस · साप्ताहिक",checkInMonthly:"३० दिवस · मासिक",checkInPlot:"प्लॉट निवडा",checkInStage:"पीक अवस्था निश्चित करा किंवा बदला",checkInEvent:"अलीकडील शेतातील घटना",checkInNote:"छोटी नोंद (ऐच्छिक)",checkInSave:"तपासणी जतन करा",checkInCancel:"रद्द करा",checkInRecent:"अलीकडील तपासण्या",checkInEmpty:"अजून तपासणी जतन केलेली नाही.",checkInEvents:{none:"घटना नाही",heavy_rain:"मुसळधार पाऊस",hail:"गारपीट",heat_wave:"उष्णतेची लाट",cold_night:"थंड रात्र",water_shortage:"पाण्याची कमतरता"},
     backupTitle:"शेताचा बॅकअप",backupCoordinateWarning:"डाउनलोड केलेल्या बॅकअपमध्ये शेताच्या नकाशाचे स्थान निर्देशांक आहेत. फाईल सुरक्षित ठेवा.",backupExport:"JSON बॅकअप डाउनलोड",backupImport:"JSON बॅकअपमधून पुनर्संचयित करा",backupSuccess:"शेताचा बॅकअप पुनर्संचयित झाला.",backupExported:"बॅकअप डाउनलोड झाला.",backupFailure:"हा बॅकअप पुनर्संचयित करता आला नाही. सध्याची शेतमाहिती बदललेली नाही.",backupFileTooLarge:"२ मेगाबाइटपेक्षा लहान बॅकअप फाईल निवडा.",
     shareSummary:"सारांश शेअर करा",shareCopied:"क्लिपबोर्डवर प्रत केली",shareFailure:"सारांश शेअर किंवा कॉपी करता आला नाही.",shareTitle:"बलराम · शेताचा सारांश",shareLand:"एकूण जमीन",sharePlots:"प्लॉट",shareSoil:"माती",shareSoilUntested:"मातीची चाचणी नाही",shareSoilTested:"माती चाचणी",shareActions:"पुढील कामे",checkInsReport:"अलीकडील तपासण्या",roadmapReport:"पुढील कामांचे नियोजन",event:"घटना",note:"नोंद",

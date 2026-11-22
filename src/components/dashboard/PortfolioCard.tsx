@@ -7,10 +7,13 @@ import { GunthaTiles } from "@/components/dashboard/GunthaTiles";
 import { CropAdvisorCard } from "@/components/dashboard/CropAdvisorCard";
 import { CropCheckoutSheet, type PlotDraft } from "@/components/crops/CropCheckoutSheet";
 import { LandBar } from "@/components/ui/LandBar";
+import { StageRail } from "@/components/viz/StageRail";
 import { ToastHost, type Toast } from "@/components/ui/ToastHost";
 import { allocatePlotsByGunthas } from "@/lib/domain/allocation";
 import { pickNextDefaultPlotName, resolvePresetGunthas } from "@/lib/domain/checkout";
 import { formatArea, displayPlotName } from "@/lib/domain/landUnits";
+import { estimateWeeksToNextStage } from "@/lib/domain/viz/stageProgress";
+import { useNow } from "@/lib/ui/useNow";
 import { useBalramStore } from "@/store/useBalramStore";
 import { CropAllocationsSchema, growthToLifecycleStage, type CropAllocation } from "@/types/domain";
 
@@ -19,6 +22,7 @@ const cropIds = Object.keys(MaharashtraCropMatrix) as CropId[];
 export function PortfolioCard() {
   const state = useBalramStore((s) => s);
   const text = t(state.locale);
+  const { todayIso } = useNow();
   const allocations = state.cropAllocations;
   const totalArea = state.fieldGeometry?.areaSquareMetres ?? null;
   const derived = useMemo(() => allocatePlotsByGunthas(allocations, totalArea), [allocations, totalArea]);
@@ -210,16 +214,16 @@ export function PortfolioCard() {
                   const crop = cropLabel(state.locale, plot.cropId as CropId) ?? text.crop;
                   const stage = plot.lifecycleStage ?? growthToLifecycleStage(plot.growthStage);
                   return (
-                    <li key={plotId}>
+                    <li key={plotId} className="plot-row rounded-xl border border-forest/15"
+                      data-arrived={arrivedPlotIds.has(plotId) ? "" : undefined}>
                       <details ref={node => { if (node) plotRows.current.set(plotId, node); else plotRows.current.delete(plotId); }}
-                        className="plot-row scroll-mt-4 rounded-xl border border-forest/15" data-arrived={arrivedPlotIds.has(plotId) ? "" : undefined}>
+                        className="scroll-mt-4">
                         <summary className="min-h-12 px-3 text-ink leading-body">
                           <span className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-2">
                             <span className="min-w-0 break-words">
                               <span className="block font-bold">{displayPlotName(plot.plotName, state.locale, index + 1)}</span>
                               <span className="block font-normal">{crop} · {area === null ? text.landBar.unknown : formatArea(area, state.landUnit, state.locale)}</span>
                             </span>
-                            <span className="rounded-full bg-surface-muted px-2 py-1 text-sm leading-body">{text.stageNames[stage]}</span>
                           </span>
                         </summary>
                         <div className="px-3 pb-3">
@@ -227,6 +231,11 @@ export function PortfolioCard() {
                             onClick={event => editPlot(plot, index, event.currentTarget)}>{text.editPlot}</button>
                         </div>
                       </details>
+                      <div className="px-3 pb-3 pt-1">
+                        <StageRail stage={stage} locale={state.locale} weeksToNext={estimateWeeksToNextStage({
+                          cropId: plot.cropId, lifecycleStage: stage, plantingDate: plot.plantingDate, todayIso,
+                        })} />
+                      </div>
                     </li>
                   );
                 })}
