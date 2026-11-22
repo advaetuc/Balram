@@ -1,7 +1,7 @@
 import { PersistedFarmSchema, type PersistedFarm } from "@/types/domain";
 
 export function createEmptyFixture(): PersistedFarm {
-  return {
+  return PersistedFarmSchema.parse({
     farmProfile: null,
     fieldGeometry: null,
     cropAllocations: [],
@@ -16,7 +16,10 @@ export function createEmptyFixture(): PersistedFarm {
     soilSkipped: false,
     setupCompletedAt: null,
     checkIns: [],
-  };
+    profiles: [],
+    activeProfileId: null,
+    farmStash: {},
+  });
 }
 
 /** Fixed timestamps and fresh object graphs make demos reproducible and isolated. */
@@ -58,5 +61,8 @@ export function createSampleFixture(): PersistedFarm {
     },
     sampleDataActive: true,
     landUnit: "acres",
+    profiles: [],
+    activeProfileId: null,
+    farmStash: {},
   });
 }

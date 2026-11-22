@@ -69,7 +69,7 @@ test("all release copy has matching keys and Marathi text", () => {
 test("v0.4.1 ships with persistence v5 and the existing npm dependencies", () => {
   const manifest = JSON.parse(read("../package.json"));
   const lock = JSON.parse(read("../package-lock.json"));
-  assert.equal(PERSISTENCE_VERSION, 5);
+  assert.equal(PERSISTENCE_VERSION, 6);
   assert.equal(manifest.version, "0.4.1");
   assert.equal(lock.version, manifest.version);
   assert.equal(lock.packages[""].version, manifest.version);

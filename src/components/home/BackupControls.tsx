@@ -4,15 +4,13 @@ import { t } from "@/config/i18n";
 import { serializeFarmBackup, parseFarmBackup } from "@/lib/storage/backup";
 import { indiaDate } from "@/lib/ui/format";
 import { useBalramStore } from "@/store/useBalramStore";
-import type { PersistedFarm } from "@/types/domain";
 
 export function BackupControls() {
   const state = useBalramStore(s => s), copy = t(state.locale), inputRef = useRef<HTMLInputElement>(null);
   const [message, setMessage] = useState("");
-  const persisted: PersistedFarm = { farmProfile:state.farmProfile, fieldGeometry:state.fieldGeometry, cropAllocations:state.cropAllocations, irrigationSetup:state.irrigationSetup, weatherSnapshot:state.weatherSnapshot, soilSnapshot:state.soilSnapshot, sampleDataActive:state.sampleDataActive, planningUpdatedAt:state.planningUpdatedAt, soilKitReading:state.soilKitReading, locale:state.locale, landUnit:state.landUnit, soilSkipped:state.soilSkipped, setupCompletedAt:state.setupCompletedAt, checkIns:state.checkIns };
   function exportBackup() {
     try {
-      const json = serializeFarmBackup(persisted, new Date().toISOString());
+      const json = serializeFarmBackup(state, new Date().toISOString());
       const url = URL.createObjectURL(new Blob([json], { type:"application/json" }));
       const anchor = document.createElement("a"); anchor.href=url; anchor.download=`balram-farm-backup-${indiaDate(state.now)??"2026-11-16"}.json`; anchor.click(); URL.revokeObjectURL(url); setMessage(copy.backupExported);
     } catch { setMessage(copy.backupFailure); }

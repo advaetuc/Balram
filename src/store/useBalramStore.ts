@@ -5,6 +5,7 @@ import { useSyncExternalStore } from "react";
 import { createStore } from "zustand/vanilla";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { createIndexedDBStorage, type StorageStatus } from "@/lib/storage/db";
+import { upgradeLegacyFarmProfiles } from "@/lib/domain/profileMigration";
 import { createEmptyFixture, createSampleFixture } from "@/mocks/fixtures";
 import {
   CropAllocationsSchema, FarmProfileSchema, FieldGeometrySchema, LandUnitSchema, LocaleSchema, SoilKitReadingSchema, growthToLifecycleStage,
@@ -13,7 +14,7 @@ import {
   type FieldGeometry, type IrrigationSetup, type PersistedFarm, type WeatherSnapshot, type SoilKitReading, type Locale, type LandUnit,
 } from "@/types/domain";
 
-export const PERSISTENCE_VERSION = 5;
+export const PERSISTENCE_VERSION = 6;
 export const STORAGE_KEY = "balram:farm";
 
 export interface WeatherRequest {
@@ -82,6 +83,7 @@ function persistedSlice(state: BalramState): PersistedFarm {
     soilSnapshot: state.soilSnapshot, planningUpdatedAt: state.planningUpdatedAt,
     soilKitReading: state.soilKitReading, locale: state.locale, landUnit: state.landUnit,
     soilSkipped: state.soilSkipped, setupCompletedAt: state.setupCompletedAt, checkIns: state.checkIns,
+    profiles: state.profiles, activeProfileId: state.activeProfileId, farmStash: state.farmStash,
   };
 }
 
@@ -91,6 +93,7 @@ export function migratePersistedFarm(saved: unknown, version: number): Persisted
     throw new Error("Unsupported saved data version.");
   }
   if (version === PERSISTENCE_VERSION) return PersistedFarmSchema.parse(saved);
+  if (version === 5) return upgradeLegacyFarmProfiles(saved);
   if (![0, 1, 2, 3, 4].includes(version)) throw new Error("Unsupported saved data version.");
   const legacy = saved as Partial<PersistedFarm> & Record<string, unknown>;
   const cropAllocations = Array.isArray(legacy.cropAllocations) ? legacy.cropAllocations.map((item, index) => {
@@ -110,7 +113,7 @@ export function migratePersistedFarm(saved: unknown, version: number): Persisted
       return { ...oldReading, nitrogenKgPerHa: oldReading.nitrogenKgPerHa ?? null, phosphorusKgPerHa: oldReading.phosphorusKgPerHa ?? null };
     })()
     : legacy.soilKitReading ?? null;
-  return PersistedFarmSchema.parse({
+  return upgradeLegacyFarmProfiles({
     sampleDataActive: false,
     locale: "en",
     soilSkipped: false,

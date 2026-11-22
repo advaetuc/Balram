@@ -118,6 +118,21 @@ export const FarmProfileSchema = z.object({
 });
 export interface FarmProfile extends z.infer<typeof FarmProfileSchema> {}
 
+export const MAX_FARM_PROFILES = 6;
+export const MAX_PROFILE_NAME_LENGTH = 30;
+
+export const ProfileOriginSchema = z.enum(["blank", "sample_copy", "imported"]);
+export type ProfileOrigin = z.infer<typeof ProfileOriginSchema>;
+
+export const ProfileMetaSchema = z.object({
+  id,
+  name: FarmProfileSchema.shape.name,
+  createdAt: timestamp,
+  updatedAt: timestamp,
+  origin: ProfileOriginSchema.default("blank"),
+});
+export type ProfileMeta = z.infer<typeof ProfileMetaSchema>;
+
 export const FieldGeometrySchema = z.object({
   fieldId: id,
   /** Explicit weather query point; a centroid is not a field-scale measurement. */
@@ -233,7 +248,7 @@ export const DataSourceStatusSchema = z.object({
 });
 export interface DataSourceStatus extends z.infer<typeof DataSourceStatusSchema> {}
 
-export const PersistedFarmSchema = z.object({
+export const StashedFarmSchema = z.object({
   farmProfile: FarmProfileSchema.nullable(),
   fieldGeometry: FieldGeometrySchema.nullable(),
   cropAllocations: CropAllocationsSchema,
@@ -241,14 +256,33 @@ export const PersistedFarmSchema = z.object({
   weatherSnapshot: WeatherSnapshotSchema.nullable(),
   soilSnapshot: SoilSnapshotSchema.nullable().default(null),
   planningUpdatedAt: timestamp.nullable().default(null),
-  sampleDataActive: z.boolean(),
   soilKitReading: SoilKitReadingSchema.nullable().default(null),
-  locale: LocaleSchema.default("en"),
-  landUnit: LandUnitSchema.default("acres"),
   soilSkipped: z.boolean().default(false),
   setupCompletedAt: z.string().date().nullable().default(null),
   checkIns: z.array(CheckInSchema).max(104).default([]),
+});
+export type StashedFarm = z.infer<typeof StashedFarmSchema>;
+
+export const PersistedFarmSchema = StashedFarmSchema.extend({
+  sampleDataActive: z.boolean(),
+  locale: LocaleSchema.default("en"),
+  landUnit: LandUnitSchema.default("acres"),
+  profiles: z.array(ProfileMetaSchema).max(MAX_FARM_PROFILES).default([]),
+  activeProfileId: id.nullable().default(null),
+  farmStash: z.record(id, StashedFarmSchema).default({}),
 }).superRefine((value, ctx) => {
+  const profileIds = new Set(value.profiles.map((profile) => profile.id));
+  if (profileIds.size !== value.profiles.length) {
+    ctx.addIssue({ code: "custom", path: ["profiles"], message: "Profile IDs must be unique." });
+  }
+  if (!value.sampleDataActive && value.activeProfileId !== null && !profileIds.has(value.activeProfileId)) {
+    ctx.addIssue({ code: "custom", path: ["activeProfileId"], message: "The active profile must exist." });
+  }
+  for (const profileId of Object.keys(value.farmStash)) {
+    if (!profileIds.has(profileId)) {
+      ctx.addIssue({ code: "custom", path: ["farmStash", profileId], message: "A stashed farm must belong to a profile." });
+    }
+  }
   const weather = value.weatherSnapshot;
   const field = value.fieldGeometry;
   const soil = value.soilSnapshot;
