@@ -6,10 +6,13 @@ import { cropLabel, t } from "@/config/i18n";
 import { CropAdvisorCard } from "@/components/dashboard/CropAdvisorCard";
 import { CropCheckoutSheet, type PlotDraft } from "@/components/crops/CropCheckoutSheet";
 import { LandBar } from "@/components/ui/LandBar";
+import { StageRail } from "@/components/viz/StageRail";
 import { ToastHost, type Toast } from "@/components/ui/ToastHost";
 import { allocatePlotsByGunthas } from "@/lib/domain/allocation";
 import { pickNextDefaultPlotName, resolvePresetGunthas } from "@/lib/domain/checkout";
 import { formatArea, displayPlotName } from "@/lib/domain/landUnits";
+import { estimateWeeksToNextStage } from "@/lib/domain/viz/stageProgress";
+import { useNow } from "@/lib/ui/useNow";
 import { useBalramStore } from "@/store/useBalramStore";
 import { CropAllocationsSchema, growthToLifecycleStage, type CropAllocation } from "@/types/domain";
 
@@ -18,10 +21,12 @@ const cropIds = Object.keys(MaharashtraCropMatrix) as CropId[];
 export function PortfolioCard() {
   const state = useBalramStore((s) => s);
   const text = t(state.locale);
+  const { todayIso } = useNow();
   const allocations = state.cropAllocations;
   const totalArea = state.fieldGeometry?.areaSquareMetres ?? null;
   const derived = useMemo(() => allocatePlotsByGunthas(allocations, totalArea), [allocations, totalArea]);
   const [draftLines, setDraftLines] = useState<PlotDraft[]>([]);
+  const [selectedPlotId, setSelectedPlotId] = useState<string | null>(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [toast, setToast] = useState<Toast | null>(null);
   const [arrivedPlotIds, setArrivedPlotIds] = useState<ReadonlySet<string>>(() => new Set());
@@ -135,6 +140,20 @@ export function PortfolioCard() {
     open(trigger);
   }
 
+  function selectLandPlot(plotId: string) {
+    const row = plotRows.current.get(plotId);
+    if (!row?.isConnected) return;
+    setSelectedPlotId(plotId);
+    row.open = true;
+    row.querySelector("summary")?.focus({ preventScroll: true });
+    row.scrollIntoView({ block: "start", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  }
+
+  function showAllPlots() {
+    plotsTitle.current?.focus({ preventScroll: true });
+    plotsTitle.current?.scrollIntoView({ block: "start", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  }
+
   function removePlot(plotId: string) {
     const index = checkoutAllocations.findIndex(plot => plot.plotId === plotId);
     if (!writable || index < 0) return;
@@ -194,11 +213,13 @@ export function PortfolioCard() {
 
   return (
     <div id="portfolio" className="space-y-5">
-      <LandBar totalGunthas={derived.totalFarmGunthas} allocatedGunthas={derived.allocatedGunthas} unit={state.landUnit} locale={state.locale} />
+      <LandBar totalGunthas={derived.totalFarmGunthas} allocatedGunthas={derived.allocatedGunthas} plots={checkoutAllocations}
+        selectedPlotId={selectedPlotId} onSelectPlot={selectLandPlot} onShowAllPlots={showAllPlots}
+        unit={state.landUnit} locale={state.locale} sampleDataActive={state.sampleDataActive} />
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,370px)]">
         <div className="min-w-0 space-y-5">
           <section className="bento-card">
-            <h2 ref={plotsTitle} tabIndex={-1} className="text-2xl font-bold leading-heading">{text.yourPlots}</h2>
+            <h2 id="your-plots" ref={plotsTitle} tabIndex={-1} className="scroll-mt-4 text-2xl font-bold leading-heading">{text.yourPlots}</h2>
             {state.sampleDataActive && <p className="notice mt-3 text-sm leading-body">{text.sampleReadOnly}</p>}
             {allocations.length === 0 ? <p className="mt-2 text-sm leading-body">{text.noPlotsYet}</p> :
               <ul className="mt-3 space-y-2">
@@ -208,16 +229,16 @@ export function PortfolioCard() {
                   const crop = cropLabel(state.locale, plot.cropId as CropId) ?? text.crop;
                   const stage = plot.lifecycleStage ?? growthToLifecycleStage(plot.growthStage);
                   return (
-                    <li key={plotId}>
+                    <li key={plotId} className={`plot-row rounded-xl border ${selectedPlotId === plotId ? "border-forest ring-2 ring-forest" : "border-forest/15"}`}
+                      data-arrived={arrivedPlotIds.has(plotId) ? "" : undefined}>
                       <details ref={node => { if (node) plotRows.current.set(plotId, node); else plotRows.current.delete(plotId); }}
-                        className="plot-row scroll-mt-4 rounded-xl border border-forest/15" data-arrived={arrivedPlotIds.has(plotId) ? "" : undefined}>
+                        className="scroll-mt-4">
                         <summary className="min-h-12 px-3 text-ink leading-body">
                           <span className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-2">
                             <span className="min-w-0 break-words">
                               <span className="block font-bold">{displayPlotName(plot.plotName, state.locale, index + 1)}</span>
                               <span className="block font-normal">{crop} · {area === null ? text.landBar.unknown : formatArea(area, state.landUnit, state.locale)}</span>
                             </span>
-                            <span className="rounded-full bg-surface-muted px-2 py-1 text-sm leading-body">{text.stageNames[stage]}</span>
                           </span>
                         </summary>
                         <div className="px-3 pb-3">
@@ -225,6 +246,11 @@ export function PortfolioCard() {
                             onClick={event => editPlot(plot, index, event.currentTarget)}>{text.editPlot}</button>
                         </div>
                       </details>
+                      <div className="px-3 pb-3 pt-1">
+                        <StageRail stage={stage} locale={state.locale} weeksToNext={estimateWeeksToNextStage({
+                          cropId: plot.cropId, lifecycleStage: stage, plantingDate: plot.plantingDate, todayIso,
+                        })} />
+                      </div>
                     </li>
                   );
                 })}

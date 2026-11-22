@@ -1,8 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { CropFitTiles } from "@/components/viz/CropFitTiles";
 import { useBalramStore } from "@/store/useBalramStore";
 import { getSeasonalCropRecommendations } from "@/lib/domain/cropRecommendations";
+import { evaluateCropFit } from "@/lib/domain/viz/cropFit";
+import { visualWeatherProvenance } from "@/lib/domain/viz/waterRibbon";
+import { useNow } from "@/lib/ui/useNow";
 import { MaharashtraCropMatrix, type CropId, type Season } from "@/config/cropMatrix";
 import { Card } from "./Card";
 import { droughtToleranceLabel, seasonLabel, t } from "@/config/i18n";
@@ -18,11 +22,13 @@ interface CropAdvisorCardProps {
 export function CropAdvisorCard({ selectedCropIds = [], onToggleCrop, remainingFreeGunthas = null }: CropAdvisorCardProps) {
   const state = useBalramStore((s) => s);
   const text = t(state.locale);
+  const { todayIso } = useNow();
+  const monthZeroIndexed = todayIso === null ? 9 : Number(todayIso.slice(5, 7)) - 1;
   const [season, setSeason] = useState<"auto" | Season>("auto");
   const [showAll, setShowAll] = useState(false);
   const recommendations = getSeasonalCropRecommendations({
     targetSeason: season === "auto" ? undefined : season,
-    monthZeroIndexed: state.now === null ? undefined : new Date(state.now).getMonth(),
+    monthZeroIndexed,
     soilKitReading: state.soilKitReading,
     weatherSnapshot: state.weatherSnapshot,
   });
@@ -32,9 +38,17 @@ export function CropAdvisorCard({ selectedCropIds = [], onToggleCrop, remainingF
 
   const renderRecommendation = (recommendation: typeof recommendations[number], motionClass = "") => {
     const crop = MaharashtraCropMatrix[recommendation.cropId];
+    const fit = evaluateCropFit({
+      cropId: recommendation.cropId, monthZeroIndexed,
+      soilKitReading: state.soilKitReading, weatherSnapshot: state.weatherSnapshot,
+    });
     const isSelected = selected.has(recommendation.cropId);
     const noSpace = remainingFreeGunthas !== null && remainingFreeGunthas < 0.1;
-    const badge = state.locale === "mr" ? recommendation.badgeLabel.mr : recommendation.badgeLabel.en;
+    const badge = recommendation.badgeLabel[state.locale];
+    const explanation = recommendation.whyItFits[state.locale];
+    const sentenceEnd = explanation.indexOf(". ");
+    const reason = sentenceEnd === -1 ? explanation : explanation.slice(0, sentenceEnd + 1);
+    const detail = sentenceEnd === -1 ? null : explanation.slice(sentenceEnd + 2);
     return <article key={recommendation.cropId}
       className={`${motionClass} rounded-xl border p-3 transition-colors duration-fast ease-standard ${isSelected ? "border-forest bg-forest/5 ring-4 ring-forest" : "border-forest/15"}`}>
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -44,7 +58,12 @@ export function CropAdvisorCard({ selectedCropIds = [], onToggleCrop, remainingF
       {added.has(recommendation.cropId) && <span className="check-badge mt-2 inline-flex items-center gap-1 rounded-full bg-success-subtle px-3 py-1 text-sm font-semibold leading-body text-on-success-subtle"><span aria-hidden="true">✓</span>{text.cropAddedBadge}</span>}
       {isSelected && <span className="check-badge mt-2 inline-flex items-center gap-1 rounded-full bg-success-subtle px-3 py-1 text-sm font-semibold leading-body text-on-success-subtle"><span aria-hidden="true">✓</span>{text.selectedCrop}</span>}
       <p className="block text-sm leading-body">{seasonLabel(state.locale, crop.season)} · {droughtToleranceLabel(state.locale, crop.droughtTolerance)} {state.locale === "mr" ? "दुष्काळ सहनशीलता" : "drought tolerance"} · {crop.waterBudgetMmPerSeason[0]}–{crop.waterBudgetMmPerSeason[1]} {state.locale === "mr" ? "मिमी हंगामी पाण्याची गरज" : "mm seasonal water range"}</p>
-      <p className="mt-1 text-sm leading-body">{state.locale === "mr" ? recommendation.whyItFits.mr : recommendation.whyItFits.en} {state.locale === "mr" ? recommendation.careNote.mr : recommendation.careNote.en}</p>
+      <p className="mt-1 text-sm leading-body">{reason}</p>
+      <div className="mt-3"><CropFitTiles fit={fit} locale={state.locale} /></div>
+      {detail && <details className="mt-1">
+        <summary>{text.whyAdvice}</summary>
+        <p className="text-sm leading-body">{detail}</p>
+      </details>}
       {noSpace && !isSelected && <p className="mt-2 text-sm text-amber-900">{text.noFreeLand}</p>}
       <button type="button" className={`press mt-2 min-h-12 w-full ${isSelected ? "button-secondary" : "button-primary"}`} disabled={!onToggleCrop || !state.hydrated || state.sampleDataActive} aria-disabled={noSpace && !isSelected} aria-pressed={isSelected} onClick={event => onToggleCrop?.(recommendation.cropId, event.currentTarget)}>
         {isSelected ? text.selectedCrop : noSpace ? text.noFreeLand : text.chooseCrop}
@@ -59,9 +78,10 @@ export function CropAdvisorCard({ selectedCropIds = [], onToggleCrop, remainingF
         {(["Kharif", "Rabi", "Zaid", "Perennial"] as const).map((item) => <option key={item} value={item}>{seasonLabel(state.locale, item)}</option>)}
       </select>
     </label>
+    {season !== "auto" && <p className="mt-1 text-sm leading-body">{text.viz.cropFitTiles.sowingHint}</p>}
     <div className="my-3 flex flex-wrap gap-2">
       {state.soilKitReading && <span className="rounded-full px-3 py-1 text-sm font-semibold leading-body bg-forest/10 text-forest">{state.locale === "mr" ? "माती किटशी जुळवले" : "Matched to soil kit"} · pH {state.soilKitReading.ph}</span>}
-      {state.weatherSnapshot && <span className="rounded-full px-3 py-1 text-sm font-semibold leading-body bg-sky/10">{state.locale === "mr" ? "हवामान अंदाजाशी जुळवले" : "Matched to forecast"}</span>}
+      {state.weatherSnapshot && <span className="rounded-full px-3 py-1 text-sm font-semibold leading-body bg-sky/10">{text.viz.cropFitTiles[visualWeatherProvenance(state.weatherSnapshot)]}</span>}
     </div>
     {remainingFreeGunthas !== null && <p className="mb-3 text-sm leading-body">{formatArea(remainingFreeGunthas, state.landUnit, state.locale)} {text.freeLandOf} {state.fieldGeometry?.areaSquareMetres == null ? "—" : formatArea(squareMetresToGunthas(state.fieldGeometry.areaSquareMetres), state.landUnit, state.locale)}</p>}
     <div key={season} className="space-y-3 stagger">

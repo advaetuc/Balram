@@ -1,6 +1,7 @@
 "use client";
 
 import { RadioChoices } from "@/components/ui/RadioChoices";
+import { WaterRibbon } from "./WaterRibbon";
 
 import { useEffect, useState, type FormEvent } from "react";
 import { useBalramStore } from "@/store/useBalramStore";
@@ -82,6 +83,7 @@ function Editor() {
   return <Card id="irrigation" title={text.irrigation} eyebrow={text.irrigationEyebrow}>
     <p className="mt-2 text-sm leading-body">{state.locale==="mr"?"ही नियोजनासाठीची गणना आहे. सिंचनापूर्वी शेतातील ओलावा व स्थानिक सल्ला तपासा.":"Planning estimates only. Check field moisture and local guidance before irrigating."}</p>
     {state.connection==="offline"&&<p className="notice mt-2">{state.locale==="mr"?"ऑफलाइन · उपलब्ध असल्यास जतन केलेला अंदाज वापरला जात आहे.":"Offline · using saved forecast where available."}</p>}{state.weatherStale&&<p className="notice mt-2">{state.locale==="mr"?"अंदाज जुना आहे · अवलंबून राहण्यापूर्वी तारखा तपासा.":"Stale forecast — check dates before relying on it."}</p>}{resolved?.provenance==="hargreaves-fallback"&&<p className="notice mt-2">{state.locale==="mr"?"किमान व कमाल तापमानावरून हर्ग्रीव्ह्ज पद्धतीने गणना केली.":"Calculated via Hargreaves temperature fallback."}</p>}{!day&&<p className="notice mt-2">{state.locale==="mr"?"अंदाज जतन केलेला नाही. महाराष्ट्राचा ४.५ मिमी/दिवस नियोजन आधार वापरला जात आहे.":"No forecast saved. Using a 4.5 mm/day Maharashtra baseline planning reference."}</p>}
+    {state.weatherSnapshot && crop && <WaterRibbon selectedPlotId={plotKey(crop, state.cropAllocations.indexOf(crop))} />}
     <section className="mt-4 rounded-xl bg-sky/10 p-4"><h3 className="font-bold">{state.locale==="mr"?"सोपे प्लॉट पाणी नियोजन":"Simple plot water plan"}</h3>
       <label className="mt-2 block text-sm leading-body">{state.locale==="mr"?"प्लॉट":"Plot"}<select className="form-input mt-1" value={crop?plotKey(crop,state.cropAllocations.indexOf(crop)):selectedPlotId} onChange={e=>setSelectedPlotId(e.target.value)}><option value="">{state.locale==="mr"?"प्लॉट निवडा":"Select plot"}</option>{state.cropAllocations.map((p,i)=>{const plotArea=p.areaGunthas??(area?area/SQUARE_METRES_PER_ACRE*40*p.percentage/100:null);return <option key={plotKey(p,i)} value={plotKey(p,i)}>{displayPlotName(p.plotName,state.locale,i+1)} · {cropLabel(state.locale,p.cropId as CropId)} ({plotArea===null?"?":formatArea(plotArea,state.landUnit,state.locale)})</option>})}</select></label>
       <RadioChoices label={state.locale === "mr" ? "पाणी देण्याची पद्धत" : "Delivery method"}

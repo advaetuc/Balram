@@ -8,6 +8,7 @@ import { createSoilHealthCardReading, interpretSoilKitReading } from "@/lib/doma
 import { indiaDate, parseNumber } from "@/lib/ui/format";
 import type { SoilKitReading } from "@/types/domain";
 import { Card, DataCaption } from "./Card";
+import { SoilGauges } from "./SoilGauges";
 import { t } from "@/config/i18n";
 
 type SoilMode = SoilKitReading["kitType"] | "skip";
@@ -104,7 +105,8 @@ export function SoilCard(){
       <div className="mt-4 flex flex-wrap gap-2"><button className="button-primary press min-h-12 flex-1" disabled={disabled} onClick={save}>{text.soilSave}</button><button className="button-secondary min-h-12" disabled={disabled||!saved} onClick={()=>state.setSoilKitReading(null)}>{mr?"चाचणी काढा":"Clear kit reading"}</button></div>
     </>}
     {error&&<p role="alert" className="notice mt-2">{error}</p>}
-    {interpretation&&<section className="mt-5 rounded-xl bg-forest/5 p-4"><h3 className="font-bold">{mr?"लागवडीपूर्वी मातीला काय हवे":"What Your Soil Needs Before Planting"}</h3><p className="mt-1">{mr?interpretation.headline.mr:interpretation.headline.en}</p><p className="inline-flex rounded-full px-3 py-1 text-sm leading-body mt-2 bg-sky/10">{mr?({optimal:"संतुलित",needs_enrichment:"सुधारणा आवश्यक",critical_amendment:"महत्त्वाची सुधारणा आवश्यक"} as const)[interpretation.overallHealth]:interpretation.overallHealth.replaceAll("_"," ")}</p><p className="mt-2 text-sm leading-body">{mr?interpretation.assayNotes.mr:interpretation.assayNotes.en}</p><ul key={resultAnimationKey} className={`mt-3 space-y-3 ${resultAnimationKey > 0 ? "stagger" : ""}`}>{interpretation.steps.map(step=><li key={step.id} className="rounded-lg border border-forest/15 bg-white p-3"><b>{mr?step.badgeLabel.mr:step.badgeLabel.en}</b><p className="text-sm leading-body">{mr?step.plainExplanation.mr:step.plainExplanation.en}</p><p className="mt-1 text-sm font-medium">{mr?step.actionStep.mr:step.actionStep.en}</p></li>)}</ul></section>}
+    {interpretation&&<><SoilGauges key={resultAnimationKey} />
+    <section className="mt-5 rounded-xl bg-forest/5 p-4"><h3 className="font-bold">{mr?"लागवडीपूर्वी मातीला काय हवे":"What Your Soil Needs Before Planting"}</h3><p className="mt-1">{mr?interpretation.headline.mr:interpretation.headline.en}</p><p className="inline-flex rounded-full px-3 py-1 text-sm leading-body mt-2 bg-sky/10">{mr?({optimal:"संतुलित",needs_enrichment:"सुधारणा आवश्यक",critical_amendment:"महत्त्वाची सुधारणा आवश्यक"} as const)[interpretation.overallHealth]:interpretation.overallHealth.replaceAll("_"," ")}</p><p className="mt-2 text-sm leading-body">{mr?interpretation.assayNotes.mr:interpretation.assayNotes.en}</p><ul key={resultAnimationKey} className={`mt-3 space-y-3 ${resultAnimationKey > 0 ? "stagger" : ""}`}>{interpretation.steps.map(step=><li key={step.id} className="rounded-lg border border-forest/15 bg-white p-3"><b>{mr?step.badgeLabel.mr:step.badgeLabel.en}</b><p className="text-sm leading-body">{mr?step.plainExplanation.mr:step.plainExplanation.en}</p><p className="mt-1 text-sm font-medium">{mr?step.actionStep.mr:step.actionStep.en}</p></li>)}</ul></section></>}
     <DataCaption source={saved?(mr?"शेतकऱ्याने नोंदवलेली माती किट":"Farmer-entered physical soil kit"):(mr?"माती किटचा निकाल जतन नाही":"No physical kit reading saved")} validAt={saved?.testedAt??null} sample={state.sampleDataActive}/>
   </Card>;
 }

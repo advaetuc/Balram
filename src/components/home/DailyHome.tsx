@@ -8,11 +8,13 @@ import { MapClient } from "@/components/map/MapClient";
 import { PortfolioCard } from "@/components/dashboard/PortfolioCard";
 import { SoilCard } from "@/components/dashboard/SoilCard";
 import { IrrigationPanel } from "@/components/irrigation/IrrigationPanel";
+import { WaterRibbon } from "@/components/irrigation/WaterRibbon";
 import { FarmReport } from "@/components/report/FarmReport";
 import { RoadmapList } from "@/components/journey/RoadmapList";
 import { ProvenanceBadge } from "@/components/ui/ProvenanceBadge";
 import { t } from "@/config/i18n";
 import { CheckInCard } from "@/components/home/CheckInCard";
+import { TodaysSky } from "@/components/home/TodaysSky";
 import { BackupControls } from "@/components/home/BackupControls";
 
 const homeTabs = ["today", "farm", "water", "report"] as const;
@@ -87,10 +89,11 @@ export function DailyHome({ onSetup }: { onSetup: () => void }) {
         hidden={tab !== key} data-dir={tab === key ? homeNav.dir : undefined}
         className={`min-w-0 max-md:[&_:focus]:scroll-mb-[env(safe-area-inset-bottom)] ${tab === key ? "panel-tab" : ""}`}>
       {tab===key&&key==="today"&&<div className="space-y-5">
+        <TodaysSky />
         {!state.sampleDataActive&&state.cropAllocations.length>0&&<CheckInCard/>}
         {state.soilSkipped&&!state.soilKitReading&&<p className="notice">{text.soilNotTested}</p>}
         {advisory&&<article className="bento-card border-l-4 border-l-amber"><div className="flex flex-wrap items-center justify-between gap-2"><h2 className="text-xl font-bold">{advisory.headline[state.locale]}</h2>{state.sampleDataActive&&<ProvenanceBadge provenance="sample" locale={state.locale}/>}</div><p className="mt-2 leading-6">{advisory.message[state.locale]}</p><p className="mt-2 font-semibold">{advisory.actionLabel[state.locale]}</p><details className="mt-2"><summary>{text.whyAdvice}</summary><p className="rounded-lg bg-daylight p-3 text-sm">{advisory.reason[state.locale]}</p></details></article>}
-        <section className="bento-card"><h2 className="text-xl font-bold">{text.todayWater}</h2>{irrigationItems.length?<ul className="mt-3 space-y-3">{irrigationItems.map(item=><li key={item.id} className="rounded-xl border border-forest/15 p-3"><div className="flex flex-wrap items-start justify-between gap-2"><b>{item.title[state.locale]}</b><ProvenanceBadge provenance={item.provenance} locale={state.locale}/></div><p className="mt-1 text-sm">{item.detail[state.locale]}</p></li>)}</ul>:<p className="mt-2 text-sm">{mr?"पाण्याचा अंदाज पाहण्यासाठी जमीन व पीक प्लॉट जोडा.":"Add field land and crop plots to see a water estimate."}</p>}</section>
+        <section className="bento-card"><h2 className="text-xl font-bold">{text.todayWater}</h2><WaterRibbon compact />{irrigationItems.length?<ul className="mt-3 space-y-3">{irrigationItems.map(item=><li key={item.id} className="rounded-xl border border-forest/15 p-3"><div className="flex flex-wrap items-start justify-between gap-2"><b>{item.title[state.locale]}</b><ProvenanceBadge provenance={item.provenance} locale={state.locale}/></div><p className="mt-1 text-sm">{item.detail[state.locale]}</p></li>)}</ul>:<p className="mt-2 text-sm">{mr?"पाण्याचा अंदाज पाहण्यासाठी जमीन व पीक प्लॉट जोडा.":"Add field land and crop plots to see a water estimate."}</p>}</section>
         <section className="bento-card"><h2 className="text-xl font-bold">{text.nextActions}</h2><div className="mt-3"><RoadmapList items={thisWeek} locale={state.locale}/></div></section>
       </div>}
       {tab===key&&key==="farm" && <>
