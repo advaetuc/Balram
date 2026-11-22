@@ -6,6 +6,10 @@ import { createStore } from "zustand/vanilla";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { createIndexedDBStorage, type StorageStatus } from "@/lib/storage/db";
 import { upgradeLegacyFarmProfiles } from "@/lib/domain/profileMigration";
+import {
+  createEditableSampleSlice, createProfile, createProfileId, deleteProfile, mergeImportedProfiles,
+  renameProfile, restoreDeletedProfile, switchProfile, validateProfileName, type DeletedProfileSnapshot,
+} from "@/lib/domain/profileOperations";
 import { createEmptyFixture, createSampleFixture } from "@/mocks/fixtures";
 import {
   CropAllocationsSchema, FarmProfileSchema, FieldGeometrySchema, LandUnitSchema, LocaleSchema, SoilKitReadingSchema, growthToLifecycleStage,
@@ -16,6 +20,7 @@ import {
 
 export const PERSISTENCE_VERSION = 6;
 export const STORAGE_KEY = "balram:farm";
+export const LEGACY_V5_BACKUP_KEY = "balram:legacy-v5";
 
 export interface WeatherRequest {
   id: string;
@@ -48,6 +53,12 @@ export interface BalramState extends PersistedFarm {
   setLandUnit(unit: LandUnit): void;
   resetDerivedForFieldChange(): void;
   setSampleData(active: boolean): Promise<void>;
+  createFarmProfile(name: string, options?: { fromSample?: boolean }): Promise<void>;
+  switchFarmProfile(profileId: string): Promise<void>;
+  renameFarmProfile(profileId: string, name: string): Promise<void>;
+  deleteFarmProfile(profileId: string): Promise<DeletedProfileSnapshot | null>;
+  restoreFarmProfile(snapshot: DeletedProfileSnapshot): void;
+  importFarmProfiles(imported: PersistedFarm): { addedCount: number; skippedCount: number; addedNames: string[] };
   beginWeatherRequest(): WeatherRequest;
   commitWeatherRequest(request: WeatherRequest, snapshot: WeatherSnapshot, cached?: boolean): boolean;
   failWeatherRequest(request: WeatherRequest, message?: string): boolean;
@@ -67,11 +78,23 @@ export function isWeatherStale(snapshot: WeatherSnapshot, now: number): boolean 
     now < Date.parse(snapshot.fetchedAt);
 }
 
-function statusFor(snapshot: WeatherSnapshot | null): DataSourceStatus {
+function statusFor(snapshot: WeatherSnapshot | null, now = Date.now()): DataSourceStatus {
   if (!snapshot) return idleWeather();
   return {
-    provider: "weather", state: isWeatherStale(snapshot, Date.now()) ? "stale" : "success",
+    provider: "weather", state: isWeatherStale(snapshot, now) ? "stale" : "success",
     provenance: snapshot.provenance, requestId: null, updatedAt: snapshot.fetchedAt, error: null,
+  };
+}
+
+function snapshotStatuses(farm: PersistedFarm) {
+  const weatherStatus = statusFor(farm.weatherSnapshot);
+  return {
+    weatherStatus,
+    weatherCached: !!farm.weatherSnapshot && !farm.sampleDataActive,
+    weatherStale: weatherStatus.state === "stale",
+    soilStatus: farm.soilSnapshot
+      ? { ...idleSoil(), state: "success" as const, provenance: "modelled" as const, updatedAt: farm.soilSnapshot.fetchedAt }
+      : idleSoil(),
   };
 }
 
@@ -127,17 +150,33 @@ export function migratePersistedFarm(saved: unknown, version: number): Persisted
 }
 
 /** Each factory owns request controllers; none enter JSON or shared server state. */
-export function createBalramStore() {
-  const disk = createIndexedDBStorage();
+export function createBalramStore(disk = createIndexedDBStorage()) {
   let writesEnabled = false;
   let hydration: Promise<void> | undefined;
   let hydrationFailure: unknown;
+  let storedVersion: number | undefined;
   let generation = 0;
   let sequence = 0;
   let active: { request: WeatherRequest; controller: AbortController } | null = null;
   let activeSoil: { request: WeatherRequest; controller: AbortController } | null = null;
   let realFarmBackup: PersistedFarm | null = null;
-  let sampleTransition = false;
+  let sampleRevision = 0;
+
+  function resetTransient(nextFarm: PersistedFarm) {
+    const previous = active;
+    const previousSoil = activeSoil;
+    active = null;
+    activeSoil = null;
+    generation++;
+    const transient = { ...snapshotStatuses(nextFarm), hydrationError: null };
+    return {
+      transient,
+      abort: () => {
+        previous?.controller.abort();
+        previousSoil?.controller.abort();
+      },
+    };
+  }
 
   const storage = createJSONStorage<PersistedFarm>(() => ({
     getItem: async (name) => {
@@ -151,6 +190,16 @@ export function createBalramStore() {
       const version = "version" in envelope ? envelope.version : 0;
       if (typeof version !== "number" || !Number.isSafeInteger(version) || version < 0) {
         throw new Error("Invalid saved farm version.");
+      }
+      storedVersion = version;
+      if (version < PERSISTENCE_VERSION && disk.getStatus().mode === "persistent") {
+        try {
+          if (await disk.storage.getItem(LEGACY_V5_BACKUP_KEY) === null && disk.getStatus().mode === "persistent") {
+            await disk.storage.setItem(LEGACY_V5_BACKUP_KEY, raw);
+          }
+        } catch {
+          // The legacy copy is best-effort; the regular hydration path still validates the farm.
+        }
       }
       return JSON.stringify({ state: envelope.state, version });
     },
@@ -166,19 +215,37 @@ export function createBalramStore() {
     };
     const requireWritable = () => {
       requireReady();
-      if (sampleTransition || get().sampleDataActive || get().sampleOverlayActive) throw new Error("Sample farm is read-only. Exit sample mode to edit your farm.");
+      if (get().sampleDataActive || get().sampleOverlayActive) throw new Error("Sample farm is read-only. Exit sample mode to edit your farm.");
+    };
+    const leaveSampleMode = async () => {
+      requireReady();
+      if (get().sampleDataActive || get().sampleOverlayActive) await get().setSampleData(false);
+    };
+    const commitFarm = (next: PersistedFarm, sampleOverlayActive = get().sampleOverlayActive) => {
+      const { transient, abort } = resetTransient(next);
+      try {
+        set({ ...next, ...transient, sampleOverlayActive });
+      } finally {
+        // Abort listeners run synchronously and must see the newly selected farm.
+        abort();
+      }
+    };
+    const farmEdit = (patch: Partial<PersistedFarm>, nowIso = new Date().toISOString()): Partial<PersistedFarm> => {
+      const current = get();
+      if (current.activeProfileId === null) return { ...patch, planningUpdatedAt: nowIso };
+      const farmProfile = patch.farmProfile ?? current.farmProfile;
+      return {
+        ...patch,
+        planningUpdatedAt: nowIso,
+        farmProfile: farmProfile && { ...farmProfile, updatedAt: nowIso },
+        profiles: current.profiles.map((meta) => meta.id === current.activeProfileId
+          ? { ...meta, name: farmProfile?.name ?? meta.name, updatedAt: nowIso }
+          : meta),
+      };
     };
     const invalidate = (patch: Partial<PersistedFarm> = {}) => {
       requireWritable();
-      const previous = active;
-      const previousSoil = activeSoil;
-      active = null;
-      activeSoil = null;
-      generation++;
-      set({ ...patch, weatherSnapshot: null, weatherStatus: idleWeather(), weatherCached: false, weatherStale: false,
-        soilSnapshot: null, soilStatus: idleSoil(), planningUpdatedAt: new Date().toISOString() });
-      previous?.controller.abort();
-      previousSoil?.controller.abort();
+      commitFarm({ ...persistedSlice(get()), ...farmEdit(patch), weatherSnapshot: null, soilSnapshot: null });
     };
     const isCurrent = (request: WeatherRequest) => active?.request === request &&
       !request.signal.aborted && request.generation === generation &&
@@ -190,23 +257,34 @@ export function createBalramStore() {
       ...createEmptyFixture(), hydrated: false, sampleOverlayActive: false, hydrationError: null,
       storageStatus: disk.getStatus(), connection: "unknown", weatherStatus: idleWeather(), weatherCached: false, weatherStale: false,
       soilStatus: idleSoil(), now: null,
-      setFarmProfile: (profile) => { requireWritable(); set({ farmProfile: FarmProfileSchema.parse(profile), planningUpdatedAt: new Date().toISOString() }); },
+      setFarmProfile: (input) => {
+        requireWritable();
+        const profile = FarmProfileSchema.parse(input);
+        const { activeProfileId, profiles } = get();
+        if (activeProfileId !== null) {
+          const name = validateProfileName(profile.name, profiles, activeProfileId);
+          if (!name.ok) throw new Error(`Invalid farm profile name: ${name.reason}.`);
+          set(farmEdit({ farmProfile: { ...profile, id: activeProfileId, name: name.name } }));
+        } else {
+          set(farmEdit({ farmProfile: profile }));
+        }
+      },
       setFieldGeometry: (geometry) => {
         requireWritable();
         const next = geometry === null ? null : FieldGeometrySchema.parse(geometry);
         if (JSON.stringify(next) !== JSON.stringify(get().fieldGeometry)) invalidate({ fieldGeometry: next });
       },
-      setCropAllocations: (allocations) => { requireWritable(); set({ cropAllocations: CropAllocationsSchema.parse(allocations), planningUpdatedAt: new Date().toISOString() }); },
+      setCropAllocations: (allocations) => { requireWritable(); set(farmEdit({ cropAllocations: CropAllocationsSchema.parse(allocations) })); },
       setIrrigationSetup: (setup) => {
         requireWritable();
-        set({ irrigationSetup: setup === null ? null : IrrigationSetupSchema.parse(setup), planningUpdatedAt: new Date().toISOString() });
+        set(farmEdit({ irrigationSetup: setup === null ? null : IrrigationSetupSchema.parse(setup) }));
       },
-      setSoilKitReading: (reading) => { requireWritable(); set({ soilKitReading: reading === null ? null : SoilKitReadingSchema.parse(reading), soilSkipped: reading === null ? get().soilSkipped : false, planningUpdatedAt: new Date().toISOString() }); },
-      setSoilSkipped: (skipped) => { requireWritable(); set({ soilSkipped: z.boolean().parse(skipped), planningUpdatedAt: new Date().toISOString() }); },
+      setSoilKitReading: (reading) => { requireWritable(); set(farmEdit({ soilKitReading: reading === null ? null : SoilKitReadingSchema.parse(reading), soilSkipped: reading === null ? get().soilSkipped : false })); },
+      setSoilSkipped: (skipped) => { requireWritable(); set(farmEdit({ soilSkipped: z.boolean().parse(skipped) })); },
       setSetupCompletedAt: (dateIso) => {
         requireWritable();
         const parsed = z.string().date().nullable().parse(dateIso);
-        set({ setupCompletedAt: parsed });
+        set(farmEdit({ setupCompletedAt: parsed }));
       },
       addCheckIn: (input) => {
         requireWritable();
@@ -216,75 +294,82 @@ export function createBalramStore() {
             ? { ...plot, lifecycleStage: checkIn.stage!, growthStage: lifecycleToGrowthStage(checkIn.stage!) }
             : plot)
           : get().cropAllocations;
-        set({ checkIns: [checkIn, ...get().checkIns].slice(0, 104), cropAllocations,
-          planningUpdatedAt: new Date().toISOString() });
+        set(farmEdit({ checkIns: [checkIn, ...get().checkIns].slice(0, 104), cropAllocations }));
       },
       replacePersistedState: (input) => {
         requireWritable();
-        const next = PersistedFarmSchema.parse(input);
-        const previous = active;
-        const previousSoil = activeSoil;
-        active = null;
-        activeSoil = null;
-        generation++;
-        set({ ...next, weatherStatus: statusFor(next.weatherSnapshot), weatherCached: !!next.weatherSnapshot,
-          weatherStale: !!next.weatherSnapshot && isWeatherStale(next.weatherSnapshot, Date.now()),
-          soilStatus: next.soilSnapshot
-            ? { provider: "soil", state: "success", provenance: "modelled", requestId: null, updatedAt: next.soilSnapshot.fetchedAt, error: null }
-            : idleSoil() });
-        previous?.controller.abort();
-        previousSoil?.controller.abort();
+        commitFarm(PersistedFarmSchema.parse(input));
       },
       setLocale: (locale) => { requireReady(); set({ locale: LocaleSchema.parse(locale) }); },
-      setLandUnit: (unit) => {
-        requireReady();
-        const landUnit = LandUnitSchema.parse(unit);
-        if (realFarmBackup && (get().sampleOverlayActive || get().sampleDataActive)) {
-          realFarmBackup = { ...realFarmBackup, landUnit };
-        }
-        set({ landUnit });
-      },
+      setLandUnit: (unit) => { requireReady(); set({ landUnit: LandUnitSchema.parse(unit) }); },
       resetDerivedForFieldChange: () => invalidate(),
       setSampleData: async (enabled) => {
         requireReady();
-        const current = get();
-        if (current.sampleOverlayActive === enabled) return;
-        const previous = active;
-        const previousSoil = activeSoil;
-        active = null;
-        activeSoil = null;
-        generation++;
-        let next: PersistedFarm;
+        const current = persistedSlice(get());
+        const overlayActive = get().sampleOverlayActive;
+        if (enabled ? overlayActive : !overlayActive && !current.sampleDataActive) return;
+        const revision = ++sampleRevision;
         if (enabled) {
-          realFarmBackup = current.sampleDataActive ? createEmptyFixture() : persistedSlice(current);
+          realFarmBackup = current.sampleDataActive ? createEmptyFixture() : current;
           writesEnabled = false;
-          sampleTransition = true;
-          set({ sampleOverlayActive: true });
+          commitFarm(current, true);
           await disk.flush();
-          if (!get().sampleOverlayActive) return;
-          next = createSampleFixture();
-          sampleTransition = false;
-          set({ ...next, sampleOverlayActive: true, soilStatus: idleSoil(), weatherStatus: statusFor(next.weatherSnapshot), weatherCached: false,
-            weatherStale: !!next.weatherSnapshot && isWeatherStale(next.weatherSnapshot, Date.now()) });
+          if (revision !== sampleRevision) return;
+          const { locale, landUnit } = get();
+          const next = { ...createSampleFixture(), locale, landUnit };
+          set({ ...next, ...snapshotStatuses(next) });
         } else {
-          sampleTransition = true;
-          next = realFarmBackup ?? (current.sampleDataActive ? createEmptyFixture() : persistedSlice(current));
-          next = { ...next, sampleDataActive: false };
+          const next = realFarmBackup ?? (current.sampleDataActive ? createEmptyFixture() : current);
           realFarmBackup = null;
           writesEnabled = true;
-          set({ ...next, sampleOverlayActive: false, soilStatus: next.soilSnapshot
-              ? { provider: "soil", state: "success", provenance: "modelled", requestId: null, updatedAt: next.soilSnapshot.fetchedAt, error: null }
-              : idleSoil(),
-            weatherStatus: statusFor(next.weatherSnapshot), weatherCached: !!next.weatherSnapshot,
-            weatherStale: !!next.weatherSnapshot && isWeatherStale(next.weatherSnapshot, Date.now()) });
-          sampleTransition = false;
+          commitFarm({ ...next, locale: current.locale, landUnit: current.landUnit }, false);
         }
-        previous?.controller.abort();
-        previousSoil?.controller.abort();
+      },
+      createFarmProfile: async (name, options) => {
+        await leaveSampleMode();
+        requireWritable();
+        const current = persistedSlice(get());
+        const farm = current.profiles.length === 0 ? upgradeLegacyFarmProfiles(current) : current;
+        const nowIso = new Date().toISOString();
+        const id = createProfileId();
+        const fromSample = options?.fromSample === true;
+        const initialSlice = fromSample ? createEditableSampleSlice(farm.locale, nowIso, id) : undefined;
+        commitFarm(createProfile(farm, { name, origin: fromSample ? "sample_copy" : "blank", initialSlice, nowIso, id }));
+      },
+      switchFarmProfile: async (profileId) => {
+        await leaveSampleMode();
+        requireWritable();
+        const current = persistedSlice(get());
+        const next = switchProfile(current, profileId, new Date().toISOString());
+        if (next !== current) commitFarm(next);
+      },
+      renameFarmProfile: async (profileId, name) => {
+        await leaveSampleMode();
+        requireWritable();
+        set(renameProfile(persistedSlice(get()), profileId, name, new Date().toISOString()));
+      },
+      deleteFarmProfile: async (profileId) => {
+        await leaveSampleMode();
+        requireWritable();
+        const current = persistedSlice(get());
+        if (!current.profiles.some(({ id }) => id === profileId)) return null;
+        const { nextState, undoSnapshot } = deleteProfile(current, profileId, new Date().toISOString());
+        commitFarm(nextState);
+        return undoSnapshot;
+      },
+      restoreFarmProfile: (snapshot) => {
+        requireWritable();
+        commitFarm(restoreDeletedProfile(persistedSlice(get()), snapshot, new Date().toISOString()));
+      },
+      importFarmProfiles: (imported) => {
+        requireWritable();
+        const { nextState, ...report } = mergeImportedProfiles(persistedSlice(get()), imported, new Date().toISOString());
+        if (report.addedCount > 0) commitFarm(nextState);
+        return report;
       },
       beginWeatherRequest: () => {
         requireReady();
-        if (!get().fieldGeometry || get().sampleDataActive) {
+        if (!get().fieldGeometry || get().sampleDataActive || get().sampleOverlayActive) {
           throw new Error("Select a real field before requesting weather.");
         }
         const previous = active;
@@ -320,7 +405,7 @@ export function createBalramStore() {
       },
       beginSoilRequest: () => {
         requireReady();
-        if (!get().fieldGeometry || get().sampleDataActive) throw new Error("Select a real field before requesting soil data.");
+        if (!get().fieldGeometry || get().sampleDataActive || get().sampleOverlayActive) throw new Error("Select a real field before requesting soil data.");
         const previous = activeSoil;
         const controller = new AbortController();
         const request: WeatherRequest = { id: `soil-${generation}-${++sequence}`, generation,
@@ -359,9 +444,7 @@ export function createBalramStore() {
     merge: (saved, current) => {
       if (saved === undefined) return current;
       const data = PersistedFarmSchema.parse(saved);
-      return { ...current, ...data, weatherStatus: statusFor(data.weatherSnapshot), weatherCached: !!data.weatherSnapshot,
-        soilStatus: data.soilSnapshot ? { ...idleSoil(), state: "success", provenance: "modelled", updatedAt: data.soilSnapshot.fetchedAt } : idleSoil(),
-        weatherStale: !!data.weatherSnapshot && isWeatherStale(data.weatherSnapshot, Date.now()) };
+      return { ...current, ...data, ...snapshotStatuses(data) };
     },
     onRehydrateStorage: () => (_state, error) => { hydrationFailure = error; },
   }));
@@ -376,6 +459,9 @@ export function createBalramStore() {
         catch (error) { hydrationFailure = error; }
         if (hydrationFailure) {
           disk.useMemoryOnly("Saved data could not be read. It has been preserved; new changes stay in this tab only.");
+        } else if (storedVersion === PERSISTENCE_VERSION && disk.getStatus().mode === "persistent") {
+          try { await disk.storage.removeItem(LEGACY_V5_BACKUP_KEY); }
+          catch { /* A later healthy boot can retry cleanup. */ }
         }
         // Only enable writes after merge/validation, so empty defaults cannot overwrite saved data.
         writesEnabled = true;
