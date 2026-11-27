@@ -54,6 +54,8 @@ export const SoilLabCalculationSchema = z.object({
   phosphorusSoilMassG: positive.optional(),
   phosphorusHaFactor: positive.optional(),
   tcs3200RawUs: z.object({ r: nonnegative, g: nonnegative, b: nonnegative }).optional(),
+  tcs3200LowBUs: positive.optional(),
+  tcs3200HighBUs: positive.optional(),
   tcs3200RelativeScore: percent.optional(),
 });
 

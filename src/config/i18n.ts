@@ -5,6 +5,68 @@ import type { ProvenanceTag } from "@/lib/domain/roadmap";
 
 const dictionary = {
   en: {
+    soilLab: {
+      tabs: { soil: "Soil Test", calculations: "Calculations" },
+      moisture: {
+        label: "Soil moisture (E77A)", percent: "Moisture (%)", hint: "Optional. Enter a reading from 0 to 100%.",
+        invalid: "Enter a moisture reading from 0 to 100%.",
+        levels: { dry: "Dry", moist: "Moist", wet: "Wet", untested: "Untested" },
+      },
+      blue: {
+        label: "Available phosphorus · Blue intensity", scale: "Phosphorus blue intensity",
+        swatches: { 1: "Very light blue (weakest)", 2: "Light blue", 3: "Medium blue", 4: "Darker blue", 5: "Deep blue (strongest)" },
+        hint: "Match the colour to the calibration standards. The intensity gives a relative reading.",
+      },
+      ranges: {
+        title: "View preset ranges", parameter: "Test", bands: "Reference ranges",
+        ph: "Soil pH (E463)", nitrogen: "Nitrogen (alkaline KMnO₄)", phosphorus: "Phosphorus (Olsen)",
+        acidic: "Acidic", neutral: "Neutral", alkaline: "Alkaline",
+      },
+      demos: {
+        title: "Simulated demo presets",
+        lab_procedure_demo: "Lab demo · BAL-N-01 + BAL-P-01",
+        arduino_lcd_high_n: "Arduino high nitrogen · 627.20",
+        tcs3200_optical_demo: "TCS3200 optical · DEMO-B",
+        badge: "Simulated demo — not a real lab reading",
+        applied: "{0} loaded into the soil form.",
+        reset: "Return to my readings", resetDone: "Demo cleared. You can enter your own readings.",
+      },
+      nitrogen: {
+        title: "Nitrogen lab calculator", method: "Titration method",
+        direct_h2so4: "Direct H₂SO₄ (S − B) · BAL-N-01", back_titration_naoh: "Arduino NaOH (B − S)",
+        blank: "Blank titre (mL)", trial1: "Sample trial 1 (mL)", trial2: "Sample trial 2 (mL, optional)",
+        sample: "Average sample titre", corrected: "Corrected titre", result: "Available nitrogen",
+        apply: "Apply nitrogen to form", applied: "Nitrogen applied to the soil form.",
+      },
+      phosphorus: {
+        title: "Olsen phosphorus calculator", absorbance: "Absorbance at 882 nm",
+        volume: "Extract volume (mL)", mass: "Soil mass (g)", factor: "Hectare factor",
+        standard: "1.995 · BAL-P-01", alternate: "2.24 · Quick guide",
+        concentration: "1. Extract concentration", soil: "2. Phosphorus in soil", result: "3. Phosphorus per hectare",
+        invalid: "Check the absorbance, extract volume, and soil mass.", belowIntercept: "Absorbance is below the calibration intercept ({0}).",
+        apply: "Apply phosphorus to form", applied: "Phosphorus applied to the soil form.",
+      },
+      optical: {
+        title: "TCS3200 optical sensor check", badge: "Optical signal only — not lab validated",
+        r: "Red pulse (µs)", g: "Green pulse (µs)", b: "Blue pulse (µs)",
+        low: "Low blue standard (µs, optional)", high: "High blue standard (µs, optional)",
+        timeout: "A pulse at or below 0 µs is a timeout. Check the sensor and try again.",
+        calibration: "Enter both standards to score the signal. The high-blue pulse must be shorter than the low-blue pulse.",
+        below: "Below the calibration range", above: "Above the calibration range",
+        score: "Relative score {0}/100 · Blue intensity {1}/5",
+        apply: "Apply blue intensity only", applied: "Blue intensity applied to the soil form.",
+      },
+      lcd: {
+        title: "16 × 2 LCD preview", first: "Screen 1", second: "Screen 2",
+        showFirst: "Show screen 1", showSecond: "Show screen 2", waiting: "Waiting for input",
+        invalid: "INVALID INPUT", direct: "Check S and B", back: "Check B and S",
+        blank: "B: {0} mL", sample: "S: {0} mL", nitrogen: "N: {0} kg/ha",
+      },
+      units: { ml: "{0} mL", mgPerL: "{0} mg/L", mgPerKg: "{0} mg/kg", kgPerHa: "{0} kg/ha" },
+      outOfBounds: "The result exceeds the saved-reading limit of {0} kg/ha.",
+      invalidReading: "Enter pH from 3.5 to 10.5 and valid nutrient values (N ≤ 2000, P ≤ 500 kg/ha).",
+      savedOptical: "Optical phosphorus estimate", savedOpticalNote: "The phosphorus intensity comes from a relative optical signal. It cannot determine fertilizer doses.",
+    },
     soilInterpretation: {
       moisture: {
         dry: {
@@ -160,6 +222,71 @@ const dictionary = {
     yourPlots:"Your plots",editPlot:"Edit",removePlot:"Remove plot",undo:"Undo",plotAddedToast:"Added to your farm plan",plotRemovedToast:"Plot removed",plotRemovedNamed:"Plot removed:",cancelEdit:"Cancel edit",
   },
   mr: {
+    soilLab: {
+      tabs: { soil: "माती चाचणी", calculations: "गणना" },
+      moisture: {
+        label: "मातीतील ओलावा (ई७७ए)", percent: "ओलावा (%)", hint: "ऐच्छिक. ० ते १००% दरम्यानचे मोजमाप नोंदवा.",
+        invalid: "ओलाव्याचे मोजमाप ० ते १००% दरम्यान नोंदवा.",
+        levels: { dry: "कोरडी", moist: "ओलसर", wet: "जास्त ओली", untested: "तपासलेले नाही" },
+      },
+      blue: {
+        label: "उपलब्ध स्फुरद · निळ्या रंगाची तीव्रता", scale: "स्फुरदाच्या निळ्या रंगाची तीव्रता",
+        swatches: { 1: "अतिशय फिकट निळा (सर्वात कमी)", 2: "फिकट निळा", 3: "मध्यम निळा", 4: "गडद निळा", 5: "अतिशय गडद निळा (सर्वात जास्त)" },
+        hint: "रंगाची तुलना प्रमाणित नमुन्यांशी करा. त्यावरून सापेक्ष तीव्रता समजते.",
+      },
+      ranges: {
+        title: "ठरवलेल्या मर्यादा पहा", parameter: "चाचणी", bands: "संदर्भ मर्यादा",
+        ph: "मातीचा सामू (ई४६३)", nitrogen: "नत्र (क्षारीय पोटॅशियम परमॅंगनेट)", phosphorus: "स्फुरद (ओल्सेन)",
+        acidic: "आम्लीय", neutral: "तटस्थ", alkaline: "विम्ल",
+      },
+      demos: {
+        title: "प्रात्यक्षिकाची काल्पनिक उदाहरणे",
+        lab_procedure_demo: "प्रयोगशाळा प्रात्यक्षिक · बीएएल-एन-०१ आणि बीएएल-पी-०१",
+        arduino_lcd_high_n: "आर्डुइनो · जास्त नत्र · ६२७.२०",
+        tcs3200_optical_demo: "टीसीएस३२०० रंग संवेदक · डेमो-बी",
+        badge: "काल्पनिक प्रात्यक्षिक · प्रत्यक्ष प्रयोगशाळेचा निकाल नाही",
+        applied: "{0} माती चाचणीत भरले.",
+        reset: "माझ्या नोंदींकडे परत", resetDone: "प्रात्यक्षिक काढले. तुमची मोजमापे नोंदवू शकता.",
+      },
+      nitrogen: {
+        title: "नत्राची प्रयोगशाळा गणना", method: "अनुमापन पद्धत",
+        direct_h2so4: "थेट सल्फ्युरिक आम्ल (नमुना − कोरा) · बीएएल-एन-०१",
+        back_titration_naoh: "आर्डुइनो सोडियम हायड्रॉक्साइड (कोरा − नमुना)",
+        blank: "कोऱ्या नमुन्याचे अनुमापन (मिली)", trial1: "नमुन्याची पहिली चाचणी (मिली)",
+        trial2: "नमुन्याची दुसरी चाचणी (मिली, ऐच्छिक)", sample: "नमुन्याचे सरासरी अनुमापन",
+        corrected: "दुरुस्त अनुमापन", result: "उपलब्ध नत्र",
+        apply: "माती चाचणीत नत्र भरा", applied: "माती चाचणीत नत्र भरले.",
+      },
+      phosphorus: {
+        title: "स्फुरदाची ओल्सेन गणना", absorbance: "८८२ नॅनोमीटरवर प्रकाश शोषण",
+        volume: "अर्काचे आकारमान (मिली)", mass: "मातीचे वजन (ग्रॅम)", factor: "हेक्टर रूपांतरण गुणक",
+        standard: "१.९९५ · बीएएल-पी-०१", alternate: "२.२४ · संक्षिप्त मार्गदर्शक",
+        concentration: "१. अर्कातील सांद्रता", soil: "२. मातीतील स्फुरद", result: "३. प्रति हेक्टर स्फुरद",
+        invalid: "प्रकाश शोषण, अर्काचे आकारमान आणि मातीचे वजन तपासा.",
+        belowIntercept: "प्रकाश शोषण शून्य सांद्रतेच्या संदर्भापेक्षा ({0}) कमी आहे.",
+        apply: "माती चाचणीत स्फुरद भरा", applied: "माती चाचणीत स्फुरद भरले.",
+      },
+      optical: {
+        title: "टीसीएस३२०० रंग संवेदक तपासणी", badge: "फक्त प्रकाशीय संकेत · प्रयोगशाळेत पडताळलेले नाही",
+        r: "लाल स्पंदन (सूक्ष्मसेकंद)", g: "हिरवे स्पंदन (सूक्ष्मसेकंद)", b: "निळे स्पंदन (सूक्ष्मसेकंद)",
+        low: "फिकट निळ्याचा संदर्भ (सूक्ष्मसेकंद, ऐच्छिक)", high: "गडद निळ्याचा संदर्भ (सूक्ष्मसेकंद, ऐच्छिक)",
+        timeout: "स्पंदन ० सूक्ष्मसेकंद किंवा त्यापेक्षा कमी आहे. संवेदक तपासून पुन्हा प्रयत्न करा.",
+        calibration: "गुणांसाठी दोन्ही संदर्भ भरा. गडद निळ्याचे स्पंदन फिकट निळ्यापेक्षा कमी कालावधीचे असावे.",
+        below: "संदर्भ मर्यादेपेक्षा कमी", above: "संदर्भ मर्यादेपेक्षा जास्त",
+        score: "सापेक्ष गुण {0}/१०० · निळ्या रंगाची तीव्रता {1}/५",
+        apply: "फक्त निळ्या रंगाची तीव्रता भरा", applied: "माती चाचणीत निळ्या रंगाची तीव्रता भरली.",
+      },
+      lcd: {
+        title: "१६ × २ एलसीडी पूर्वदृश्य", first: "पहिला पडदा", second: "दुसरा पडदा",
+        showFirst: "पहिला पडदा पहा", showSecond: "दुसरा पडदा पहा", waiting: "मोजमाप भरा",
+        invalid: "मोजमाप अमान्य", direct: "नमुना व कोरा तपासा", back: "कोरा व नमुना तपासा",
+        blank: "कोरा: {0} मिली", sample: "नमुना: {0} मिली", nitrogen: "नत्र: {0} किलो/हे.",
+      },
+      units: { ml: "{0} मिली", mgPerL: "{0} मिग्रॅ/लिटर", mgPerKg: "{0} मिग्रॅ/किलो", kgPerHa: "{0} किलो/हे." },
+      outOfBounds: "निकाल जतन करण्याची {0} किलो/हे. मर्यादा ओलांडतो.",
+      invalidReading: "सामू ३.५ ते १०.५ दरम्यान नोंदवा. नत्र २००० पर्यंत आणि स्फुरद ५०० किलो/हे. पर्यंत नोंदवा.",
+      savedOptical: "स्फुरदाचा प्रकाशीय अंदाज", savedOpticalNote: "स्फुरदाची तीव्रता सापेक्ष प्रकाशीय संकेतावरून घेतली आहे. त्यावरून खताची मात्रा ठरवता येत नाही.",
+    },
     soilInterpretation: {
       moisture: {
         dry: {
