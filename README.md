@@ -34,7 +34,7 @@
   * Soil- and weather-matched crop recommendations with 3-tile **`CropFitTiles`** (*Soil, Water, Sowing* — Good / Fair / Needs help), visible **`Already planted?`** quick chips, a docked Right **`CropCheckoutSheet`** on desktop / native `<dialog>` sheet on mobile, and a **7-second hover/focus-pausable Undo toast** (`ToastHost`).
 * **Hardware-Backed Soil Testing & Opt-In Calculations:**
   * Enter readings from the **Arduino Uno R3** kit with an **E463 pH sensor**, **E77A moisture sensor**, **TCS3200 colour sensor**, and **HD44780 16×2 LCD**. The default **Soil Test** tab provides simple moisture bands, a tactile **1–5 phosphorus blue intensity** scale, and a collapsible **View preset ranges** table. Soil Health Card (`kg/ha`) and commercial rapid-kit entry are also available.
-  * Open **Calculations** to use the Subbiah–Asija alkaline $\text{KMnO}_4$ nitrogen calculator with direct $\text{H}_2\text{SO}_4$ titration or Arduino-style NaOH back-titration, the **Olsen 882 nm molybdenum-blue phosphorus calculator**, and the TCS3200 optical check. The tab includes a two-screen **16×2 LCD preview** and a one-tap **MIT-WPU, Pune** regional preset.
+  * Open **Calculations** to use the Subbiah–Asija alkaline $\text{KMnO}_4$ nitrogen calculator with direct $\text{H}_2\text{SO}_4$ titration or Arduino-style NaOH back-titration, the **Olsen 882 nm molybdenum-blue phosphorus calculator**, and the TCS3200 optical check. The tab includes a two-screen **16×2 LCD preview** and one regional preset, **MIT-WPU, Pune**.
   * The soil form, gauges, and A4 report identify readings that use regional preset values. TCS3200 scores represent unvalidated relative blue intensity and cannot determine phosphorus concentration or fertilizer doses.
   * Visual **`BulletGauge`** bars (`SoilGauges`) with the Deccan Vertisol pH band (`7.8–8.4`), salinity-gated gypsum advice, and a non-persisted **`Try a different pH`** (`±0.1`) live crop re-ranking simulator.
 * **Resilient Weather, Seven-Day Water Ribbon & Irrigation Planner:**
@@ -42,7 +42,8 @@
   * Interactive **7-day `WaterRibbon`** with dashed/dotted provenance strokes, heavy-rain fertiliser caution, native `<dialog>` day details, and an illustrative `100% / 75% / 50% / 25%` rain what-if.
   * Offline-capable [FAO-56](https://www.fao.org/4/x0490e/x0490e00.htm) phase-wise weekly water planner and illustrative drought reallocation simulator.
 * **Field Voice, Botanical Stage Rail, Picture-Card Check-Ins & 12-Month Crop Calendar:**
-  * Bilingual **Balram Field Voice** prioritizes moisture, rain, and nutrient advice, even before plots are added. Today shows the top advisory with *Why Balram says this* and up to four more field notes.
+  * Bilingual **Balram Field Voice** flags dry soil and waterlogging, advises when to delay top-dressing to avoid fertilizer washout, and gives practical guidance on acidic pH and avoiding extra urea when nitrogen is already high. Saved soil readings can produce farm-level advice before any plots are added.
+  * **Today** highlights the highest-priority advisory. Expand *Why Balram says this* to see the readings behind it, or *More field notes* to see up to four additional advisories.
   * 4-step botanical **`StageRail`** with post-hydration weeks-to-next estimates, 3-tap illustrated **2×2 Stage / 3×2 Event** `CheckInCard`, **`TodaysSky`** panoramic SVG hero, and 12-month **`CropCalendar`** SVG timeline.
 * **Coordinate-Free Farm Card PNG & A4 Print Report:**
   * Share the active farm as a coordinate-free **1080×1080 Farm Card PNG** (offline SVG → Canvas → Web Share / download fallback), or print its bilingual A4 **`FarmReport`** with static soil, water, and calendar visuals.
@@ -59,7 +60,7 @@
 | **Local Multi-Farm Profiles** | `src/components/profiles/` for naming, the Field Notebook gallery, crop-proportion ribbons, and the native dialog switcher. `src/lib/domain/profiles.ts` exposes the pure profile operations. Persistence v6 stores the active farm, stashed farms, and profile metadata atomically under `balram:farm`. Includes v0–v5 migrations, the temporary `balram:legacy-v5` safety copy, and additive v5/v6 backup import. |
 | **GIS & Validation** | Leaflet `1.9` (`L.canvas()`), `react-leaflet-draw`, `@turf/area`, `@turf/center-of-mass`, Zod `3.25` |
 | **Security & Offline PWA** | Build-time SHA-256 inline-script CSP finalizer (`scripts/finalize-release.mjs`) + allowlisted Service Worker (`public/sw.js`, 40 approved offline files) |
-| **Testing** | Zero-dependency Node 22 native test runner (`npm test`, `node:test`) covering domain math, schema migrations, multi-farm persistence and backup flows, i18n parity, motion guardrails, and visual engines |
+| **Testing** | 148 tests using Node's native test runner (`npm test`, `node:test`), covering soil chemistry, Field Voice, multi-farm persistence and backups, localization, motion, and visual engines |
 
 ---
 
@@ -77,6 +78,7 @@ npm run typecheck
 npm test
 npm run build
 git diff --check
+git status --short
 ```
 
 > **Vercel Deployment Note:** Deploy with **Node.js `22.x`** and Build Command **`npm run build`** (never bare `next build`, so `scripts/finalize-release.mjs` injects static HTML CSP hashes and generates `public/sw.js`). No external API keys or database environment variables are required.

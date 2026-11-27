@@ -49,10 +49,6 @@ export function calculateDailyDripEstimate(input: z.infer<typeof DripRuntimeSche
     label: "Planning estimate" as const };
 }
 
-export function calculateDailyDripRuntime(input: z.infer<typeof DripRuntimeSchema>): number {
-  return calculateDailyDripEstimate(input).runtimeMinutes;
-}
-
 export const SystemRuntimeSchema = IrrigationDemandSchema.extend({
   systemFlowLitresPerHour: positive,
   applicationEfficiency: positive.max(1),
