@@ -14,6 +14,7 @@ import { interpretSoilKitReading } from "@/lib/domain/soilKit";
 import { generateFieldVoiceAdvisories } from "@/lib/domain/fieldVoice";
 import { cropLabel, lifecycleLabel, t } from "@/config/i18n";
 import { formatNumber, formatTime, selectedWeatherDay, resolvedWeatherMetrics } from "@/lib/ui/format";
+import { describeSoilReadout, formatSoilNutrient } from "@/lib/ui/soilReadout";
 import { farmRoadmap } from "@/lib/ui/farmRoadmap";
 import { ProvenanceBadge } from "@/components/ui/ProvenanceBadge";
 import { ShareSummaryButton } from "@/components/ui/ShareSummaryButton";
@@ -69,24 +70,46 @@ function ReportWaterSummary({ state }: { state: BalramState }) {
   </section>;
 }
 
-export function FarmReport(){const state=useBalramStore(s=>s),text=t(state.locale),day=selectedWeatherDay(state),metrics=resolvedWeatherMetrics(state),field=state.fieldGeometry,area=field?.areaSquareMetres??null,et0=metrics.et0MmPerDay,advisories=generateFieldVoiceAdvisories({allocations:state.cropAllocations,soilKitReading:state.soilKitReading,weatherSnapshot:state.weatherSnapshot,nowMs:state.now}).filter(a=>a.priority!=="tip").slice(0,5),soil=state.soilKitReading?interpretSoilKitReading(state.soilKitReading):null,roadmap=farmRoadmap(state);
+export function FarmReport(){
+ const state = useBalramStore(s => s);
+ const { locale, soilKitReading: reading } = state;
+ const text = t(locale);
+ const day = selectedWeatherDay(state), metrics = resolvedWeatherMetrics(state);
+ const field = state.fieldGeometry, area = field?.areaSquareMetres ?? null, et0 = metrics.et0MmPerDay;
+ const isSimulated = reading?.dataStatus === "simulated";
+ const soil = reading ? interpretSoilKitReading(reading) : null;
+ const soilReadout = reading ? describeSoilReadout(reading, locale) : null;
+ const planningState = isSimulated ? { ...state, soilKitReading: null } : state;
+ const advisories = generateFieldVoiceAdvisories({
+   allocations: state.cropAllocations, soilKitReading: planningState.soilKitReading,
+   weatherSnapshot: state.weatherSnapshot, nowMs: state.now,
+ }).filter(a => a.priority !== "tip").slice(0, 5);
+ const roadmap = farmRoadmap(planningState);
  const nutrientLabel=(level:string)=>state.locale==="mr"?({low:"कमी",medium:"मध्यम",high:"जास्त",normal:"सामान्य",elevated:"वाढलेले",untested:"चाचणी नाही"} as Record<string,string>)[level]??level:level;
+ const nutrientAmount = (value: number) => text.soilLab.units.kgPerHa.replace("{0}", formatSoilNutrient(value, locale));
  return <section id="farm-report" aria-labelledby="report-title" className="bento-card mt-6"><div className="flex flex-wrap items-center justify-between gap-4"><div><p className="mb-2 text-sm leading-body font-bold uppercase tracking-widest text-forest">{text.report}</p><h2 id="report-title" className="text-xl font-bold">{text.report}</h2></div><div className="flex flex-wrap gap-2 print:hidden"><button className="button-secondary print:hidden min-h-12" disabled={!state.hydrated} onClick={()=>window.print()}>{text.print}</button><ShareSummaryButton state={state} roadmap={roadmap}/><FarmCardShareButton state={state} roadmap={roadmap} disabled={!state.hydrated}/></div></div>
  <p className="mt-3 text-sm [overflow-wrap:anywhere]">{state.farmProfile?.name??(state.locale==="mr"?"तुमचे जतन केलेले शेत":"Your saved field")} · {state.locale==="mr"?"शेत नियोजन सारांश; सिंचनाची सूचना नाही.":"Planning summary, not an irrigation prescription."}</p>{state.sampleDataActive&&<p className="notice mt-3 font-bold">{state.locale==="mr"?"नमुना माहिती · केवळ उदाहरण":"Sample data · illustrative only"}</p>}
  <dl className="mt-5 grid gap-4 sm:grid-cols-3"><div><dt className="text-sm text-stone-600">{text.fieldArea}</dt><dd className="text-lg font-semibold">{area===null?(state.locale==="mr"?"उपलब्ध नाही":"Unavailable"):formatArea(squareMetresToGunthas(area),state.landUnit,state.locale,{includeSecondary:true})}</dd></div><div><dt className="text-sm text-stone-600">{state.locale==="mr"?"संदर्भ बाष्पोत्सर्जन (ET₀)":"Reference ET₀"} ({metrics.date})</dt><dd className="text-lg font-semibold">{formatNumber(et0,1,state.locale)} {state.locale === "mr" ? "मिमी/दिवस" : "mm/day"}</dd><dd className="text-sm leading-body text-stone-600">{state.sampleDataActive?(state.locale==="mr"?"नमुना माहिती · उदाहरण":"Sample data · illustrative"):metrics.et0Provenance==="hargreaves-fallback"?(state.locale==="mr"?"तापमानावरून गणित":"Calculated from temperatures"):metrics.et0Provenance==="maharashtra-baseline"?(state.locale==="mr"?"महाराष्ट्राचा हंगामी आधार":"Maharashtra seasonal baseline"):(state.locale==="mr"?"प्रादेशिक हवामान अंदाज":"Regional weather forecast")}</dd></div><div><dt className="text-sm text-stone-600">{state.locale==="mr"?"शेवटचा बदल":"Last planning edit"}</dt><dd className="text-sm">{formatTime(state.planningUpdatedAt??state.farmProfile?.updatedAt,state.locale)}</dd></div></dl>
  <div className="mt-5 overflow-x-auto"><table className="w-full text-left text-sm"><caption className="pb-3 text-left font-semibold">{text.plots}</caption><thead><tr className="border-b border-forest/20"><th className="p-2">{state.locale==="mr"?"प्लॉट":"Plot"}</th><th className="p-2">{text.crop}</th><th className="p-2">{state.locale==="mr"?"क्षेत्र":"Land size"}</th><th className="p-2">{text.stage}</th><th className="p-2">{state.locale==="mr"?"साप्ताहिक पाणी":"Weekly water"}</th></tr></thead><tbody>{state.cropAllocations.length?state.cropAllocations.map((plot,i)=>{const id=plot.cropId as CropId,crop=MaharashtraCropMatrix[id],size=plot.areaGunthas??(area?area/101.17141056*plot.percentage/100:null),stage=plot.lifecycleStage??"planned",method=state.irrigationSetup?.method==="sprinkler"?"sprinkler":state.irrigationSetup?.method==="surface"?"canal_flood":"drip",phases=size===null||!et0?[]:calculatePhaseWaterBreakdown({cropId:id,areaGunthas:size,baseEt0MmPerDay:et0,effectiveRainfallMmPerDay:day?.precipitation??0,deliveryMethod:method,customSystemFlowLph:state.irrigationSetup?.flowConfirmedByFarmer?state.irrigationSetup.systemFlowLitresPerHour:null,customEfficiency:state.irrigationSetup?.flowConfirmedByFarmer?state.irrigationSetup.applicationEfficiency:null}),water=phases.find(p=>p.stage===stage);const part=size;return <tr key={plot.plotId??`${id}-${i}`} className="border-b border-forest/10"><td className="p-2">{displayPlotName(plot.plotName,state.locale,i+1)}</td><td className="p-2">{crop?cropLabel(state.locale,id):plot.cropId}</td><td className="p-2">{part===null?(state.locale==="mr"?"उपलब्ध नाही":"Unavailable"):`${formatArea(part,state.landUnit,state.locale,{includeSecondary:true})} · ${formatNumber(plot.percentage,2,state.locale)}%`}</td><td className="p-2">{lifecycleLabel(state.locale,stage)}</td><td className="p-2">{water?`${formatNumber(water.weeklyGrossLitres,0,state.locale)} L · ${formatNumber(water.weeklyTankerCount,1,state.locale)} ${state.locale==="mr"?"टँकर":"tanker"}`:(state.locale==="mr"?"उपलब्ध नाही":"Unavailable")}</td></tr>}) : <tr><td colSpan={5} className="p-2">{state.locale==="mr"?"पीक प्लॉट नाहीत":"No plots saved."}</td></tr>}</tbody></table></div>
  {state.soilSkipped&&!state.soilKitReading&&<p className="notice mt-5 break-inside-avoid">{text.soilNotTested}</p>}
- {state.soilKitReading&&soil&&<section className="mt-5 break-inside-avoid">
-  <h3 className="text-lg font-bold">{state.locale==="mr"?"माती चाचणी व सुधारणा":"On-site soil test"}</h3>
-  <p>{state.soilKitReading.kitType==="balram_inhouse"?(state.locale==="mr"?"बलरामचे इन-हाऊस किट":"Balram In-House Kit"):state.soilKitReading.kitType==="soil_health_card"?(state.locale==="mr"?"मृदा आरोग्य पत्रिका":"Soil Health Card"):(state.locale==="mr"?"व्यावसायिक जलद चाचणी किट":"Commercial Rapid Kit")} · {formatTime(state.soilKitReading.testedAt,state.locale)}</p>
-  <p>
-   pH {formatNumber(state.soilKitReading.ph,1,state.locale)} · {state.locale==="mr"?"नत्र":"N"} {nutrientLabel(state.soilKitReading.nitrogenLevel)}{state.soilKitReading.nitrogenKgPerHa?` (${formatNumber(state.soilKitReading.nitrogenKgPerHa,1,state.locale)} kg/ha)`:""}
-   · {state.locale==="mr"?"स्फुरद":"P"} {nutrientLabel(state.soilKitReading.phosphorusLevel)}{state.soilKitReading.phosphorusKgPerHa?` (${formatNumber(state.soilKitReading.phosphorusKgPerHa,1,state.locale)} kg/ha)`:""}
-   {state.soilKitReading.potassiumLevel!=="untested"?` · ${state.locale==="mr"?"पालाश":"K"} ${nutrientLabel(state.soilKitReading.potassiumLevel)}`:""}
-   {state.soilKitReading.organicCarbon!=="untested"?` · ${state.locale==="mr"?"सेंद्रिय कर्ब":"Organic carbon"} ${nutrientLabel(state.soilKitReading.organicCarbon)}`:""}
-   {state.soilKitReading.salinity!=="untested"?` · ${state.locale==="mr"?"क्षारता":"Salinity"} ${nutrientLabel(state.soilKitReading.salinity)}`:""}
+ {reading&&soil&&<section className="mt-5 min-w-0 print:break-inside-avoid">
+  <h3 className="text-lg font-bold">{text.soil}</h3>
+  {isSimulated && <p className="my-2 rounded-lg bg-amber px-3 py-2 text-sm font-bold text-ink">
+    {text.soilLab.simulatedBanner}
+  </p>}
+  <p>{reading.kitType==="balram_inhouse"?text.soilModeHouse:reading.kitType==="soil_health_card"?(locale==="mr"?"मृदा आरोग्य पत्रिका":"Soil Health Card"):(locale==="mr"?"व्यावसायिक जलद चाचणी किट":"Commercial Rapid Kit")} · {formatTime(reading.testedAt,locale)}</p>
+  <p className="[overflow-wrap:anywhere]">
+   pH {formatNumber(reading.ph,1,locale)} · {locale==="mr"?"नत्र":"N"} {nutrientLabel(reading.nitrogenLevel)}{reading.nitrogenKgPerHa !== null ? ` (${nutrientAmount(reading.nitrogenKgPerHa)})` : ""}
+   {" · "}{locale==="mr"?"स्फुरद":"P"} {nutrientLabel(reading.phosphorusLevel)}{reading.phosphorusKgPerHa !== null ? ` (${nutrientAmount(reading.phosphorusKgPerHa)})` : ""}
+   {reading.potassiumLevel!=="untested"?` · ${locale==="mr"?"पालाश":"K"} ${nutrientLabel(reading.potassiumLevel)}`:""}
+   {reading.organicCarbon!=="untested"?` · ${locale==="mr"?"सेंद्रिय कर्ब":"Organic carbon"} ${nutrientLabel(reading.organicCarbon)}`:""}
+   {reading.salinity!=="untested"?` · ${locale==="mr"?"क्षारता":"Salinity"} ${nutrientLabel(reading.salinity)}`:""}
+   {soilReadout?.moisture && ` · ${soilReadout.moisture.label} ${soilReadout.moisture.result}`}
+   {soilReadout?.blue && ` · ${soilReadout.blue.label} ${soilReadout.blue.result}`}
   </p>
-  <ReportSoilGauges reading={state.soilKitReading} locale={state.locale} sample={state.sampleDataActive} />
+  {soilReadout?.optical && <p className="mt-1 text-sm">{text.soilLab.savedOpticalNote}</p>}
+  <ReportSoilGauges reading={reading} locale={locale} sample={state.sampleDataActive || isSimulated} />
+  <div className="mt-2"><ProvenanceBadge provenance={state.sampleDataActive || isSimulated ? "sample" : "measured_by_kit"} locale={locale} /></div>
   <h4 className="mt-2 font-semibold">{text.soilPlan}</h4><ul className="list-disc pl-5">{soil.steps.map(s=><li key={s.id}>{state.locale==="mr"?s.actionStep.mr:s.actionStep.en}</li>)}</ul>
  </section>}
  <ReportWaterSummary state={state} />

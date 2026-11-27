@@ -66,6 +66,7 @@ const dictionary = {
       outOfBounds: "The result exceeds the saved-reading limit of {0} kg/ha.",
       invalidReading: "Enter pH from 3.5 to 10.5 and valid nutrient values (N ≤ 2000, P ≤ 500 kg/ha).",
       savedOptical: "Optical phosphorus estimate", savedOpticalNote: "The phosphorus intensity comes from a relative optical signal. It cannot determine fertilizer doses.",
+      simulatedBanner: "Simulated demo soil data — illustrative only. Do not use these results to determine actual fertilizer doses.",
     },
     soilInterpretation: {
       moisture: {
@@ -286,6 +287,7 @@ const dictionary = {
       outOfBounds: "निकाल जतन करण्याची {0} किलो/हे. मर्यादा ओलांडतो.",
       invalidReading: "सामू ३.५ ते १०.५ दरम्यान नोंदवा. नत्र २००० पर्यंत आणि स्फुरद ५०० किलो/हे. पर्यंत नोंदवा.",
       savedOptical: "स्फुरदाचा प्रकाशीय अंदाज", savedOpticalNote: "स्फुरदाची तीव्रता सापेक्ष प्रकाशीय संकेतावरून घेतली आहे. त्यावरून खताची मात्रा ठरवता येत नाही.",
+      simulatedBanner: "काल्पनिक माती चाचणी · फक्त प्रात्यक्षिकासाठी. प्रत्यक्ष खताची मात्रा ठरवण्यासाठी हे निकाल वापरू नका.",
     },
     soilInterpretation: {
       moisture: {

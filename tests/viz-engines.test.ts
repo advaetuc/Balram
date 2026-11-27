@@ -27,6 +27,7 @@ import { deriveSkyCondition } from "../src/lib/domain/viz/skyCondition";
 import { barSegments, MAX_VISIBLE_BAR_PLOTS, MIN_SEGMENT_DISPLAY_PERCENT } from "../src/lib/domain/viz/barSegments";
 import { buildWaterRibbon, HEAVY_RAIN_CAUTION_MM } from "../src/lib/domain/viz/waterRibbon";
 import { useNow } from "../src/lib/ui/useNow";
+import { describeSoilReadout, formatSoilNutrient } from "../src/lib/ui/soilReadout";
 import { CropAllocationsSchema, growthToLifecycleStage, LifecycleStageSchema, type CropAllocation, type SoilKitReading } from "../src/types/domain";
 
 function plot(overrides: Partial<CropAllocation> = {}): CropAllocation {
@@ -342,6 +343,7 @@ test("pH controls rank a local copy, clamp and reset without writing to the save
     } },
     "@/lib/domain/viz/gaugeZones": { buildSoilGauges },
     "@/lib/ui/format": { formatNumber },
+    "@/lib/ui/soilReadout": { describeSoilReadout, formatSoilNutrient },
     "@/store/useBalramStore": { useBalramStore: (select: (state: typeof snapshot) => unknown) => select(snapshot) },
   };
   const url = new URL("../src/components/dashboard/SoilGauges.tsx", import.meta.url);
