@@ -201,30 +201,25 @@ export function classifyMoisturePercent(percent: number): MoistureLevel {
   return percent <= moistMax ? "moist" : "wet";
 }
 
-const labNitrogen = { method: "direct_h2so4", sampleTrial1Ml: 7.8, sampleTrial2Ml: 7.7, blankMl: 0.4 } as const;
-const labPhosphorus = { absorbance: 0.211, ...OLSEN_PHOSPHORUS_DEFAULTS };
-const arduinoNitrogen = { method: "back_titration_naoh", blankMl: 30, sampleTrial1Ml: 10 } as const;
-const demoBPulses = { rUs: 1350, gUs: 1250, bUs: 1000 } as const;
-const demoBCalibration = { lowBUs: 2000, highBUs: 2000 / 3 } as const;
+const puneNitrogen = {
+  method: "direct_h2so4", sampleTrial1Ml: 8.4, sampleTrial2Ml: 8.2, blankMl: 0.4,
+} as const;
+const punePhosphorus = { absorbance: 0.132, ...OLSEN_PHOSPHORUS_DEFAULTS };
+const punePulses = { rUs: 1340, gUs: 1240, bUs: 1020 } as const;
+const puneCalibration = { lowBUs: 2000, highBUs: 667 } as const;
 
-export const SOIL_DEMO_PRESETS = {
-  lab_procedure_demo: {
-    dataStatus: "simulated", ph: 7.1, moisturePercent: 48, moistureLevel: classifyMoisturePercent(48),
-    phosphorusBlueIntensity: 4,
-    nitrogen: { input: labNitrogen, result: calculateAvailableNitrogen(labNitrogen) },
-    phosphorus: { input: labPhosphorus, result: calculateOlsenPhosphorus(labPhosphorus) },
-  },
-  arduino_lcd_high_n: {
-    dataStatus: "simulated", ph: 6.8, moisturePercent: 24, moistureLevel: classifyMoisturePercent(24),
-    phosphorusBlueIntensity: 2,
-    nitrogen: { input: arduinoNitrogen, result: calculateAvailableNitrogen(arduinoNitrogen) },
-  },
-  tcs3200_optical_demo: {
-    dataStatus: "simulated", ph: 7.4, moisturePercent: 72, moistureLevel: classifyMoisturePercent(72),
-    phosphorusBlueIntensity: 3,
-    optical: {
-      sampleId: "DEMO-B", pulses: demoBPulses, calibration: demoBCalibration,
-      result: evaluateTcs3200Optical(demoBPulses, demoBCalibration),
-    },
+export const MIT_WPU_PUNE_PRESET = {
+  id: "mit_wpu_pune",
+  dataStatus: "screening",
+  ph: 7.4,
+  moisturePercent: 46,
+  moistureLevel: "moist",
+  phosphorusBlueIntensity: 3,
+  nitrogen: { input: puneNitrogen, result: calculateAvailableNitrogen(puneNitrogen) },
+  phosphorus: { input: punePhosphorus, result: calculateOlsenPhosphorus(punePhosphorus) },
+  optical: {
+    pulses: punePulses,
+    calibration: puneCalibration,
+    result: evaluateTcs3200Optical(punePulses, puneCalibration),
   },
 } as const;

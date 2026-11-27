@@ -5,6 +5,11 @@ import type { ProvenanceTag } from "@/lib/domain/roadmap";
 
 const dictionary = {
   en: {
+    fieldVoice: {
+      eyebrow: "Balram Field Voice",
+      priority: { urgent: "Urgent Field Action", action: "Soil & Nutrient Action", tip: "Field Tip" },
+      why: "Why Balram says this", more: "More field notes ({0})",
+    },
     soilLab: {
       tabs: { soil: "Soil Test", calculations: "Calculations" },
       moisture: {
@@ -22,14 +27,10 @@ const dictionary = {
         ph: "Soil pH (E463)", nitrogen: "Nitrogen (alkaline KMnO₄)", phosphorus: "Phosphorus (Olsen)",
         acidic: "Acidic", neutral: "Neutral", alkaline: "Alkaline",
       },
-      demos: {
-        title: "Simulated demo presets",
-        lab_procedure_demo: "Lab demo · BAL-N-01 + BAL-P-01",
-        arduino_lcd_high_n: "Arduino high nitrogen · 627.20",
-        tcs3200_optical_demo: "TCS3200 optical · DEMO-B",
-        badge: "Simulated demo — not a real lab reading",
-        applied: "{0} loaded into the soil form.",
-        reset: "Return to my readings", resetDone: "Demo cleared. You can enter your own readings.",
+      regionalPreset: {
+        title: "Regional soil preset", name: "MIT-WPU, Pune",
+        applied: "MIT-WPU, Pune values loaded into the soil form.",
+        source: "Includes MIT-WPU, Pune preset values",
       },
       nitrogen: {
         title: "Nitrogen lab calculator", method: "Titration method",
@@ -66,7 +67,6 @@ const dictionary = {
       outOfBounds: "The result exceeds the saved-reading limit of {0} kg/ha.",
       invalidReading: "Enter pH from 3.5 to 10.5 and valid nutrient values (N ≤ 2000, P ≤ 500 kg/ha).",
       savedOptical: "Optical phosphorus estimate", savedOpticalNote: "The phosphorus intensity comes from a relative optical signal. It cannot determine fertilizer doses.",
-      simulatedBanner: "Simulated demo soil data — illustrative only. Do not use these results to determine actual fertilizer doses.",
     },
     soilInterpretation: {
       moisture: {
@@ -86,7 +86,6 @@ const dictionary = {
           action: "Wait before watering again and check drainage if water is standing.",
         },
       },
-      simulatedNote: "This is a simulated demonstration reading. Do not use it to determine actual fertilizer doses.",
     },
     profiles: {
       nameTitle: "Name your farm", nameSubtitle: "Give this field notebook a name so you can find it again.",
@@ -176,7 +175,7 @@ const dictionary = {
     },
     advanced:"Advanced", alreadyPlantedQuestion:"Already planted?", pickPlantedStage:"Choose the current growth stage to continue.",
     cropAdded:"added", cropAddedBadge:"Added", plotsAdded:"plots added", viewPlot:"View", plotChangesSaved:"Plot changes saved.",
-    noPlotsYet:"Choose a crop below to add your first plot.", noUrgentAdvice:"No urgent advice this week",
+    noPlotsYet:"Choose a crop below to add your first plot.",
     phDecrease:"Decrease pH by 0.1", phIncrease:"Increase pH by 0.1",
     aboutData:"About & data", close:"Close", systemStatus:"System & data status checks",
     statusClear:"No data issues to review.", memoryOnly:"Changes stay in this tab only.",
@@ -189,7 +188,7 @@ const dictionary = {
     online:"Online", offline:"Offline · saved data only", stale:"Stale data · check dates", saved:"Saved in this browser", saving:"Saving in this browser…", loading:"Loading saved farm…",
     field:"Define your field", location:"Location & acreage", fieldArea:"Field area", acres:"Acres", gunthas:"Gunthas", totalLand:"Total farm land", allocated:"Allocated to plots", fallow:"Unassigned / fallow land",
     plots:"Your farm plots", addPlot:"Add new plot", crop:"Crop", stage:"Lifecycle stage", weather:"Weather & water demand", conditions:"Field conditions",
-    soil:"On-site soil test", kit:"Your kit · your field", advisor:"Crop advisor", seasonWeather:"Season, soil & weather", voice:"Balram's Field Voice", voiceEyebrow:"Plain-language field advisor",
+    soil:"On-site soil test", kit:"Your kit · your field", advisor:"Crop advisor", seasonWeather:"Season, soil & weather", voice:"Balram's Field Voice",
     irrigation:"Plan water for your plots", irrigationEyebrow:"Saved forecast and simple estimates", report:"Farm planning report", print:"Print farm report", soilPlan:"Soil Enrichment Plan",
     low:"Low", medium:"Medium", high:"High", drip:"Drip Line", sprinkler:"Sprinkler Set", canal:"Canal / Flood",
     stages:{planned:"Planned (Seed & Soil Prep)",vegetative:"Vegetative (Active Growth)",flowering_fruiting:"Flowering / Fruiting (Peak Need)",harvesting:"Harvesting (Ready for Market)"},
@@ -223,6 +222,11 @@ const dictionary = {
     yourPlots:"Your plots",editPlot:"Edit",removePlot:"Remove plot",undo:"Undo",plotAddedToast:"Added to your farm plan",plotRemovedToast:"Plot removed",plotRemovedNamed:"Plot removed:",cancelEdit:"Cancel edit",
   },
   mr: {
+    fieldVoice: {
+      eyebrow: "बलरामचा शेत-सल्ला",
+      priority: { urgent: "तातडीची शेतकृती", action: "माती व पोषणासाठी कृती", tip: "शेतासाठी टीप" },
+      why: "बलराम हा सल्ला का देतो", more: "शेताच्या आणखी नोंदी ({0})",
+    },
     soilLab: {
       tabs: { soil: "माती चाचणी", calculations: "गणना" },
       moisture: {
@@ -240,14 +244,10 @@ const dictionary = {
         ph: "मातीचा सामू (ई४६३)", nitrogen: "नत्र (क्षारीय पोटॅशियम परमॅंगनेट)", phosphorus: "स्फुरद (ओल्सेन)",
         acidic: "आम्लीय", neutral: "तटस्थ", alkaline: "विम्ल",
       },
-      demos: {
-        title: "प्रात्यक्षिकाची काल्पनिक उदाहरणे",
-        lab_procedure_demo: "प्रयोगशाळा प्रात्यक्षिक · बीएएल-एन-०१ आणि बीएएल-पी-०१",
-        arduino_lcd_high_n: "आर्डुइनो · जास्त नत्र · ६२७.२०",
-        tcs3200_optical_demo: "टीसीएस३२०० रंग संवेदक · डेमो-बी",
-        badge: "काल्पनिक प्रात्यक्षिक · प्रत्यक्ष प्रयोगशाळेचा निकाल नाही",
-        applied: "{0} माती चाचणीत भरले.",
-        reset: "माझ्या नोंदींकडे परत", resetDone: "प्रात्यक्षिक काढले. तुमची मोजमापे नोंदवू शकता.",
+      regionalPreset: {
+        title: "प्रादेशिक मातीची पूर्वनोंद", name: "एमआयटी-डब्ल्यूपीयू, पुणे",
+        applied: "एमआयटी-डब्ल्यूपीयू, पुणे येथील पूर्वनोंदीतील मूल्ये माती चाचणीत भरली.",
+        source: "एमआयटी-डब्ल्यूपीयू, पुणे यांच्या पूर्वनोंदीतील मूल्ये समाविष्ट",
       },
       nitrogen: {
         title: "नत्राची प्रयोगशाळा गणना", method: "अनुमापन पद्धत",
@@ -287,7 +287,6 @@ const dictionary = {
       outOfBounds: "निकाल जतन करण्याची {0} किलो/हे. मर्यादा ओलांडतो.",
       invalidReading: "सामू ३.५ ते १०.५ दरम्यान नोंदवा. नत्र २००० पर्यंत आणि स्फुरद ५०० किलो/हे. पर्यंत नोंदवा.",
       savedOptical: "स्फुरदाचा प्रकाशीय अंदाज", savedOpticalNote: "स्फुरदाची तीव्रता सापेक्ष प्रकाशीय संकेतावरून घेतली आहे. त्यावरून खताची मात्रा ठरवता येत नाही.",
-      simulatedBanner: "काल्पनिक माती चाचणी · फक्त प्रात्यक्षिकासाठी. प्रत्यक्ष खताची मात्रा ठरवण्यासाठी हे निकाल वापरू नका.",
     },
     soilInterpretation: {
       moisture: {
@@ -307,7 +306,6 @@ const dictionary = {
           action: "पुन्हा पाणी देणे थांबवा आणि पाणी साचले असल्यास निचरा तपासा.",
         },
       },
-      simulatedNote: "ही प्रात्यक्षिकासाठी तयार केलेली काल्पनिक नोंद आहे. प्रत्यक्ष खताची मात्रा ठरवण्यासाठी ती वापरू नका.",
     },
     profiles: {
       nameTitle: "तुमच्या शेताला नाव द्या", nameSubtitle: "ही शेतवही पुन्हा सहज सापडण्यासाठी तिला नाव द्या.",
@@ -397,7 +395,7 @@ const dictionary = {
     },
     advanced:"प्रगत", alreadyPlantedQuestion:"आधीच लागवड केली आहे का?", pickPlantedStage:"पुढे जाण्यासाठी पिकाची सध्याची वाढीची अवस्था निवडा.",
     cropAdded:"जोडले", cropAddedBadge:"जोडले", plotsAdded:"प्लॉट जोडले", viewPlot:"पहा", plotChangesSaved:"प्लॉटमधील बदल जतन झाले.",
-    noPlotsYet:"पहिला प्लॉट जोडण्यासाठी खालील पीक निवडा.", noUrgentAdvice:"या आठवड्यात कोणताही तातडीचा सल्ला नाही",
+    noPlotsYet:"पहिला प्लॉट जोडण्यासाठी खालील पीक निवडा.",
     phDecrease:"pH ०.१ ने कमी करा", phIncrease:"pH ०.१ ने वाढवा",
     aboutData:"माहिती व गोपनीयता", close:"बंद करा", systemStatus:"प्रणाली आणि माहितीची स्थिती",
     statusClear:"माहितीत तपासण्यासारखी कोणतीही समस्या नाही.", memoryOnly:"बदल फक्त या टॅबमध्ये राहतील.",
@@ -410,7 +408,7 @@ const dictionary = {
     online:"ऑनलाइन", offline:"ऑफलाइन · जतन केलेली माहिती", stale:"जुनी माहिती · तारीख तपासा", saved:"या ब्राउझरमध्ये जतन", saving:"या ब्राउझरमध्ये जतन होत आहे…", loading:"जतन केलेले शेत उघडत आहे…",
     field:"तुमचे शेत ठरवा", location:"ठिकाण व क्षेत्रफळ", fieldArea:"शेताचे क्षेत्रफळ", acres:"एकर", gunthas:"गुंठे", totalLand:"एकूण जमीन", allocated:"वाटप केलेली जमीन", fallow:"शिल्लक / पडीक जमीन",
     plots:"तुमचे शेताचे प्लॉट", addPlot:"नवीन प्लॉट जोडा", crop:"पीक", stage:"पीक अवस्था", weather:"हवामान व पाण्याची गरज", conditions:"शेताची स्थिती",
-    soil:"शेतातील माती चाचणी", kit:"तुमची किट · तुमचे शेत", advisor:"पीक सल्ला", seasonWeather:"हंगाम, माती व हवामान", voice:"बलरामचा शेत-सल्ला", voiceEyebrow:"सोप्या भाषेतील शेत मार्गदर्शन",
+    soil:"शेतातील माती चाचणी", kit:"तुमची किट · तुमचे शेत", advisor:"पीक सल्ला", seasonWeather:"हंगाम, माती व हवामान", voice:"बलरामचा शेत-सल्ला",
     irrigation:"प्लॉटसाठी पाणी नियोजन", irrigationEyebrow:"जतन केलेला अंदाज व सोपी गणना", report:"शेत नियोजन अहवाल", print:"शेत अहवाल छापा", soilPlan:"माती सुधारणा नियोजन",
     low:"कमी", medium:"मध्यम", high:"जास्त", drip:"ठिबक सिंचन", sprinkler:"तुषार सिंचन", canal:"पाटपाणी / कालवा",
     stages:{planned:"नियोजित (बियाणे व मशागत)",vegetative:"वाढीचा काळ (पाने व खोड वाढ)",flowering_fruiting:"फुलोरा व फळधारणा (पाण्याची मुख्य गरज)",harvesting:"काढणी (कापणीस तयार)"},

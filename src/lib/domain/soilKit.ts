@@ -62,9 +62,5 @@ export function interpretSoilKitReading(input:z.input<typeof SoilKitReadingSchem
   en: "N is from alkaline KMnO₄ and P from Olsen colorimetry. These are screening results, not a laboratory prescription.",
   mr: "नत्रासाठी अल्कलाइन KMnO₄ आणि स्फुरदासाठी ओल्सेन रंगमिती वापरली. हे प्राथमिक निष्कर्ष आहेत, प्रयोगशाळेची अंतिम शिफारस नाही.",
  };
- if (r.dataStatus === "simulated") {
-  assayNotes.en += ` ${en.simulatedNote}`;
-  assayNotes.mr += ` ${mr.simulatedNote}`;
- }
  return {phCategory:cat,overallHealth,headline:{en:overallHealth==="optimal"?"Soil results look balanced":"Review these soil improvements before planting",mr:overallHealth==="optimal"?"मातीचे निष्कर्ष संतुलित":"लागवडीपूर्वी माती सुधारणा तपासा"},assayNotes,steps};
 }

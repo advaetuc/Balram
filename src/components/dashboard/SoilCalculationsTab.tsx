@@ -3,14 +3,13 @@ import { RadioChoices } from "@/components/ui/RadioChoices";
 import { t } from "@/config/i18n";
 import {
   calculateAvailableNitrogen, calculateOlsenPhosphorus, evaluateTcs3200Optical,
-  levelToDefaultBlueIntensity, OLSEN_PHOSPHORUS_DEFAULTS, SOIL_DEMO_PRESETS, type SoilBlueIntensity,
+  levelToDefaultBlueIntensity, OLSEN_PHOSPHORUS_DEFAULTS, type SoilBlueIntensity,
 } from "@/lib/domain/soilChemistry";
 import { formatNumber, parseNumber } from "@/lib/ui/format";
 import { SoilKitReadingSchema, type Locale, type NitrogenMethod, type SoilKitReading } from "@/types/domain";
 import { LcdPreview } from "./LcdPreview";
 
 type Audit = NonNullable<SoilKitReading["labCalculation"]>;
-export type SoilDemo = keyof typeof SOIL_DEMO_PRESETS;
 export interface LabInputs {
   method: NitrogenMethod;
   blank: string;
@@ -67,13 +66,12 @@ function Readout({ rows }: { rows: readonly (readonly [string, string])[] }) {
   </dl>;
 }
 
-export function SoilCalculationsTab({ locale, disabled, simulated, inputs, onChange, onDemo, onApply }: {
+export function SoilCalculationsTab({ locale, disabled, inputs, onChange, onLoadPreset, onApply }: {
   locale: Locale;
   disabled: boolean;
-  simulated: boolean;
   inputs: LabInputs;
   onChange: (patch: Partial<LabInputs>) => void;
-  onDemo: (name: SoilDemo) => void;
+  onLoadPreset: () => void;
   onApply: (application: LabApplication, message: string) => void;
 }) {
   const text = t(locale);
@@ -101,9 +99,7 @@ export function SoilCalculationsTab({ locale, disabled, simulated, inputs, onCha
     absorbance: phosphorusAbsorbance, extractVolumeMl: phosphorusExtractVolumeMl ?? NaN,
     soilMassG: phosphorusSoilMassG ?? NaN, haFactor: phosphorusHaFactor,
   });
-  const phosphorusValue = phosphorus?.ok
-    ? simulated ? phosphorus.phosphorusKgPerHaReported : phosphorus.phosphorusKgPerHa
-    : null;
+  const phosphorusValue = phosphorus?.ok ? phosphorus.phosphorusKgPerHa : null;
   const phosphorusFits = SoilKitReadingSchema.shape.phosphorusKgPerHa.safeParse(phosphorus?.ok ? phosphorus.phosphorusKgPerHa : null).success;
 
   const r = parseNumber(inputs.r), g = parseNumber(inputs.g), b = parseNumber(inputs.b);
@@ -156,16 +152,13 @@ export function SoilCalculationsTab({ locale, disabled, simulated, inputs, onCha
   }
 
   return <div className="space-y-4">
-    <section className="rounded-xl border border-border-strong bg-warning-subtle p-3 text-on-warning-subtle">
-      <h3 className="font-bold">{copy.demos.title}</h3>
-      <div className="mt-2 flex flex-wrap gap-2">
-        {(Object.keys(SOIL_DEMO_PRESETS) as SoilDemo[]).map(name => <button key={name} type="button"
-          className="button-secondary press min-h-12 min-w-12 text-left" disabled={disabled} onClick={() => onDemo(name)}>
-          {copy.demos[name]}
-        </button>)}
-      </div>
+    <section className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-forest/20 bg-forest/5 p-3 text-forest">
+      <h3 className="font-bold">{copy.regionalPreset.title}</h3>
+      <button type="button" className="button-secondary press min-h-12 min-w-12" disabled={disabled} onClick={onLoadPreset}>
+        {copy.regionalPreset.name}
+      </button>
     </section>
-    {!simulated && <ProvenanceBadge provenance="you_entered" locale={locale} />}
+    <ProvenanceBadge provenance="you_entered" locale={locale} />
     <fieldset disabled={disabled} className="min-w-0 space-y-3 rounded-xl border border-border-strong p-4">
       <legend className="px-1 font-bold">{copy.nitrogen.title}</legend>
       <RadioChoices<NitrogenMethod> label={copy.nitrogen.method} value={inputs.method}

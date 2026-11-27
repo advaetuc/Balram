@@ -76,15 +76,13 @@ export function FarmReport(){
  const text = t(locale);
  const day = selectedWeatherDay(state), metrics = resolvedWeatherMetrics(state);
  const field = state.fieldGeometry, area = field?.areaSquareMetres ?? null, et0 = metrics.et0MmPerDay;
- const isSimulated = reading?.dataStatus === "simulated";
  const soil = reading ? interpretSoilKitReading(reading) : null;
  const soilReadout = reading ? describeSoilReadout(reading, locale) : null;
- const planningState = isSimulated ? { ...state, soilKitReading: null } : state;
  const advisories = generateFieldVoiceAdvisories({
-   allocations: state.cropAllocations, soilKitReading: planningState.soilKitReading,
+   allocations: state.cropAllocations, soilKitReading: reading,
    weatherSnapshot: state.weatherSnapshot, nowMs: state.now,
  }).filter(a => a.priority !== "tip").slice(0, 5);
- const roadmap = farmRoadmap(planningState);
+ const roadmap = farmRoadmap(state);
  const nutrientLabel=(level:string)=>state.locale==="mr"?({low:"कमी",medium:"मध्यम",high:"जास्त",normal:"सामान्य",elevated:"वाढलेले",untested:"चाचणी नाही"} as Record<string,string>)[level]??level:level;
  const nutrientAmount = (value: number) => text.soilLab.units.kgPerHa.replace("{0}", formatSoilNutrient(value, locale));
  return <section id="farm-report" aria-labelledby="report-title" className="bento-card mt-6"><div className="flex flex-wrap items-center justify-between gap-4"><div><p className="mb-2 text-sm leading-body font-bold uppercase tracking-widest text-forest">{text.report}</p><h2 id="report-title" className="text-xl font-bold">{text.report}</h2></div><div className="flex flex-wrap gap-2 print:hidden"><button className="button-secondary print:hidden min-h-12" disabled={!state.hydrated} onClick={()=>window.print()}>{text.print}</button><ShareSummaryButton state={state} roadmap={roadmap}/><FarmCardShareButton state={state} roadmap={roadmap} disabled={!state.hydrated}/></div></div>
@@ -94,9 +92,7 @@ export function FarmReport(){
  {state.soilSkipped&&!state.soilKitReading&&<p className="notice mt-5 break-inside-avoid">{text.soilNotTested}</p>}
  {reading&&soil&&<section className="mt-5 min-w-0 print:break-inside-avoid">
   <h3 className="text-lg font-bold">{text.soil}</h3>
-  {isSimulated && <p className="my-2 rounded-lg bg-amber px-3 py-2 text-sm font-bold text-ink">
-    {text.soilLab.simulatedBanner}
-  </p>}
+  {reading.regionalPreset && <p className="my-2 text-sm font-semibold text-forest">{text.soilLab.regionalPreset.source}</p>}
   <p>{reading.kitType==="balram_inhouse"?text.soilModeHouse:reading.kitType==="soil_health_card"?(locale==="mr"?"मृदा आरोग्य पत्रिका":"Soil Health Card"):(locale==="mr"?"व्यावसायिक जलद चाचणी किट":"Commercial Rapid Kit")} · {formatTime(reading.testedAt,locale)}</p>
   <p className="[overflow-wrap:anywhere]">
    pH {formatNumber(reading.ph,1,locale)} · {locale==="mr"?"नत्र":"N"} {nutrientLabel(reading.nitrogenLevel)}{reading.nitrogenKgPerHa !== null ? ` (${nutrientAmount(reading.nitrogenKgPerHa)})` : ""}
@@ -108,8 +104,8 @@ export function FarmReport(){
    {soilReadout?.blue && ` · ${soilReadout.blue.label} ${soilReadout.blue.result}`}
   </p>
   {soilReadout?.optical && <p className="mt-1 text-sm">{text.soilLab.savedOpticalNote}</p>}
-  <ReportSoilGauges reading={reading} locale={locale} sample={state.sampleDataActive || isSimulated} />
-  <div className="mt-2"><ProvenanceBadge provenance={state.sampleDataActive || isSimulated ? "sample" : "measured_by_kit"} locale={locale} /></div>
+  <ReportSoilGauges reading={reading} locale={locale} sample={state.sampleDataActive} />
+  <div className="mt-2"><ProvenanceBadge provenance={state.sampleDataActive ? "sample" : "measured_by_kit"} locale={locale} /></div>
   <h4 className="mt-2 font-semibold">{text.soilPlan}</h4><ul className="list-disc pl-5">{soil.steps.map(s=><li key={s.id}>{state.locale==="mr"?s.actionStep.mr:s.actionStep.en}</li>)}</ul>
  </section>}
  <ReportWaterSummary state={state} />

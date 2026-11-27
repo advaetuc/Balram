@@ -67,8 +67,6 @@ function SoilGaugeResult({ saved, weatherSnapshot, now, locale, sampleDataActive
   const controlsId = useId();
   const dictionary = t(locale);
   const text = dictionary.viz.soilGauges;
-  const isSimulated = saved.dataStatus === "simulated";
-  const sample = sampleDataActive || isSimulated;
   const { moisture, blue, optical } = describeSoilReadout(saved, locale);
   const savedGauges = buildSoilGauges(saved);
   const activeReading = whatIfPh === null ? saved : { ...saved, ph: whatIfPh };
@@ -106,15 +104,13 @@ function SoilGaugeResult({ saved, weatherSnapshot, now, locale, sampleDataActive
 
   return <figure aria-labelledby={headingId} className="mt-5 min-w-0 space-y-3">
     <h3 id={headingId} className="text-xl font-bold leading-heading text-forest">{text.title}</h3>
-    {isSimulated && <p className="rounded-lg bg-amber px-3 py-2 text-sm font-bold text-ink">
-      {dictionary.soilLab.simulatedBanner}
-    </p>}
+    {saved.regionalPreset && <p className="text-sm font-semibold text-forest">{dictionary.soilLab.regionalPreset.source}</p>}
     {moisture && <p className="flex flex-wrap gap-x-2 rounded-lg border border-border-strong bg-daylight px-3 py-2 text-sm">
       <span className="font-semibold">{moisture.label}</span>
       <span className="tabular-nums">{moisture.result}</span>
     </p>}
     <div className={trialPh ? "hidden print:block" : undefined}>
-      <BulletGauge {...ph} sample={sample} />
+      <BulletGauge {...ph} sample={sampleDataActive} />
     </div>
     <section aria-labelledby={controlsId} className="space-y-3 rounded-xl border border-border-strong bg-surface-bg p-3 print:hidden">
       <h4 id={controlsId} ref={controlsTitle} tabIndex={-1} className="font-bold text-forest">{text.tryPh}</h4>
@@ -131,7 +127,7 @@ function SoilGaugeResult({ saved, weatherSnapshot, now, locale, sampleDataActive
       </div>
       {trialPh && <div className="space-y-3">
         <p className="inline-flex rounded-lg bg-amber px-3 py-2 text-sm font-bold leading-body text-ink">{text.whatIf}</p>
-        <BulletGauge {...trialPh} sample={sample} />
+        <BulletGauge {...trialPh} sample={sampleDataActive} />
         <div>
           <h5 className="font-bold leading-heading text-forest">{text.topCrops}</h5>
           <ol className="mt-2 list-decimal space-y-2 pl-6 text-sm leading-body">
@@ -146,15 +142,15 @@ function SoilGaugeResult({ saved, weatherSnapshot, now, locale, sampleDataActive
         </div>
       </div>}
     </section>
-    <BulletGauge {...nitrogen} sample={sample} />
-    <BulletGauge {...phosphorus} sample={sample} />
+    <BulletGauge {...nitrogen} sample={sampleDataActive} />
+    <BulletGauge {...phosphorus} sample={sampleDataActive} />
     {blue && saved.phosphorusKgPerHa === null && <p className="text-sm">
       <b>{blue.label}</b> · {blue.result}
     </p>}
     {optical && <p className="text-sm">{dictionary.soilLab.savedOpticalNote}</p>}
     <VizTable locale={locale} caption={text.tableCaption}
       columns={[text.parameter, text.result, text.zone, text.threshold]} rows={rows} />
-    <VizCaption summary={text.caption} provenance={sample ? "sample" : "measured_by_kit"} locale={locale} />
+    <VizCaption summary={text.caption} provenance={sampleDataActive ? "sample" : "measured_by_kit"} locale={locale} />
   </figure>;
 }
 

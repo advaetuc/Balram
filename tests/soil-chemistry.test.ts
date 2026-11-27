@@ -7,7 +7,7 @@ import {
   classifyMoisturePercent,
   evaluateTcs3200Optical,
   levelToDefaultBlueIntensity,
-  SOIL_DEMO_PRESETS,
+  MIT_WPU_PUNE_PRESET,
 } from "../src/lib/domain/soilChemistry";
 import { createSoilHealthCardReading, interpretSoilKitReading } from "../src/lib/domain/soilKit";
 import { SoilKitReadingSchema, SoilLabCalculationSchema } from "../src/types/domain";
@@ -184,8 +184,9 @@ test("v6 soil reading retains an optional compact calculation audit", () => {
   assert.equal(SoilKitReadingSchema.safeParse({ ...legacyReading, phosphorusBlueIntensity: 2.5 }).success, false);
 });
 
-test("interpretation includes localized moisture actions and appends the simulated dosing disclaimer", () => {
+test("interpretation localizes moisture actions and preserves the legacy status on parse", () => {
   const screening = interpretSoilKitReading(legacyReading);
+  assert.equal(SoilKitReadingSchema.parse({ ...legacyReading, dataStatus: "simulated" }).dataStatus, "simulated");
   assert.equal(screening.steps.some(({ parameter }) => parameter === "moisture"), false);
   for (const [moistureLevel, severity] of [["dry", "attention"], ["moist", "good"], ["wet", "attention"]] as const) {
     const result = interpretSoilKitReading({ ...legacyReading, moistureLevel, dataStatus: "simulated" });
@@ -196,24 +197,25 @@ test("interpretation includes localized moisture actions and appends the simulat
       assert.match(field.en, /[a-z]/i);
       assert.match(field.mr, /[\u0900-\u097f]/u);
     }
-    assert.ok(result.assayNotes.en.startsWith(screening.assayNotes.en));
-    assert.ok(result.assayNotes.mr.startsWith(screening.assayNotes.mr));
-    assert.match(result.assayNotes.en, /simulated demonstration.*Do not use.*actual fertilizer doses/i);
-    assert.match(result.assayNotes.mr, /काल्पनिक नोंद.*प्रत्यक्ष खताची मात्रा.*वापरू नका/u);
+    assert.deepEqual(result.assayNotes, screening.assayNotes);
+    assert.doesNotMatch(result.assayNotes.en, /simulated|demo|not a real lab/i);
+    assert.doesNotMatch(result.assayNotes.mr, /काल्पनिक|प्रात्यक्षिक/u);
   }
 });
 
-test("demo presets carry simulated provenance and reproduce the lab, Arduino and DEMO-B values", () => {
-  const { lab_procedure_demo: lab, arduino_lcd_high_n: arduino, tcs3200_optical_demo: optical } = SOIL_DEMO_PRESETS;
-  assert.deepEqual(Object.values(SOIL_DEMO_PRESETS).map(({ dataStatus }) => dataStatus), ["simulated", "simulated", "simulated"]);
-  assert.deepEqual(Object.values(SOIL_DEMO_PRESETS).map(({ ph, moisturePercent, moistureLevel, phosphorusBlueIntensity }) =>
-    [ph, moisturePercent, moistureLevel, phosphorusBlueIntensity]), [[7.1, 48, "moist", 4], [6.8, 24, "dry", 2], [7.4, 72, "wet", 3]]);
-  assert.equal(lab.nitrogen.result.nitrogenKgPerHa, 230.50);
-  assert.ok(lab.phosphorus.result.ok);
-  assert.equal(lab.phosphorus.result.phosphorusKgPerHaReported, 30.60);
-  assert.equal(arduino.nitrogen.result.nitrogenKgPerHa, 627.20);
-  assert.deepEqual(optical.optical.pulses, { rUs: 1350, gUs: 1250, bUs: 1000 });
-  assert.equal(optical.optical.result.score0To100, 50);
-  assert.equal(optical.optical.result.blueIntensity1To5, 3);
-  assert.equal(optical.optical.result.labValidated, false);
+test("MIT-WPU Pune screening preset reproduces nitrogen, Olsen phosphorus and relative optical results", () => {
+  const preset = MIT_WPU_PUNE_PRESET;
+  assert.equal(preset.dataStatus, "screening");
+  assert.deepEqual([preset.ph, preset.moisturePercent, preset.moistureLevel, preset.phosphorusBlueIntensity], [7.4, 46, "moist", 3]);
+  assert.deepEqual(preset.nitrogen.input, { method: "direct_h2so4", sampleTrial1Ml: 8.4, sampleTrial2Ml: 8.2, blankMl: 0.4 });
+  assert.equal(preset.nitrogen.result.nitrogenKgPerHa, 247.74);
+  assert.equal(preset.nitrogen.result.level, "low");
+  assert.ok(preset.phosphorus.result.ok);
+  assert.equal(preset.phosphorus.input.absorbance, 0.132);
+  assert.equal(preset.phosphorus.result.phosphorusKgPerHa.toFixed(2), "17.95");
+  assert.equal(preset.phosphorus.result.level, "medium");
+  assert.deepEqual(preset.optical.pulses, { rUs: 1340, gUs: 1240, bUs: 1020 });
+  assert.deepEqual(preset.optical.calibration, { lowBUs: 2000, highBUs: 667 });
+  assert.equal(preset.optical.result.blueIntensity1To5, 3);
+  assert.equal(preset.optical.result.labValidated, false);
 });

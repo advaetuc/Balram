@@ -29,6 +29,7 @@ import { createEmptyFixture } from "../src/mocks/fixtures";
 const sourceRoot = fileURLToPath(new URL("../src/", import.meta.url));
 const unrelated = () => null;
 const locales = ["en", "mr"] as const;
+const retiredWarnings = /simulat|demo|mock|not a real lab|काल्पनिक|प्रात्यक्षिक|प्रत्यक्ष खताची मात्रा ठरवण्यासाठी हे निकाल वापरू नका/i;
 
 function renderer({ locale = "en", reading = null, sampleDataActive = false, openCalculations = false, lcdSecond = false }: {
   locale?: domain.Locale;
@@ -112,6 +113,12 @@ test("SoilCard prerenders Soil Test and mounts calculator contents only for the 
   const open = renderer({ openCalculations: true })("dashboard/SoilCard");
   assert.match(open, /aria-selected="true"[^>]*>Calculations<\/button>/);
   assert.match(open, /Nitrogen lab calculator/);
+  for (const locale of locales) {
+    const markup = renderer({ locale, openCalculations: true })("dashboard/SoilCard");
+    const label = i18n.t(locale).soilLab.regionalPreset.name;
+    assert.equal(markup.split(`>${label}</button>`).length, 2);
+    assert.doesNotMatch(markup, retiredWarnings);
+  }
 });
 
 test("five tactile phosphorus swatches show the selected level and map to the expected bands", () => {
@@ -170,16 +177,16 @@ for (const locale of locales) {
   const n = (value: number) => format.formatNumber(value, 2, locale);
   const zero = locale === "mr" ? "०.००" : "0.00";
   for (const path of ["dashboard/SoilGauges", "report/FarmReport"]) {
-    test(`${path} displays zeros, moisture, blue intensity and simulated provenance in ${locale}`, () => {
+    test(`${path} displays zeros, moisture, blue intensity and normal provenance for legacy statuses in ${locale}`, () => {
       const markup = renderer({ locale, reading })(path);
       assert.doesNotMatch(markup, /&lt;(?:0\.01|०\.०१)/);
       assert.ok(markup.split(`${zero} kg/ha`).length >= 3);
       assert.ok(markup.includes(copy.soilLab.moisture.label));
       assert.ok(markup.includes(`${n(48)}% · ${copy.soilLab.moisture.levels.moist}`));
       assert.ok(markup.includes(`${n(4)}/${n(5)} · ${copy.soilLab.blue.swatches[4]}`));
-      assert.ok(markup.includes(copy.soilLab.simulatedBanner));
-      assert.equal([...markup.matchAll(/<pattern\b[^>]*id="[^"]*pat-sample/g)].length, 3);
-      assert.doesNotMatch(markup, new RegExp(copy.provenance.measured_by_kit));
+      assert.doesNotMatch(markup, retiredWarnings);
+      assert.doesNotMatch(markup, /pat-sample/);
+      assert.ok(markup.includes(copy.provenance.measured_by_kit));
       if (path.endsWith("SoilGauges")) {
         const printTable = markup.split('class="hidden print:block"').at(-1)!;
         assert.ok(printTable.includes(copy.soilLab.moisture.label));
@@ -208,7 +215,7 @@ test("qualitative soil readings show moisture and optical context without a nutr
   }
 });
 
-test("the sample farm still hatches its readings independently of demo status", () => {
+test("the sample farm still hatches its readings", () => {
   const render = renderer({ reading: { ...reading, dataStatus: "screening" }, sampleDataActive: true });
   for (const path of ["dashboard/SoilGauges", "report/FarmReport"]) {
     const markup = render(path);
@@ -224,5 +231,30 @@ test("legacy soil values omit absent hardware readouts and tiny positive quantit
     const markup = renderer({ reading: legacy })(path);
     assert.match(markup, /&lt;0\.01 kg\/ha/);
     assert.doesNotMatch(markup, /Soil moisture \(E77A\)|Phosphorus blue intensity|Simulated demo soil data/);
+  }
+});
+
+
+test("a saved Pune preset keeps its regional source and participates in report planning", () => {
+  const preset = soilChemistry.MIT_WPU_PUNE_PRESET;
+  const regional = domain.SoilKitReadingSchema.parse({
+    ...reading, regionalPreset: preset.id, dataStatus: preset.dataStatus, ph: preset.ph,
+    moisturePercent: preset.moisturePercent, moistureLevel: preset.moistureLevel,
+    phosphorusBlueIntensity: preset.phosphorusBlueIntensity, nitrogenLevel: "low", phosphorusLevel: "medium",
+    nitrogenKgPerHa: preset.nitrogen.result.nitrogenKgPerHa, phosphorusKgPerHa: 17.95,
+  });
+  for (const locale of locales) {
+    const copy = i18n.t(locale);
+    const render = renderer({ locale, reading: regional });
+    for (const path of ["dashboard/SoilCard", "dashboard/SoilGauges", "report/FarmReport"]) {
+      const markup = render(path);
+      assert.ok(markup.includes(copy.soilLab.regionalPreset.source));
+      assert.ok(markup.includes(copy.provenance.measured_by_kit));
+      assert.doesNotMatch(markup, retiredWarnings);
+      assert.doesNotMatch(markup, /pat-sample/);
+      if (path === "report/FarmReport") {
+        assert.ok(markup.includes(soilKit.interpretSoilKitReading(regional).steps.find(step => step.parameter === "nitrogen")!.badgeLabel[locale]));
+      }
+    }
   }
 });

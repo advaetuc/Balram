@@ -72,6 +72,7 @@ const soilHardwareFields = z.object({
   moisturePercent: percent.nullable().default(null),
   phosphorusBlueIntensity: SoilBlueIntensitySchema.nullable().default(null),
   dataStatus: SoilDataStatusSchema.default("screening"),
+  regionalPreset: z.literal("mit_wpu_pune").optional(),
   labCalculation: SoilLabCalculationSchema.nullable().default(null),
 });
 export const SoilKitReadingSchema = legacySoilKitReadingSchema.extend(soilHardwareFields.shape);

@@ -1,6 +1,6 @@
-# AGENTS.md — System Architect & Coding Agent Contract for Balram (v0.6.0)
+# AGENTS.md — System Architect & Coding Agent Contract for Balram (v0.6.1)
 
-This document is the authoritative engineering specification and operational contract for AI coding agents (Codex, Cursor, Claude, and automated subagents) working on **Balram** (`/Users/advaet/Projects/Balram`, currently **`v0.6.0`** with backward-compatible **`PERSISTENCE_VERSION = 6`**). Read this file completely before modifying source code, schemas, styles, or build scripts.
+This document is the authoritative engineering specification and operational contract for AI coding agents (Codex, Cursor, Claude, and automated subagents) working on **Balram** (`/Users/advaet/Projects/Balram`, currently **`v0.6.1`** with backward-compatible **`PERSISTENCE_VERSION = 6`**). Read this file completely before modifying source code, schemas, styles, or build scripts.
 
 ---
 
@@ -17,7 +17,7 @@ This document is the authoritative engineering specification and operational con
    * Canonical storage is square metres (`fieldGeometry`) and gunthas (`cropAllocations`, `1 Acre = 40 Gunthas`). `state.landUnit` (`"acres" | "gunthas"`, default `"acres"`) controls display (`formatArea`) and input (`AreaInput`) only—never mutating stored areas or triggering `invalidate()`. Plot mutations must route through `allocation.ts` / `checkout.ts` (never writing `percentage` directly).
 5. **Invariant 5 — Explicit Data Provenance & Honest Fallbacks:**
    * Every data-bearing figure and visual carries a provenance cue (solid = farmer/kit, dashed = forecast, dotted = typical-for-season baseline, hatched = sample) + `ProvenanceBadge`. Hypothetical what-if states (pH trial, rain scale `< 100%`, drought simulator) are transient React state only, never persisted, and clearly marked illustrative.
-   * Keep saved soil demos tagged `dataStatus: "simulated"`. Use sample hatching and a bilingual fertilizer-dosing warning in the gauges and print report. Treat TCS3200 output as unvalidated relative blue intensity and never derive a phosphorus `kg/ha` value or actual fertilizer dose from it.
+   * Save current soil-kit entries as `dataStatus: "screening"`. Keep the source visible for readings that use the MIT-WPU, Pune regional preset, and use sample hatching only in Sample Farm mode. Treat TCS3200 output as unvalidated relative blue intensity and never derive a phosphorus `kg/ha` value or actual fertilizer dose from it.
 6. **Invariant 6 — Privacy & Edge Security Boundary:**
    * Edge routes (`src/app/api/*/route.ts`) are `POST`-only, verify `x-forwarded-host` / same-origin, read streaming byte-capped JSON (`readJson`), and round outbound coordinates to 4 decimals (`~11 m`). Share text (`shareSummary.ts`) and Farm Card PNGs (`farmCardSvg.ts`) must **never** include coordinates or polygon geometry.
 7. **Invariant 7 — Single-Route Offline Shell, Zero New Deps & CSP Finalizer:**
@@ -28,7 +28,7 @@ This document is the authoritative engineering specification and operational con
 
 ---
 
-## 2. Live Codebase Map (`v0.6.0`)
+## 2. Live Codebase Map (`v0.6.1`)
 
 | Area | Key Files |
 | :--- | :--- |
