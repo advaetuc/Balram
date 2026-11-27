@@ -32,15 +32,50 @@ export const OptionalNutrientLevelSchema = z.enum(["low", "medium", "high", "unt
 export type OptionalNutrientLevel = z.infer<typeof OptionalNutrientLevelSchema>;
 export const SalinityLevelSchema = z.enum(["normal", "elevated", "high", "untested"]);
 export type SalinityLevel = z.infer<typeof SalinityLevelSchema>;
-export const SoilKitReadingSchema = z.object({
+export const MoistureLevelSchema = z.enum(["dry", "moist", "wet", "untested"]);
+export type MoistureLevel = z.infer<typeof MoistureLevelSchema>;
+export const SoilDataStatusSchema = z.enum(["screening", "simulated", "lab_validated"]);
+export type SoilDataStatus = z.infer<typeof SoilDataStatusSchema>;
+export const SoilBlueIntensitySchema = z.number().int().min(1).max(5);
+export const NitrogenMethodSchema = z.enum(["direct_h2so4", "back_titration_naoh"]);
+export type NitrogenMethod = z.infer<typeof NitrogenMethodSchema>;
+
+const positive = z.number().finite().positive();
+const percent = z.number().finite().min(0).max(100);
+export const SoilLabCalculationSchema = z.object({
+  nitrogenMethod: NitrogenMethodSchema.optional(),
+  nitrogenBlankMl: nonnegative.optional(),
+  nitrogenSampleTrial1Ml: nonnegative.optional(),
+  nitrogenSampleTrial2Ml: nonnegative.optional(),
+  phosphorusAbsorbance: z.number().finite().optional(),
+  phosphorusConcentrationMgPerL: nonnegative.optional(),
+  phosphorusMgPerKg: nonnegative.optional(),
+  phosphorusExtractVolumeMl: positive.optional(),
+  phosphorusSoilMassG: positive.optional(),
+  phosphorusHaFactor: positive.optional(),
+  tcs3200RawUs: z.object({ r: nonnegative, g: nonnegative, b: nonnegative }).optional(),
+  tcs3200RelativeScore: percent.optional(),
+});
+
+const legacySoilKitReadingSchema = z.object({
   kitType: z.enum(["balram_inhouse", "commercial_rapid", "soil_health_card"]), ph: z.number().finite().min(3.5).max(10.5),
   nitrogenLevel: NutrientLevelSchema, phosphorusLevel: NutrientLevelSchema,
   potassiumLevel: OptionalNutrientLevelSchema, organicCarbon: OptionalNutrientLevelSchema,
   salinity: SalinityLevelSchema, testedAt: z.string().date(),
-  nitrogenKgPerHa: z.number().finite().positive().max(2000).nullable().default(null),
-  phosphorusKgPerHa: z.number().finite().positive().max(500).nullable().default(null),
+  nitrogenKgPerHa: nonnegative.max(2000).nullable().default(null),
+  phosphorusKgPerHa: nonnegative.max(500).nullable().default(null),
 });
-export interface SoilKitReading extends z.infer<typeof SoilKitReadingSchema> {}
+const soilHardwareFields = z.object({
+  moistureLevel: MoistureLevelSchema.default("untested"),
+  moisturePercent: percent.nullable().default(null),
+  phosphorusBlueIntensity: SoilBlueIntensitySchema.nullable().default(null),
+  dataStatus: SoilDataStatusSchema.default("screening"),
+  labCalculation: SoilLabCalculationSchema.nullable().default(null),
+});
+export const SoilKitReadingSchema = legacySoilKitReadingSchema.extend(soilHardwareFields.shape);
+// Existing callers can still construct the v6 shape. Parsing fills in the hardware fields.
+export interface SoilKitReading extends
+  z.infer<typeof legacySoilKitReadingSchema>, z.input<typeof soilHardwareFields> {}
 
 export const CheckInEventSchema = z.enum(["none", "heavy_rain", "hail", "heat_wave", "cold_night", "water_shortage"]);
 export type CheckInEvent = z.infer<typeof CheckInEventSchema>;

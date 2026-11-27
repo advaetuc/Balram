@@ -5,6 +5,26 @@ import type { ProvenanceTag } from "@/lib/domain/roadmap";
 
 const dictionary = {
   en: {
+    soilInterpretation: {
+      moisture: {
+        dry: {
+          label: "Dry soil",
+          explanation: "The soil in this reading has low moisture.",
+          action: "Check moisture at root depth before watering. If it is dry there too, irrigate according to the crop's needs.",
+        },
+        moist: {
+          label: "Moist soil",
+          explanation: "Soil moisture is within the kit's working range.",
+          action: "Check again before the next planned irrigation.",
+        },
+        wet: {
+          label: "Wet soil",
+          explanation: "The soil in this reading has high moisture. Roots can get less air if water collects.",
+          action: "Wait before watering again and check drainage if water is standing.",
+        },
+      },
+      simulatedNote: "This is a simulated demonstration reading. Do not use it to determine actual fertilizer doses.",
+    },
     profiles: {
       nameTitle: "Name your farm", nameSubtitle: "Give this field notebook a name so you can find it again.",
       nameLabel: "Farm name", nameHint: "Choose up to 30 characters.", counter: "{0} / {1}",
@@ -140,6 +160,26 @@ const dictionary = {
     yourPlots:"Your plots",editPlot:"Edit",removePlot:"Remove plot",undo:"Undo",plotAddedToast:"Added to your farm plan",plotRemovedToast:"Plot removed",plotRemovedNamed:"Plot removed:",cancelEdit:"Cancel edit",
   },
   mr: {
+    soilInterpretation: {
+      moisture: {
+        dry: {
+          label: "कोरडी माती",
+          explanation: "या नोंदीनुसार मातीत ओलावा कमी आहे.",
+          action: "पाणी देण्यापूर्वी मुळांच्या खोलीवर ओलावा तपासा. तिथेही माती कोरडी असल्यास पिकाच्या गरजेनुसार पाणी द्या.",
+        },
+        moist: {
+          label: "ओलसर माती",
+          explanation: "मातीतील ओलावा चाचणी संचाने दर्शवलेल्या योग्य मर्यादेत आहे.",
+          action: "पुढचे नियोजित पाणी देण्यापूर्वी ओलावा पुन्हा तपासा.",
+        },
+        wet: {
+          label: "जास्त ओली माती",
+          explanation: "या नोंदीनुसार मातीत ओलावा जास्त आहे. पाणी साचल्यास मुळांना हवा कमी मिळू शकते.",
+          action: "पुन्हा पाणी देणे थांबवा आणि पाणी साचले असल्यास निचरा तपासा.",
+        },
+      },
+      simulatedNote: "ही प्रात्यक्षिकासाठी तयार केलेली काल्पनिक नोंद आहे. प्रत्यक्ष खताची मात्रा ठरवण्यासाठी ती वापरू नका.",
+    },
     profiles: {
       nameTitle: "तुमच्या शेताला नाव द्या", nameSubtitle: "ही शेतवही पुन्हा सहज सापडण्यासाठी तिला नाव द्या.",
       nameLabel: "शेताचे नाव", nameHint: "जास्तीत जास्त ३० अक्षरे वापरा.", counter: "{0} / {1} अक्षरे",
