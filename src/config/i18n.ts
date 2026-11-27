@@ -443,7 +443,6 @@ const dictionary = {
   },
 } as const;
 export function t(locale:Locale){return dictionary[locale]}
-export function unitLabel(locale:Locale,unit:"acres"|"gunthas"){return t(locale)[unit]}
 export function lifecycleLabel(locale:Locale,stage:LifecycleStage){return t(locale).stages[stage]}
 export function cropLabel(locale:Locale,id:CropId){return t(locale).cropNames[id]}
 export function stationLabel(locale:Locale,id:JourneyStationId){return t(locale).stationNames[id]}

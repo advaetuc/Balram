@@ -15,9 +15,6 @@ export { createFieldId } from "./fieldId";
 export function acresToSquareMetres(acres: number): number {
   return z.number().finite().nonnegative().parse(z.number().finite().nonnegative().parse(acres) * SQUARE_METRES_PER_ACRE);
 }
-export function squareMetresToAcres(squareMetres: number): number {
-  return z.number().finite().nonnegative().parse(squareMetres) / SQUARE_METRES_PER_ACRE;
-}
 
 export function leafletToGeoJSON(coordinates: readonly LeafletCoordinate[]): Coordinate[] {
   z.array(z.tuple([z.number().finite().min(-90).max(90), z.number().finite().min(-180).max(180)])).min(3).max(1001).parse(coordinates);
@@ -53,10 +50,4 @@ export function calculateFieldGeometry(fieldId: string, leafletRing: readonly Le
   // not an ellipsoidal centroid or a guarantee that the point is inside a concave field.
   const center = CoordinateSchema.parse(centerOfMass(feature).geometry.coordinates);
   return FieldGeometrySchema.parse({ fieldId, boundary, center, areaSquareMetres: area(feature) });
-}
-
-export function calculateAcreageAndCentroid(leafletRing: readonly LeafletCoordinate[]) {
-  const geometry = calculateFieldGeometry("calculated-field", leafletRing);
-  return { acres: squareMetresToAcres(geometry.areaSquareMetres!), squareMetres: geometry.areaSquareMetres!,
-    centroid: { lat: geometry.center[1], lng: geometry.center[0] }, geometry };
 }

@@ -1,0 +1,1152 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [13 0 R 26 0 R] /Count 2 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+5 0 obj
+<< /Length 10117 >>
+stream
+q
+0.60 w
+0.118 0.337 0.192 rg
+0.00 757.89 595.28 84.00 re
+f
+Q
+q
+0.60 w
+0.133 0.773 0.369 rg
+0.00 757.89 595.28 4.00 re
+f
+Q
+q
+0.820 0.980 0.898 rg
+BT /F2 9.00 Tf 46.00 811.89 Td (BALRAM PRECISION AGRITECH) Tj ET
+Q
+q
+1.000 1.000 1.000 rg
+BT /F2 19.50 Tf 46.00 785.89 Td (Data Sources & Future Crop Advisor Datasets) Tj ET
+Q
+q
+0.863 0.988 0.906 rg
+BT /F1 9.00 Tf 46.00 769.89 Td (Reference Architecture  |  Balram v0.6.1 \(Local-First, Offline PWA for Maharashtra Smallholders\)) Tj ET
+Q
+q
+0.70 w
+0.941 0.992 0.957 rg
+0.373 0.522 0.439 RG
+46.00 663.89 503.28 74.00 re
+B
+Q
+q
+0.60 w
+0.118 0.337 0.192 rg
+46.00 663.89 4.00 74.00 re
+f
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 9.60 Tf 60.00 720.89 Td (Balram is a local-first, zero-database precision agritech web application for smallholder farmers) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 9.60 Tf 60.00 706.89 Td (\(2-10 acres\) in Maharashtra. This reference documents every live API, physical sensor, and) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 9.60 Tf 60.00 692.89 Td (scientific model powering Balram v0.6.1 today, alongside the authoritative agronomic datasets) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 9.60 Tf 60.00 678.89 Td (planned for scaling the Crop Advisor in future releases.) Tj ET
+Q
+q
+0.118 0.337 0.192 rg
+BT /F2 8.00 Tf 46.00 635.89 Td (SECTION 01) Tj ET
+Q
+q
+0.078 0.243 0.137 rg
+BT /F2 13.50 Tf 46.00 619.89 Td (Current Data Sources in Balram \(v0.6.1\)) Tj ET
+Q
+q
+1.00 w
+0.118 0.337 0.192 RG
+46.00 613.89 m 549.28 613.89 l S
+Q
+q
+0.278 0.333 0.412 rg
+BT /F1 9.00 Tf 46.00 600.89 Td (All outbound requests round coordinates to 4 decimal places \(~11 m\) and never transmit farmer boundaries or) Tj ET
+Q
+q
+0.278 0.333 0.412 rg
+BT /F1 9.00 Tf 46.00 588.39 Td (soil readings.) Tj ET
+Q
+q
+0.60 w
+0.118 0.337 0.192 rg
+46.00 547.89 503.28 22.00 re
+f
+Q
+q
+1.000 1.000 1.000 rg
+BT /F2 8.60 Tf 53.00 554.89 Td (Balram Feature) Tj ET
+Q
+q
+1.000 1.000 1.000 rg
+BT /F2 8.60 Tf 171.00 554.89 Td (Data Source / Engine) Tj ET
+Q
+q
+1.000 1.000 1.000 rg
+BT /F2 8.60 Tf 349.00 554.89 Td (How It Is Used) Tj ET
+Q
+q
+0.50 w
+1.000 1.000 1.000 rg
+0.733 0.843 0.776 RG
+46.00 471.19 503.28 76.70 re
+B
+Q
+q
+0.45 w
+0.733 0.843 0.776 RG
+164.00 471.19 m 164.00 547.89 l S
+Q
+q
+0.45 w
+0.733 0.843 0.776 RG
+342.00 471.19 m 342.00 547.89 l S
+Q
+q
+0.078 0.243 0.137 rg
+BT /F2 8.60 Tf 53.00 532.39 Td (Weather & Reference) Tj ET
+Q
+q
+0.078 0.243 0.137 rg
+BT /F2 8.60 Tf 53.00 520.59 Td (ET0) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 171.00 532.39 Td (Open-Meteo Weather Forecast API \(CC BY) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 171.00 520.59 Td (4.0\) + local Hargreaves temperature) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 171.00 508.79 Td (fallback + offline Maharashtra) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 171.00 496.99 Td (seasonal baseline.) Tj ET
+Q
+q
+0.012 0.412 0.631 rg
+BT /F2 7.80 Tf 171.00 483.19 Td (Link: Open-Meteo Forecast API Docs) Tj ET
+Q
+q
+0.45 w
+0.012 0.412 0.631 RG
+171.00 481.69 m 314.21 481.69 l S
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 349.00 532.39 Td (Fetches 7-day daily min/max temperature,) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 349.00 520.59 Td (rainfall, shallow soil moisture, and ET0.) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 349.00 508.79 Td (Falls back cleanly offline with explicit) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 349.00 496.99 Td (provenance badges.) Tj ET
+Q
+q
+0.50 w
+0.973 0.980 0.976 rg
+0.733 0.843 0.776 RG
+46.00 394.79 503.28 76.40 re
+B
+Q
+q
+0.45 w
+0.733 0.843 0.776 RG
+164.00 394.79 m 164.00 471.19 l S
+Q
+q
+0.45 w
+0.733 0.843 0.776 RG
+342.00 394.79 m 342.00 471.19 l S
+Q
+q
+0.078 0.243 0.137 rg
+BT /F2 8.60 Tf 53.00 455.69 Td (Maps & Place Search) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 171.00 455.69 Td (OpenStreetMap Standard Tile Layer) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 171.00 443.89 Td (\(ODbL\) + Nominatim Search API \(Leaflet) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 171.00 432.09 Td (+ Turf.js\).) Tj ET
+Q
+q
+0.012 0.412 0.631 rg
+BT /F2 7.80 Tf 171.00 418.29 Td (Link: OpenStreetMap Copyright) Tj ET
+Q
+q
+0.45 w
+0.012 0.412 0.631 RG
+171.00 416.79 m 293.15 416.79 l S
+Q
+q
+0.012 0.412 0.631 rg
+BT /F2 7.80 Tf 171.00 406.79 Td (Link: Nominatim Search API) Tj ET
+Q
+q
+0.45 w
+0.012 0.412 0.631 RG
+171.00 405.29 m 280.51 405.29 l S
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 349.00 455.69 Td (Renders interactive farm mapping and) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 349.00 443.89 Td (village/district search. Drawn field polygons) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 349.00 432.09 Td (and areas remain strictly in local IndexedDB) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 349.00 420.29 Td (\(balram:farm\).) Tj ET
+Q
+q
+0.50 w
+1.000 1.000 1.000 rg
+0.733 0.843 0.776 RG
+46.00 321.79 503.28 73.00 re
+B
+Q
+q
+0.45 w
+0.733 0.843 0.776 RG
+164.00 321.79 m 164.00 394.79 l S
+Q
+q
+0.45 w
+0.733 0.843 0.776 RG
+342.00 321.79 m 342.00 394.79 l S
+Q
+q
+0.078 0.243 0.137 rg
+BT /F2 8.60 Tf 53.00 379.29 Td (Irrigation Water) Tj ET
+Q
+q
+0.078 0.243 0.137 rg
+BT /F2 8.60 Tf 53.00 367.49 Td (Planning) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 171.00 379.29 Td (FAO Irrigation and Drainage Paper No.) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 171.00 367.49 Td (56 \(Kc x ET0 evapotranspiration) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 171.00 355.69 Td (model\).) Tj ET
+Q
+q
+0.012 0.412 0.631 rg
+BT /F2 7.80 Tf 171.00 341.89 Td (Link: FAO Paper No. 56 \(PDF\)) Tj ET
+Q
+q
+0.45 w
+0.012 0.412 0.631 RG
+171.00 340.39 m 288.94 340.39 l S
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 349.00 379.29 Td (Multiplies stage-specific crop coefficients) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 349.00 367.49 Td (\(Kc\) by daily ET0, subtracts effective rain,) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 349.00 355.69 Td (and adjusts for drip/sprinkler/surface) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 349.00 343.89 Td (efficiency to estimate weekly litres,) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 349.00 332.09 Td (runtime, and tankers.) Tj ET
+Q
+q
+0.50 w
+0.973 0.980 0.976 rg
+0.733 0.843 0.776 RG
+46.00 245.09 503.28 76.70 re
+B
+Q
+q
+0.45 w
+0.733 0.843 0.776 RG
+164.00 245.09 m 164.00 321.79 l S
+Q
+q
+0.45 w
+0.733 0.843 0.776 RG
+342.00 245.09 m 342.00 321.79 l S
+Q
+q
+0.078 0.243 0.137 rg
+BT /F2 8.60 Tf 53.00 306.29 Td (Soil Testing &) Tj ET
+Q
+q
+0.078 0.243 0.137 rg
+BT /F2 8.60 Tf 53.00 294.49 Td (Hardware Kit) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 171.00 306.29 Td (Balram Arduino Uno R3 kit \(E463 pH,) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 171.00 294.49 Td (E77A moisture, TCS3200 optical,) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 171.00 282.69 Td (HD44780 16x2 LCD\) + India Soil Health) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 171.00 270.89 Td (Card thresholds.) Tj ET
+Q
+q
+0.012 0.412 0.631 rg
+BT /F2 7.80 Tf 171.00 257.09 Td (Link: India Soil Health Card Portal) Tj ET
+Q
+q
+0.45 w
+0.012 0.412 0.631 RG
+171.00 255.59 m 318.42 255.59 l S
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 349.00 306.29 Td (Classifies Alkaline KMnO4 Nitrogen \(<280 /) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 349.00 294.49 Td (280-560 / >560 kg/ha\), Olsen 882 nm) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 349.00 282.69 Td (Phosphorus \(<10 / 10-25 / >25 kg/ha\), 1-5) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 349.00 270.89 Td (blue intensity, and E77A moisture \(<30% /) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 349.00 259.09 Td (30-65% / >65%\) locally.) Tj ET
+Q
+q
+0.50 w
+1.000 1.000 1.000 rg
+0.733 0.843 0.776 RG
+46.00 180.19 503.28 64.90 re
+B
+Q
+q
+0.45 w
+0.733 0.843 0.776 RG
+164.00 180.19 m 164.00 245.09 l S
+Q
+q
+0.45 w
+0.733 0.843 0.776 RG
+342.00 180.19 m 342.00 245.09 l S
+Q
+q
+0.078 0.243 0.137 rg
+BT /F2 8.60 Tf 53.00 229.59 Td (Crop Matrix & Field) Tj ET
+Q
+q
+0.078 0.243 0.137 rg
+BT /F2 8.60 Tf 53.00 217.79 Td (Voice) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 171.00 229.59 Td (Static Maharashtra rule matrix) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 171.00 217.79 Td (\(cropMatrix.ts\) built on indicative) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 171.00 205.99 Td (MPKV Rahuri / ICAR norms.) Tj ET
+Q
+q
+0.012 0.412 0.631 rg
+BT /F2 7.80 Tf 171.00 192.19 Td (Link: MPKV Rahuri Publication) Tj ET
+Q
+q
+0.45 w
+0.012 0.412 0.631 RG
+171.00 190.69 m 293.15 190.69 l S
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 349.00 229.59 Td (Scores 6 core crops \(Sugarcane, Rabi Jowar,) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 349.00 217.79 Td (Onion, Bajra, Pomegranate, Groundnut\) and) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 349.00 205.99 Td (drives deterministic weather, soil, and) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 349.00 194.19 Td (moisture Field Voice advisories.) Tj ET
+Q
+q
+0.50 w
+0.973 0.980 0.976 rg
+0.733 0.843 0.776 RG
+46.00 118.99 503.28 61.20 re
+B
+Q
+q
+0.45 w
+0.733 0.843 0.776 RG
+164.00 118.99 m 164.00 180.19 l S
+Q
+q
+0.45 w
+0.733 0.843 0.776 RG
+342.00 118.99 m 342.00 180.19 l S
+Q
+q
+0.078 0.243 0.137 rg
+BT /F2 8.60 Tf 53.00 164.69 Td (Optional Gridded Soil) Tj ET
+Q
+q
+0.078 0.243 0.137 rg
+BT /F2 8.60 Tf 53.00 152.89 Td (Context) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 171.00 164.69 Td (ISRIC SoilGrids 2.0 REST API \(CC BY) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 171.00 152.89 Td (4.0, currently feature-flagged off\).) Tj ET
+Q
+q
+0.012 0.412 0.631 rg
+BT /F2 7.80 Tf 171.00 139.09 Td (Link: ISRIC SoilGrids 2.0 API Docs) Tj ET
+Q
+q
+0.45 w
+0.012 0.412 0.631 RG
+171.00 137.59 m 314.21 137.59 l S
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 349.00 164.69 Td (Wired in soilGrids.ts for optional 0-5 cm) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 349.00 152.89 Td (clay/sand/silt texture context; disabled by) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 349.00 141.09 Td (default so modelled grids are never confused) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 349.00 129.29 Td (with on-farm lab tests.) Tj ET
+Q
+q
+0.50 w
+0.733 0.843 0.776 RG
+46.00 42.00 m 549.28 42.00 l S
+Q
+q
+0.278 0.333 0.412 rg
+BT /F1 7.80 Tf 46.00 30.00 Td (Balram Precision Agritech  |  Maharashtra Smallholder Decision Support \(v0.6.1\)) Tj ET
+Q
+q
+0.278 0.333 0.412 rg
+BT /F2 7.80 Tf 503.08 30.00 Td (Page 1 of 2) Tj ET
+Q
+endstream
+endobj
+6 0 obj
+<< /Type /Annot /Subtype /Link /Rect [171.00 480.69 314.21 491.19] /Border [0 0 0] /A << /S /URI /URI (https://open-meteo.com/en/docs) >> >>
+endobj
+7 0 obj
+<< /Type /Annot /Subtype /Link /Rect [171.00 415.79 293.15 426.29] /Border [0 0 0] /A << /S /URI /URI (https://www.openstreetmap.org/copyright) >> >>
+endobj
+8 0 obj
+<< /Type /Annot /Subtype /Link /Rect [171.00 404.29 280.51 414.79] /Border [0 0 0] /A << /S /URI /URI (https://nominatim.org/release-docs/latest/api/Search/) >> >>
+endobj
+9 0 obj
+<< /Type /Annot /Subtype /Link /Rect [171.00 339.39 288.94 349.89] /Border [0 0 0] /A << /S /URI /URI (https://irre.ku.ac.th/books/pdf/142.pdf) >> >>
+endobj
+10 0 obj
+<< /Type /Annot /Subtype /Link /Rect [171.00 254.59 318.42 265.09] /Border [0 0 0] /A << /S /URI /URI (https://soilhealth.dac.gov.in/) >> >>
+endobj
+11 0 obj
+<< /Type /Annot /Subtype /Link /Rect [171.00 189.69 293.15 200.19] /Border [0 0 0] /A << /S /URI /URI (https://mpkv.ac.in/Uploads/Publication/MPKV%20At%20a%20Glance%202019_20200116103515.pdf) >> >>
+endobj
+12 0 obj
+<< /Type /Annot /Subtype /Link /Rect [171.00 136.59 314.21 147.09] /Border [0 0 0] /A << /S /URI /URI (https://rest.isric.org/soilgrids/v2.0/docs) >> >>
+endobj
+13 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 5 0 R /Annots [6 0 R 7 0 R 8 0 R 9 0 R 10 0 R 11 0 R 12 0 R] >>
+endobj
+14 0 obj
+<< /Length 10873 >>
+stream
+q
+0.60 w
+0.118 0.337 0.192 rg
+0.00 835.89 595.28 6.00 re
+f
+Q
+q
+0.278 0.333 0.412 rg
+BT /F2 8.00 Tf 46.00 815.89 Td (BALRAM v0.6.1  |  Data Sources & Future Crop Advisor Datasets) Tj ET
+Q
+q
+0.60 w
+0.733 0.843 0.776 RG
+46.00 809.89 m 549.28 809.89 l S
+Q
+q
+0.118 0.337 0.192 rg
+BT /F2 8.00 Tf 46.00 779.89 Td (SECTION 02) Tj ET
+Q
+q
+0.078 0.243 0.137 rg
+BT /F2 13.50 Tf 46.00 763.89 Td (Future Datasets for the Crop Advisor Roadmap) Tj ET
+Q
+q
+1.00 w
+0.118 0.337 0.192 RG
+46.00 757.89 m 549.28 757.89 l S
+Q
+q
+0.278 0.333 0.412 rg
+BT /F1 9.00 Tf 46.00 744.89 Td (Authoritative Indian and international agronomic datasets to evolve the Crop Advisor beyond the 6-crop static) Tj ET
+Q
+q
+0.278 0.333 0.412 rg
+BT /F1 9.00 Tf 46.00 732.39 Td (matrix.) Tj ET
+Q
+q
+0.60 w
+0.118 0.337 0.192 rg
+46.00 691.89 503.28 22.00 re
+f
+Q
+q
+1.000 1.000 1.000 rg
+BT /F2 8.60 Tf 53.00 698.89 Td (Dataset / Domain) Tj ET
+Q
+q
+1.000 1.000 1.000 rg
+BT /F2 8.60 Tf 171.00 698.89 Td (Authoritative Source) Tj ET
+Q
+q
+1.000 1.000 1.000 rg
+BT /F2 8.60 Tf 349.00 698.89 Td (Value Added to Future Crop Advisor) Tj ET
+Q
+q
+0.50 w
+1.000 1.000 1.000 rg
+0.733 0.843 0.776 RG
+46.00 615.49 503.28 76.40 re
+B
+Q
+q
+0.45 w
+0.733 0.843 0.776 RG
+164.00 615.49 m 164.00 691.89 l S
+Q
+q
+0.45 w
+0.733 0.843 0.776 RG
+342.00 615.49 m 342.00 691.89 l S
+Q
+q
+0.078 0.243 0.137 rg
+BT /F2 8.60 Tf 53.00 676.39 Td (Soil Health Card &) Tj ET
+Q
+q
+0.078 0.243 0.137 rg
+BT /F2 8.60 Tf 53.00 664.59 Td (STCR Data) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 171.00 676.39 Td (Govt. of India Soil Health Card) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 171.00 664.59 Td (Nutrient Dashboard & Google Research) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 171.00 652.79 Td (India SHC Dataset.) Tj ET
+Q
+q
+0.012 0.412 0.631 rg
+BT /F2 7.80 Tf 171.00 638.99 Td (Link: SHC Nutrient Dashboard) Tj ET
+Q
+q
+0.45 w
+0.012 0.412 0.631 RG
+171.00 637.49 m 288.94 637.49 l S
+Q
+q
+0.012 0.412 0.631 rg
+BT /F2 7.80 Tf 171.00 627.49 Td (Link: India SHC Open Dataset) Tj ET
+Q
+q
+0.45 w
+0.012 0.412 0.631 RG
+171.00 625.99 m 288.94 625.99 l S
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 349.00 676.39 Td (Provides district/village N, P, K, pH, EC,) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 349.00 664.59 Td (organic carbon, and ICAR STCR fertilizer) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 349.00 652.79 Td (equations to calibrate crop-specific nutrient) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 349.00 640.99 Td (benchmarks.) Tj ET
+Q
+q
+0.50 w
+0.973 0.980 0.976 rg
+0.733 0.843 0.776 RG
+46.00 554.29 503.28 61.20 re
+B
+Q
+q
+0.45 w
+0.733 0.843 0.776 RG
+164.00 554.29 m 164.00 615.49 l S
+Q
+q
+0.45 w
+0.733 0.843 0.776 RG
+342.00 554.29 m 342.00 615.49 l S
+Q
+q
+0.078 0.243 0.137 rg
+BT /F2 8.60 Tf 53.00 599.99 Td (ICRISAT District-Level) Tj ET
+Q
+q
+0.078 0.243 0.137 rg
+BT /F2 8.60 Tf 53.00 588.19 Td (Database) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 171.00 599.99 Td (ICRISAT District-Level Database \(DLD\)) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 171.00 588.19 Td (for Indian Agriculture.) Tj ET
+Q
+q
+0.012 0.412 0.631 rg
+BT /F2 7.80 Tf 171.00 574.39 Td (Link: ICRISAT Data Portal) Tj ET
+Q
+q
+0.45 w
+0.012 0.412 0.631 RG
+171.00 572.89 m 276.30 572.89 l S
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 349.00 599.99 Td (Multi-decade district-wise crop area, yield,) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 349.00 588.19 Td (irrigation, and rainfall records to ground) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 349.00 576.39 Td (crop recommendations in what reliably thrives) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 349.00 564.59 Td (in each Maharashtra district.) Tj ET
+Q
+q
+0.50 w
+1.000 1.000 1.000 rg
+0.733 0.843 0.776 RG
+46.00 493.09 503.28 61.20 re
+B
+Q
+q
+0.45 w
+0.733 0.843 0.776 RG
+164.00 493.09 m 164.00 554.29 l S
+Q
+q
+0.45 w
+0.733 0.843 0.776 RG
+342.00 493.09 m 342.00 554.29 l S
+Q
+q
+0.078 0.243 0.137 rg
+BT /F2 8.60 Tf 53.00 538.79 Td (FAO EcoCrop \(GAEZ v4\)) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 171.00 538.79 Td (FAO EcoCrop Environmental Suitability) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 171.00 526.99 Td (Database via GAEZ v4 Portal.) Tj ET
+Q
+q
+0.012 0.412 0.631 rg
+BT /F2 7.80 Tf 171.00 513.19 Td (Link: FAO EcoCrop Portal) Tj ET
+Q
+q
+0.45 w
+0.012 0.412 0.631 RG
+171.00 511.69 m 272.09 511.69 l S
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 349.00 538.79 Td (Optimal and tolerable pH, temperature,) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 349.00 526.99 Td (rainfall, and soil-texture envelopes for) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 349.00 515.19 Td (2,500+ species--allowing cropMatrix.ts to) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 349.00 503.39 Td (scale cleanly to dozens of regional crops.) Tj ET
+Q
+q
+0.50 w
+0.973 0.980 0.976 rg
+0.733 0.843 0.776 RG
+46.00 416.69 503.28 76.40 re
+B
+Q
+q
+0.45 w
+0.733 0.843 0.776 RG
+164.00 416.69 m 164.00 493.09 l S
+Q
+q
+0.45 w
+0.733 0.843 0.776 RG
+342.00 416.69 m 342.00 493.09 l S
+Q
+q
+0.078 0.243 0.137 rg
+BT /F2 8.60 Tf 53.00 477.59 Td (IMD Agromet & Weather) Tj ET
+Q
+q
+0.078 0.243 0.137 rg
+BT /F2 8.60 Tf 53.00 465.79 Td (API) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 171.00 477.59 Td (India Meteorological Department \(IMD\)) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 171.00 465.79 Td (Agromet Advisory Services & Weather) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 171.00 453.99 Td (API.) Tj ET
+Q
+q
+0.012 0.412 0.631 rg
+BT /F2 7.80 Tf 171.00 440.19 Td (Link: IMD Agromet Advisories) Tj ET
+Q
+q
+0.45 w
+0.012 0.412 0.631 RG
+171.00 438.69 m 288.94 438.69 l S
+Q
+q
+0.012 0.412 0.631 rg
+BT /F2 7.80 Tf 171.00 428.69 Td (Link: IMD API Reference) Tj ET
+Q
+q
+0.45 w
+0.012 0.412 0.631 RG
+171.00 427.19 m 267.88 427.19 l S
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 349.00 477.59 Td (Official district/block agromet bulletins,) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 349.00 465.79 Td (heatwave/cold-night alerts, and monsoon) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 349.00 453.99 Td (departure warnings to strengthen Field Voice) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 349.00 442.19 Td (and sowing risk flags.) Tj ET
+Q
+q
+0.50 w
+1.000 1.000 1.000 rg
+0.733 0.843 0.776 RG
+46.00 352.09 503.28 64.60 re
+B
+Q
+q
+0.45 w
+0.733 0.843 0.776 RG
+164.00 352.09 m 164.00 416.69 l S
+Q
+q
+0.45 w
+0.733 0.843 0.776 RG
+342.00 352.09 m 342.00 416.69 l S
+Q
+q
+0.078 0.243 0.137 rg
+BT /F2 8.60 Tf 53.00 401.19 Td (Indian Soil & Texture) Tj ET
+Q
+q
+0.078 0.243 0.137 rg
+BT /F2 8.60 Tf 53.00 389.39 Td (Maps) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 171.00 401.19 Td (ICAR-NBSS&LUP Bhoomi Geoportal & ISRIC) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 171.00 389.39 Td (SoilGrids 2.0.) Tj ET
+Q
+q
+0.012 0.412 0.631 rg
+BT /F2 7.80 Tf 171.00 375.59 Td (Link: Bhoomi Geoportal \(NBSS&LUP\)) Tj ET
+Q
+q
+0.45 w
+0.012 0.412 0.631 RG
+171.00 374.09 m 310.00 374.09 l S
+Q
+q
+0.012 0.412 0.631 rg
+BT /F2 7.80 Tf 171.00 364.09 Td (Link: ISRIC SoilGrids Docs) Tj ET
+Q
+q
+0.45 w
+0.012 0.412 0.631 RG
+171.00 362.59 m 280.51 362.59 l S
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 349.00 401.19 Td (Indian soil series \(Vertisol depth, drainage,) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 349.00 389.39 Td (water-holding capacity\) and 250 m bulk-) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 349.00 377.59 Td (density grids to refine root-zone water) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 349.00 365.79 Td (budgets and Olsen P conversions.) Tj ET
+Q
+q
+0.50 w
+0.973 0.980 0.976 rg
+0.733 0.843 0.776 RG
+46.00 290.89 503.28 61.20 re
+B
+Q
+q
+0.45 w
+0.733 0.843 0.776 RG
+164.00 290.89 m 164.00 352.09 l S
+Q
+q
+0.45 w
+0.733 0.843 0.776 RG
+342.00 290.89 m 342.00 352.09 l S
+Q
+q
+0.078 0.243 0.137 rg
+BT /F2 8.60 Tf 53.00 336.59 Td (Pest Surveillance &) Tj ET
+Q
+q
+0.078 0.243 0.137 rg
+BT /F2 8.60 Tf 53.00 324.79 Td (University Norms) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 171.00 336.59 Td (CROPSAP Maharashtra \(NCIPM / State) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 171.00 324.79 Td (Dept. of Agriculture\) & MPKV Rahuri.) Tj ET
+Q
+q
+0.012 0.412 0.631 rg
+BT /F2 7.80 Tf 171.00 310.99 Td (Link: CROPSAP Maharashtra) Tj ET
+Q
+q
+0.45 w
+0.012 0.412 0.631 RG
+171.00 309.49 m 276.30 309.49 l S
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 349.00 336.59 Td (Real-time Maharashtra pest/disease) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 349.00 324.79 Td (surveillance \(soybean, cotton, chickpea,) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 349.00 312.99 Td (pigeonpea, rice\) and university-validated) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 349.00 301.19 Td (sowing calendars for Field Voice.) Tj ET
+Q
+q
+0.50 w
+1.000 1.000 1.000 rg
+0.733 0.843 0.776 RG
+46.00 226.29 503.28 64.60 re
+B
+Q
+q
+0.45 w
+0.733 0.843 0.776 RG
+164.00 226.29 m 164.00 290.89 l S
+Q
+q
+0.45 w
+0.733 0.843 0.776 RG
+342.00 226.29 m 342.00 290.89 l S
+Q
+q
+0.078 0.243 0.137 rg
+BT /F2 8.60 Tf 53.00 275.39 Td (Mandi Prices &) Tj ET
+Q
+q
+0.078 0.243 0.137 rg
+BT /F2 8.60 Tf 53.00 263.59 Td (Production Stats) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 171.00 275.39 Td (Agmarknet 2.0 & Unified Portal for) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 171.00 263.59 Td (Agricultural Statistics \(UPAg\).) Tj ET
+Q
+q
+0.012 0.412 0.631 rg
+BT /F2 7.80 Tf 171.00 249.79 Td (Link: Agmarknet 2.0) Tj ET
+Q
+q
+0.45 w
+0.012 0.412 0.631 RG
+171.00 248.29 m 251.03 248.29 l S
+Q
+q
+0.012 0.412 0.631 rg
+BT /F2 7.80 Tf 171.00 238.29 Td (Link: UPAg Portal) Tj ET
+Q
+q
+0.45 w
+0.012 0.412 0.631 RG
+171.00 236.79 m 242.60 236.79 l S
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 349.00 275.39 Td (Daily APMC mandi wholesale prices, arrivals,) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 349.00 263.59 Td (and state production statistics \(already) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 349.00 251.79 Td (stubbed in providers/agmarknet.ts\) to add) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.40 Tf 349.00 239.99 Td (economic ranking to crop suitability.) Tj ET
+Q
+q
+0.70 w
+0.996 0.953 0.780 rg
+0.851 0.627 0.176 RG
+46.00 122.29 503.28 90.00 re
+B
+Q
+q
+0.443 0.247 0.071 rg
+BT /F2 9.80 Tf 58.00 194.29 Td (Presentation Summary -- Architecture Trajectory) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.80 Tf 58.00 178.29 Td (- Today \(Balram v0.6.1\): Local Arduino Sensors + Alkaline KMnO4 & Olsen Lab Procedures + FAO-56 Physics +) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.80 Tf 58.00 165.29 Td (Open-Meteo Forecasts + Static MPKV Norms.) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.80 Tf 58.00 152.29 Td (- Future Crop Advisor: Soil Health Card STCR + ICRISAT District Yields + FAO EcoCrop Envelopes + IMD) Tj ET
+Q
+q
+0.129 0.129 0.129 rg
+BT /F1 8.80 Tf 58.00 139.29 Td (Agromet Bulletins + CROPSAP Pest Alerts + Agmarknet Mandi Prices.) Tj ET
+Q
+q
+0.50 w
+0.733 0.843 0.776 RG
+46.00 42.00 m 549.28 42.00 l S
+Q
+q
+0.278 0.333 0.412 rg
+BT /F1 7.80 Tf 46.00 30.00 Td (Balram Precision Agritech  |  Maharashtra Smallholder Decision Support \(v0.6.1\)) Tj ET
+Q
+q
+0.278 0.333 0.412 rg
+BT /F2 7.80 Tf 503.08 30.00 Td (Page 2 of 2) Tj ET
+Q
+endstream
+endobj
+15 0 obj
+<< /Type /Annot /Subtype /Link /Rect [171.00 636.49 288.94 646.99] /Border [0 0 0] /A << /S /URI /URI (https://soilhealth.dac.gov.in/nutrient-dashboard) >> >>
+endobj
+16 0 obj
+<< /Type /Annot /Subtype /Link /Rect [171.00 624.99 288.94 635.49] /Border [0 0 0] /A << /S /URI /URI (https://github.com/google-research-datasets/india-soil-health-card) >> >>
+endobj
+17 0 obj
+<< /Type /Annot /Subtype /Link /Rect [171.00 571.89 276.30 582.39] /Border [0 0 0] /A << /S /URI /URI (https://icrisat.org/resources/data/comparative-map-homepage) >> >>
+endobj
+18 0 obj
+<< /Type /Annot /Subtype /Link /Rect [171.00 510.69 272.09 521.19] /Border [0 0 0] /A << /S /URI /URI (https://www.fao.org/geospatial/data-and-tools/data-portals/ecocrop/en) >> >>
+endobj
+19 0 obj
+<< /Type /Annot /Subtype /Link /Rect [171.00 437.69 288.94 448.19] /Border [0 0 0] /A << /S /URI /URI (https://mausam.imd.gov.in/responsive/agromet_adv_ser_state_current.php) >> >>
+endobj
+20 0 obj
+<< /Type /Annot /Subtype /Link /Rect [171.00 426.19 267.88 436.69] /Border [0 0 0] /A << /S /URI /URI (https://api.imd.gov.in/public/api_reference.html) >> >>
+endobj
+21 0 obj
+<< /Type /Annot /Subtype /Link /Rect [171.00 373.09 310.00 383.59] /Border [0 0 0] /A << /S /URI /URI (https://www.bhoomigeoportal-nbsslup.in/) >> >>
+endobj
+22 0 obj
+<< /Type /Annot /Subtype /Link /Rect [171.00 361.59 280.51 372.09] /Border [0 0 0] /A << /S /URI /URI (https://docs.isric.org/globaldata/soilgrids/) >> >>
+endobj
+23 0 obj
+<< /Type /Annot /Subtype /Link /Rect [171.00 308.49 276.30 318.99] /Border [0 0 0] /A << /S /URI /URI (https://nriipm.res.in/NCIPMPDFs/FOLDERS/CROPSAPBookforWEB_.pdf) >> >>
+endobj
+24 0 obj
+<< /Type /Annot /Subtype /Link /Rect [171.00 247.29 251.03 257.79] /Border [0 0 0] /A << /S /URI /URI (https://agmarknet.gov.in/) >> >>
+endobj
+25 0 obj
+<< /Type /Annot /Subtype /Link /Rect [171.00 235.79 242.60 246.29] /Border [0 0 0] /A << /S /URI /URI (https://upag.gov.in/) >> >>
+endobj
+26 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 14 0 R /Annots [15 0 R 16 0 R 17 0 R 18 0 R 19 0 R 20 0 R 21 0 R 22 0 R 23 0 R 24 0 R 25 0 R] >>
+endobj
+xref
+0 27
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000129 00000 n 
+0000000226 00000 n 
+0000000328 00000 n 
+0000010498 00000 n 
+0000010654 00000 n 
+0000010819 00000 n 
+0000010998 00000 n 
+0000011163 00000 n 
+0000011320 00000 n 
+0000011534 00000 n 
+0000011703 00000 n 
+0000011901 00000 n 
+0000022828 00000 n 
+0000023003 00000 n 
+0000023196 00000 n 
+0000023382 00000 n 
+0000023578 00000 n 
+0000023775 00000 n 
+0000023950 00000 n 
+0000024116 00000 n 
+0000024287 00000 n 
+0000024476 00000 n 
+0000024628 00000 n 
+0000024775 00000 n 
+trailer
+<< /Size 27 /Root 1 0 R >>
+startxref
+25006
+%%EOF

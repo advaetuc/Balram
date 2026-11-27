@@ -6,7 +6,7 @@ import { WaterRibbon } from "./WaterRibbon";
 import { useEffect, useState, type FormEvent } from "react";
 import { useBalramStore } from "@/store/useBalramStore";
 import { calculateSystemRuntime, calculatePhaseWaterBreakdown, resolveDailyEt0, simulateDroughtReallocation, type DeliveryMethodPreset } from "@/lib/domain/irrigation";
-import { SQUARE_METRES_PER_ACRE, gunthasToAcresAndGunthas } from "@/lib/domain/geometry";
+import { SQUARE_METRES_PER_ACRE } from "@/lib/domain/geometry";
 import { MaharashtraCropMatrix, getCropStageKc, type CropId } from "@/config/cropMatrix";
 import { formatNumber, parseNumber, selectedWeatherDay } from "@/lib/ui/format";
 import { SectionDisclosure } from "@/components/ui/SectionDisclosure";
@@ -16,7 +16,6 @@ import { formatArea, displayPlotName } from "@/lib/domain/landUnits";
 
 export function IrrigationPanel() {
   const state = useBalramStore((value) => value);
-  const text=t(state.locale);
   // Remount the editor when switching fields or sample mode, so confirmation cannot carry across blocks.
   return <Editor key={`${state.hydrated}:${state.sampleDataActive}:${JSON.stringify(state.fieldGeometry)}:${JSON.stringify(state.cropAllocations)}`} />;
 }

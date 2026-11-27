@@ -32,16 +32,19 @@ This document is the authoritative engineering specification and operational con
 
 | Area | Key Files |
 | :--- | :--- |
-| **Tokens & Motion** | `src/styles/tokens.css`, `src/styles/tokens.json`, `src/styles/motion.css`, `src/app/globals.css`, `tailwind.config.ts` |
-| **Schemas & Store** | `src/types/domain.ts`, `src/store/useBalramStore.ts` (`PERSISTENCE_VERSION = 6`, v0–v5 migrations, read-only Sample Farm overlay), `src/lib/storage/{db,backup}.ts`, `src/mocks/fixtures.ts` |
-| **Local Multi-Farm Profiles** | `src/lib/domain/{profiles,profileNames,profileMigration,profileOperations}.ts`, `src/components/profiles/*`, `tests/profiles-{domain,store,ui}.test.ts` |
-| **Core Domain** | `src/config/{cropMatrix,i18n,providers}.ts`, `src/lib/domain/{geometry,allocation,landUnits,checkout,soilKit,soilChemistry,cropRecommendations,fieldVoice,irrigation,journey,roadmap,checkIns}.ts` |
+| **Routes & Providers** | `src/app/(app)/page.tsx`, `src/app/layout.tsx`, `src/app/api/{geocode,market,soil,weather}/route.ts`, `src/config/providers.ts`, `src/lib/api/{client,http,origin,server}.ts`, `src/lib/api/providers/{agmarknet,nominatim,openMeteo,soilGrids}.ts` |
+| **Tokens & Motion** | `src/styles/{motion.css,tokens.css,tokens.json}`, `src/app/globals.css`, `tailwind.config.ts` |
+| **Schemas & Store** | `src/types/{api,domain}.ts`, `src/store/useBalramStore.ts` (`PERSISTENCE_VERSION = 6`, v0–v5 migrations, read-only Sample Farm overlay), `src/lib/storage/{db,backup}.ts`, `src/mocks/fixtures.ts` |
+| **Local Multi-Farm Profiles** | `src/lib/domain/{profiles,profileNames,profileMigration,profileOperations}.ts`, `src/components/profiles/{FarmDialog,FarmSwitcher,MiniFarmRibbon,MyFarmsView,NameFarmView,SproutMark}.tsx`, `src/components/profiles/farmCardDetails.ts`, `tests/profiles-{domain,store,ui}.test.ts` |
+| **Core Domain** | `src/config/{cropMatrix,i18n}.ts`, `src/lib/domain/{allocation,areaConversion,calendar,checkIns,checkout,cropRecommendations,fieldId,geometry,irrigation,journey,landUnits,plotUndo,roadmap,soilChemistry,soilKit}.ts` |
+| **Field Voice** | `src/lib/domain/fieldVoice.ts`, `src/components/dashboard/AlertsCard.tsx`, `src/components/home/DailyHome.tsx`, `tests/field-voice.test.ts` |
 | **Hardware-Backed Soil Testing** | `src/components/dashboard/{BlueIntensityPicker,PresetRangesDisclosure,LcdPreview,SoilCalculationsTab}.tsx`, `src/lib/ui/soilReadout.ts`, `tests/{soil-chemistry,soil-ui}.test.ts` |
 | **Pure Visual Engines** | `src/lib/domain/viz/{barSegments,gaugeZones,waterRibbon,cropFit,calendarLayout,skyCondition,stageProgress}.ts` (ZERO React / store / clock) |
 | **Pure Visual Primitives** | `src/components/viz/{ProvenanceStroke,VizTable,VizCaption,StageIllustration,BulletGauge,WaterDayColumn,StageRail,SkyScene,CropFitTiles,CalendarRibbon}.tsx` (ZERO `useBalramStore` imports) |
 | **UI Primitives & Shell** | `src/components/ui/{AreaInput,LandBar,LandUnitToggle,ProvenanceBadge,RadioChoices,SectionDisclosure,ShareSummaryButton,FarmCardShareButton,StationIcon,ToastHost}.tsx`, `src/components/app-shell/{AppShell,Header,Footer,AboutDialog,OfflineSupport,PrivacyNotice,SkipLink}.tsx` |
-| **Feature Screens** | `src/components/journey/{JourneyShell,WeatherStation,RoadmapList,CropCalendar}.tsx`, `src/components/home/{DailyHome,TodaysSky,CheckInCard,BackupControls}.tsx`, `src/components/dashboard/{PortfolioCard,CropAdvisorCard,SoilCard,SoilGauges,AlertsCard,WeatherCard,Card}.tsx`, `src/components/crops/CropCheckoutSheet.tsx`, `src/components/irrigation/{IrrigationPanel,WaterRibbon}.tsx`, `src/components/map/{MapClient,FarmMap}.tsx`, `src/components/report/FarmReport.tsx` |
-| **Helpers & Tests** | `src/lib/ui/{format,alertStatus,farmRoadmap,shareSummary,farmCardSvg,useCssVar,useNow}.ts`, `tests/*.test.ts` (Node 22 native test runner) |
+| **Feature Screens** | `src/components/journey/{JourneyShell,WeatherStation,RoadmapList,CropCalendar}.tsx`, `src/components/home/{TodaysSky,CheckInCard,BackupControls}.tsx`, `src/components/dashboard/{PortfolioCard,CropAdvisorCard,SoilCard,SoilGauges,WeatherCard,Card}.tsx`, `src/components/crops/CropCheckoutSheet.tsx`, `src/components/irrigation/{IrrigationPanel,WaterRibbon}.tsx`, `src/components/map/{MapClient,FarmMap}.tsx`, `src/components/report/FarmReport.tsx` |
+| **UI Helpers** | `src/lib/ui/{format,alertStatus,farmRoadmap,shareSummary,farmCardSvg,useCssVar,useNow}.ts` |
+| **Other Tests** | `tests/{i18n,motion-tokens,release-a,release-b-domain,release-b-final,release-b-shell,release-v032-checkout,release-v034-design,store-v5,units,viz-engines}.test.ts` (Node native test runner) |
 
 ### Persistence v6 contract
 
@@ -69,3 +72,4 @@ git diff --check
 ```
 
 Confirm `scripts/finalize-release.mjs` prints `Release: hashed static script policies; 40 approved offline application files.` and no `.DS_Store` or `__MACOSX` artifacts exist in the checkout or are staged.
+Use `git status --short` to review the final working tree.

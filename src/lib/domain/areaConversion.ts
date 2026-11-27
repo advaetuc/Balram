@@ -17,4 +17,3 @@ export function gunthasToAcresAndGunthas(value:number):AcresAndGunthas {
  const gunthas=remainingTenths/10, roundedTotal=acres*40+gunthas;
  return {acres,gunthas,totalGunthas:roundedTotal,totalAcres:roundedTotal/40,areaSquareMetres:gunthasToSquareMetres(roundedTotal)};
 }
-export function squareMetresToAcresAndGunthas(value:number):AcresAndGunthas { return gunthasToAcresAndGunthas(squareMetresToGunthas(value)); }
