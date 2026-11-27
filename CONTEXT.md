@@ -1,10 +1,15 @@
-# CONTEXT.md — Ground-Truth Handoff Snapshot for Balram (`v0.5.0`)
+# CONTEXT.md — Ground-Truth Handoff Snapshot for Balram (`v0.6.1`)
 
-*Updated 22 November 2026 · Branch `frontend` · Persistence schema 6 · Dependencies unchanged*
+*Updated 27 November 2026 · Branch `frontend` · Persistence schema 6 · Dependencies unchanged*
 
-## 1. Current Release Milestone (`v0.5.0`)
+## 1. Current Release Milestone (`v0.6.1`) — Pune Soil Preset & Field Voice
 Balram is a local-first, zero-database, Marathi-first precision agritech web platform for Maharashtra smallholder farmers (2–10 acres), pairing physical soil-testing chemistry (1:2.5 soil-water pH, alkaline $\text{KMnO}_4$ N, Olsen molybdenum-blue P, plus Soil Health Card `kg/ha`) with offline-first visual farm planning.
 
+* **Hardware-Backed Soil Testing & Opt-In Calculations (`v0.6.0`)**
+  * **Soil Test** opens by default with E463 pH, E77A moisture, a tactile 1–5 phosphorus blue scale, and collapsible preset ranges. **Calculations** provides direct and back-titration nitrogen, Olsen 882 nm phosphorus, a TCS3200 relative optical check, a 16×2 LCD preview, and the MIT-WPU, Pune regional preset.
+  * Soil gauges and the A4 report display moisture, blue intensity, and exact zero nutrient values. The soil summary identifies readings with regional preset values, and the report includes them in planning. Optical intensity remains unvalidated and cannot determine phosphorus concentration or fertilizer doses.
+  * Persistence stays at schema 6. Older v6 soil records load with defaults for the hardware fields and calculation audit.
+* **Balram Field Voice (`v0.6.1`)** responds to farm-level soil readings before plots exist. It prioritizes moisture, fertilizer washout, acidity, and nitrogen advice and shows additional field notes on Today.
 * **Local Multi-Farm Profiles (`v0.5.0`)**
   * Up to six farms per device with unique names of up to 30 graphemes. The bilingual naming screen, Field Notebook *My Farms* gallery with crop-proportion ribbons, and header dialog switcher stay on the single offline route. Users can save an editable Pune sample copy and undo a deletion for seven seconds, pausing the countdown with hover or keyboard focus.
   * Schema v6 persists the active farm and its stashed peers atomically in one IndexedDB record. Older v0–v5 records migrate with a best-effort `balram:legacy-v5` safety copy, removed on the next healthy v6 boot. Export includes all farms, and v5/v6 imports add farms until the device reaches capacity.
@@ -21,7 +26,7 @@ Balram is a local-first, zero-database, Marathi-first precision agritech web pla
   * **Coordinate-Free 1080×1080 `FarmCard` PNG & A4 `FarmReport`:** Renders the segmented `LandBar` + plots + top actions via `data:image/svg+xml` → Canvas → PNG share/download (zero coordinates, zero CSP diff), alongside static soil, water, and calendar visuals in A4 print.
 
 ## 2. Verification Baseline & Known Manual Checks Pending
-* **Automated release gates** passed on `frontend`. `npm run typecheck` and `git diff --check` exited 0. `npm test` passed all 117 tests. `npm run build` exited 0, and `scripts/finalize-release.mjs` regenerated `public/sw.js` with hashes for the static script policies and 40 approved offline application files.
+* **Automated release gates** passed on `frontend`. `npm run typecheck` and `git diff --check` exited 0. `npm test` passed all 148 tests. `npm run build` exited 0 in the repository root, and `scripts/finalize-release.mjs` regenerated `public/sw.js` with hashes for the static script policies and 40 approved offline application files.
 * **Manual Real-Device QA Pending Before/After Vercel Deploy:**
   1. Test native Web Share (`FarmCardShareButton`) & PNG download fallback on 1–2 real Android/iOS phones (verify Devanagari canvas glyph shaping).
   2. Test A4 print preview in English and Marathi (`FarmReport`).

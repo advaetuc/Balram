@@ -9,6 +9,7 @@ import { indiaDate } from "@/lib/domain/calendar";
 import { getSeasonalCropRecommendations } from "@/lib/domain/cropRecommendations";
 import { buildSoilGauges } from "@/lib/domain/viz/gaugeZones";
 import { formatNumber } from "@/lib/ui/format";
+import { describeSoilReadout, formatSoilNutrient } from "@/lib/ui/soilReadout";
 import { useBalramStore } from "@/store/useBalramStore";
 import type { Locale, SoilKitReading, WeatherSnapshot } from "@/types/domain";
 
@@ -46,8 +47,7 @@ export function describeGauge(
     }[band];
     return { min, max, threshold, label: text.bands[band], status: statusByBand[band] };
   });
-  const pinLabel = value === null ? null
-    : value < 0.01 ? `<${formatNumber(0.01, 2, locale)}` : formatNumber(value, 2, locale);
+  const pinLabel = value === null ? null : formatSoilNutrient(value, locale);
   return {
     ...gauge, locale, label, unit, zones, pinLabel,
     aboveScale: value !== null && value > gauge.max,
@@ -67,6 +67,7 @@ function SoilGaugeResult({ saved, weatherSnapshot, now, locale, sampleDataActive
   const controlsId = useId();
   const dictionary = t(locale);
   const text = dictionary.viz.soilGauges;
+  const { moisture, blue, optical } = describeSoilReadout(saved, locale);
   const savedGauges = buildSoilGauges(saved);
   const activeReading = whatIfPh === null ? saved : { ...saved, ph: whatIfPh };
   const ph = describeGauge(savedGauges.ph, saved.ph, locale, text.ph);
@@ -96,11 +97,18 @@ function SoilGaugeResult({ saved, weatherSnapshot, now, locale, sampleDataActive
     const zone = gauge.zones[gauge.highlightedBandIndex];
     const reading = gauge.pinLabel === null ? text.chosen.replace("{0}", zone.label)
       : gauge.unit ? `${gauge.pinLabel} ${gauge.unit}` : gauge.pinLabel;
-    return [gauge.label, reading, `${zone.label} · ${dictionary.viz.status[zone.status]}`, zone.threshold];
+    const details = gauge === phosphorus && blue ? `${reading} · ${blue.label} ${blue.result}` : reading;
+    return [gauge.label, details, `${zone.label} · ${dictionary.viz.status[zone.status]}`, zone.threshold];
   });
+  if (moisture) rows.push([moisture.label, moisture.result, moisture.band, moisture.threshold]);
 
   return <figure aria-labelledby={headingId} className="mt-5 min-w-0 space-y-3">
     <h3 id={headingId} className="text-xl font-bold leading-heading text-forest">{text.title}</h3>
+    {saved.regionalPreset && <p className="text-sm font-semibold text-forest">{dictionary.soilLab.regionalPreset.source}</p>}
+    {moisture && <p className="flex flex-wrap gap-x-2 rounded-lg border border-border-strong bg-daylight px-3 py-2 text-sm">
+      <span className="font-semibold">{moisture.label}</span>
+      <span className="tabular-nums">{moisture.result}</span>
+    </p>}
     <div className={trialPh ? "hidden print:block" : undefined}>
       <BulletGauge {...ph} sample={sampleDataActive} />
     </div>
@@ -119,7 +127,7 @@ function SoilGaugeResult({ saved, weatherSnapshot, now, locale, sampleDataActive
       </div>
       {trialPh && <div className="space-y-3">
         <p className="inline-flex rounded-lg bg-amber px-3 py-2 text-sm font-bold leading-body text-ink">{text.whatIf}</p>
-        <BulletGauge {...trialPh} />
+        <BulletGauge {...trialPh} sample={sampleDataActive} />
         <div>
           <h5 className="font-bold leading-heading text-forest">{text.topCrops}</h5>
           <ol className="mt-2 list-decimal space-y-2 pl-6 text-sm leading-body">
@@ -136,6 +144,10 @@ function SoilGaugeResult({ saved, weatherSnapshot, now, locale, sampleDataActive
     </section>
     <BulletGauge {...nitrogen} sample={sampleDataActive} />
     <BulletGauge {...phosphorus} sample={sampleDataActive} />
+    {blue && saved.phosphorusKgPerHa === null && <p className="text-sm">
+      <b>{blue.label}</b> · {blue.result}
+    </p>}
+    {optical && <p className="text-sm">{dictionary.soilLab.savedOpticalNote}</p>}
     <VizTable locale={locale} caption={text.tableCaption}
       columns={[text.parameter, text.result, text.zone, text.threshold]} rows={rows} />
     <VizCaption summary={text.caption} provenance={sampleDataActive ? "sample" : "measured_by_kit"} locale={locale} />

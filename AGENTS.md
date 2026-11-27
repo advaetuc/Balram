@@ -1,6 +1,6 @@
-# AGENTS.md — System Architect & Coding Agent Contract for Balram (v0.5.0)
+# AGENTS.md — System Architect & Coding Agent Contract for Balram (v0.6.1)
 
-This document is the authoritative engineering specification and operational contract for AI coding agents (Codex, Cursor, Claude, and automated subagents) working on **Balram** (`/Users/advaet/Projects/Balram`, currently **`v0.5.0`**, **`PERSISTENCE_VERSION = 6`**). Read this file completely before modifying source code, schemas, styles, or build scripts.
+This document is the authoritative engineering specification and operational contract for AI coding agents (Codex, Cursor, Claude, and automated subagents) working on **Balram** (`/Users/advaet/Projects/Balram`, currently **`v0.6.1`** with backward-compatible **`PERSISTENCE_VERSION = 6`**). Read this file completely before modifying source code, schemas, styles, or build scripts.
 
 ---
 
@@ -17,6 +17,7 @@ This document is the authoritative engineering specification and operational con
    * Canonical storage is square metres (`fieldGeometry`) and gunthas (`cropAllocations`, `1 Acre = 40 Gunthas`). `state.landUnit` (`"acres" | "gunthas"`, default `"acres"`) controls display (`formatArea`) and input (`AreaInput`) only—never mutating stored areas or triggering `invalidate()`. Plot mutations must route through `allocation.ts` / `checkout.ts` (never writing `percentage` directly).
 5. **Invariant 5 — Explicit Data Provenance & Honest Fallbacks:**
    * Every data-bearing figure and visual carries a provenance cue (solid = farmer/kit, dashed = forecast, dotted = typical-for-season baseline, hatched = sample) + `ProvenanceBadge`. Hypothetical what-if states (pH trial, rain scale `< 100%`, drought simulator) are transient React state only, never persisted, and clearly marked illustrative.
+   * Save current soil-kit entries as `dataStatus: "screening"`. Keep the source visible for readings that use the MIT-WPU, Pune regional preset, and use sample hatching only in Sample Farm mode. Treat TCS3200 output as unvalidated relative blue intensity and never derive a phosphorus `kg/ha` value or actual fertilizer dose from it.
 6. **Invariant 6 — Privacy & Edge Security Boundary:**
    * Edge routes (`src/app/api/*/route.ts`) are `POST`-only, verify `x-forwarded-host` / same-origin, read streaming byte-capped JSON (`readJson`), and round outbound coordinates to 4 decimals (`~11 m`). Share text (`shareSummary.ts`) and Farm Card PNGs (`farmCardSvg.ts`) must **never** include coordinates or polygon geometry.
 7. **Invariant 7 — Single-Route Offline Shell, Zero New Deps & CSP Finalizer:**
@@ -27,14 +28,15 @@ This document is the authoritative engineering specification and operational con
 
 ---
 
-## 2. Live Codebase Map (`v0.5.0`)
+## 2. Live Codebase Map (`v0.6.1`)
 
 | Area | Key Files |
 | :--- | :--- |
 | **Tokens & Motion** | `src/styles/tokens.css`, `src/styles/tokens.json`, `src/styles/motion.css`, `src/app/globals.css`, `tailwind.config.ts` |
 | **Schemas & Store** | `src/types/domain.ts`, `src/store/useBalramStore.ts` (`PERSISTENCE_VERSION = 6`, v0–v5 migrations, read-only Sample Farm overlay), `src/lib/storage/{db,backup}.ts`, `src/mocks/fixtures.ts` |
 | **Local Multi-Farm Profiles** | `src/lib/domain/{profiles,profileNames,profileMigration,profileOperations}.ts`, `src/components/profiles/*`, `tests/profiles-{domain,store,ui}.test.ts` |
-| **Core Domain** | `src/config/{cropMatrix,i18n,providers}.ts`, `src/lib/domain/{geometry,allocation,landUnits,checkout,soilKit,cropRecommendations,fieldVoice,irrigation,journey,roadmap,checkIns}.ts` |
+| **Core Domain** | `src/config/{cropMatrix,i18n,providers}.ts`, `src/lib/domain/{geometry,allocation,landUnits,checkout,soilKit,soilChemistry,cropRecommendations,fieldVoice,irrigation,journey,roadmap,checkIns}.ts` |
+| **Hardware-Backed Soil Testing** | `src/components/dashboard/{BlueIntensityPicker,PresetRangesDisclosure,LcdPreview,SoilCalculationsTab}.tsx`, `src/lib/ui/soilReadout.ts`, `tests/{soil-chemistry,soil-ui}.test.ts` |
 | **Pure Visual Engines** | `src/lib/domain/viz/{barSegments,gaugeZones,waterRibbon,cropFit,calendarLayout,skyCondition,stageProgress}.ts` (ZERO React / store / clock) |
 | **Pure Visual Primitives** | `src/components/viz/{ProvenanceStroke,VizTable,VizCaption,StageIllustration,BulletGauge,WaterDayColumn,StageRail,SkyScene,CropFitTiles,CalendarRibbon}.tsx` (ZERO `useBalramStore` imports) |
 | **UI Primitives & Shell** | `src/components/ui/{AreaInput,LandBar,LandUnitToggle,ProvenanceBadge,RadioChoices,SectionDisclosure,ShareSummaryButton,FarmCardShareButton,StationIcon,ToastHost}.tsx`, `src/components/app-shell/{AppShell,Header,Footer,AboutDialog,OfflineSupport,PrivacyNotice,SkipLink}.tsx` |
@@ -46,6 +48,7 @@ This document is the authoritative engineering specification and operational con
 * Keep profile metadata, `activeProfileId`, the active farm slice, and `farmStash` in the single `balram:farm` record. Commit each profile mutation and additive import atomically in one store update and one IndexedDB write. `locale` and `landUnit` are shared across farms. Enforce the six-farm cap and validate unique names of up to 30 graphemes using the profile domain functions.
 * Keep migration from v0–v5 pure. During persistent hydration, save the original legacy envelope once to `balram:legacy-v5` on a best-effort basis before the v6 write. Skip the safety copy in memory-only mode. Remove it only after the next successful hydration of an already-v6 record.
 * Keep Sample Farm read-only. Editable sample copies are independent profiles with a new field ID and cleared sample weather. Import v5 and v6 backups additively within the six-farm cap.
+* Older v6 soil readings parse with defaults for moisture, blue intensity, data status, and the calculation audit. Zero nutrient quantities are valid.
 
 ---
 

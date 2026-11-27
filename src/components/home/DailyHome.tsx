@@ -5,6 +5,8 @@ import { useBalramStore } from "@/store/useBalramStore";
 import { generateFieldVoiceAdvisories } from "@/lib/domain/fieldVoice";
 import { farmRoadmap } from "@/lib/ui/farmRoadmap";
 import { MapClient } from "@/components/map/MapClient";
+import { FieldVoiceNote } from "@/components/dashboard/AlertsCard";
+import { SectionDisclosure } from "@/components/ui/SectionDisclosure";
 import { PortfolioCard } from "@/components/dashboard/PortfolioCard";
 import { SoilCard } from "@/components/dashboard/SoilCard";
 import { IrrigationPanel } from "@/components/irrigation/IrrigationPanel";
@@ -79,7 +81,10 @@ export function DailyHome({ onSetup }: { onSetup: () => void }) {
     setFarmNav({tab:next,dir:nextIndex>previousIndex?"fwd":nextIndex<previousIndex?"back":"none"});
   };
   const mr=state.locale==="mr",items=farmRoadmap(state),thisWeek=items.filter(item=>item.bucket==="this_week");
-  const advisory=generateFieldVoiceAdvisories({allocations:state.cropAllocations,soilKitReading:state.soilKitReading,weatherSnapshot:state.weatherSnapshot,nowMs:state.now})[0];
+  const [primaryAdvisory, ...moreAdvisories] = generateFieldVoiceAdvisories({
+    allocations: state.cropAllocations, soilKitReading: state.soilKitReading,
+    weatherSnapshot: state.weatherSnapshot, nowMs: state.now,
+  }).slice(0, 5);
   const irrigationItems=items.filter(item=>item.kind==="irrigation");
   return <div className="pb-24 max-md:pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-6 print:pb-0">
     <div className="mb-5 flex flex-wrap items-end justify-between gap-3 print:hidden"><div><p className="text-sm leading-body font-bold uppercase tracking-widest text-forest">{mr?"माझे शेत":"My Farm"}</p><h1 className="mt-1 text-3xl leading-heading font-bold">{state.farmProfile?.name??(mr?"आजचे नियोजन":"Today’s plan")}</h1></div></div>
@@ -92,7 +97,15 @@ export function DailyHome({ onSetup }: { onSetup: () => void }) {
         <TodaysSky />
         {!state.sampleDataActive&&state.cropAllocations.length>0&&<CheckInCard/>}
         {state.soilSkipped&&!state.soilKitReading&&<p className="notice">{text.soilNotTested}</p>}
-        {advisory&&<article className="bento-card border-l-4 border-l-amber"><div className="flex flex-wrap items-center justify-between gap-2"><h2 className="text-xl font-bold">{advisory.headline[state.locale]}</h2>{state.sampleDataActive&&<ProvenanceBadge provenance="sample" locale={state.locale}/>}</div><p className="mt-2 leading-6">{advisory.message[state.locale]}</p><p className="mt-2 font-semibold">{advisory.actionLabel[state.locale]}</p><details className="mt-2"><summary>{text.whyAdvice}</summary><p className="rounded-lg bg-daylight p-3 text-sm">{advisory.reason[state.locale]}</p></details></article>}
+        {primaryAdvisory && <div className="space-y-3">
+          <FieldVoiceNote advisory={primaryAdvisory} locale={state.locale} featured sample={state.sampleDataActive} />
+          {moreAdvisories.length > 0 && <SectionDisclosure title={text.fieldVoice.more.replace("{0}", String(moreAdvisories.length))}>
+            <div className="space-y-3">
+              {moreAdvisories.map(advisory => <FieldVoiceNote key={advisory.id} advisory={advisory}
+                locale={state.locale} sample={state.sampleDataActive} />)}
+            </div>
+          </SectionDisclosure>}
+        </div>}
         <section className="bento-card"><h2 className="text-xl font-bold">{text.todayWater}</h2><WaterRibbon compact />{irrigationItems.length?<ul className="mt-3 space-y-3">{irrigationItems.map(item=><li key={item.id} className="rounded-xl border border-forest/15 p-3"><div className="flex flex-wrap items-start justify-between gap-2"><b>{item.title[state.locale]}</b><ProvenanceBadge provenance={item.provenance} locale={state.locale}/></div><p className="mt-1 text-sm">{item.detail[state.locale]}</p></li>)}</ul>:<p className="mt-2 text-sm">{mr?"पाण्याचा अंदाज पाहण्यासाठी जमीन व पीक प्लॉट जोडा.":"Add field land and crop plots to see a water estimate."}</p>}</section>
         <section className="bento-card"><h2 className="text-xl font-bold">{text.nextActions}</h2><div className="mt-3"><RoadmapList items={thisWeek} locale={state.locale}/></div></section>
       </div>}

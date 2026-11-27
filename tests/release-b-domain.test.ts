@@ -37,7 +37,8 @@ test("Soil Health Card classifiers respect published threshold boundaries",()=>{
  assert.equal(classifyNitrogenKgPerHa(560),"medium");assert.equal(classifyNitrogenKgPerHa(561),"high");
  assert.equal(classifyPhosphorusKgPerHa(9.9),"low");assert.equal(classifyPhosphorusKgPerHa(10),"medium");
  assert.equal(classifyPhosphorusKgPerHa(25),"medium");assert.equal(classifyPhosphorusKgPerHa(25.1),"high");
- assert.throws(()=>classifyNitrogenKgPerHa(0));assert.throws(()=>classifyPhosphorusKgPerHa(Number.NaN));
+ assert.equal(classifyNitrogenKgPerHa(0),"low");assert.throws(()=>classifyNitrogenKgPerHa(-1));
+ assert.equal(classifyPhosphorusKgPerHa(0),"low");assert.throws(()=>classifyPhosphorusKgPerHa(Number.NaN));
 });
 
 test("crop recommendations award active sowing-window fit over broad-season fit",()=>{
